@@ -1,0 +1,106 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=/api
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    environment:
+      # 컨테이너 내부에서는 서비스명으로 접속 (env_file 값을 오버라이드)
+      - DATABASE_URL=mysql+asyncmy://${MYSQL_USER:-myfinance}:${MYSQL_PASSWORD:-myfinance}@db:3306/${MYSQL_DB:-myfinance}?charset=utf8mb4
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_USER=${MYSQL_USER:-myfinance}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-myfinance}
+      - MYSQL_DATABASE=${MYSQL_DB:-myfinance}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  migrate:
+    profiles:
+      - migration
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: alembic upgrade head
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    environment:
+      - DATABASE_URL=mysql+asyncmy://${MYSQL_USER:-myfinance}:${MYSQL_PASSWORD:-myfinance}@db:3306/${MYSQL_DB:-myfinance}?charset=utf8mb4
+    depends_on:
+      db:
+        condition: service_healthy
+
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery_app worker --loglevel=info
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    environment:
+      - DATABASE_URL=mysql+asyncmy://${MYSQL_USER:-myfinance}:${MYSQL_PASSWORD:-myfinance}@db:3306/${MYSQL_DB:-myfinance}?charset=utf8mb4
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.core.celery_app beat --loglevel=info
+    volumes:
+      - ./backend:/app
+    env_file: .env
+    environment:
+      - DATABASE_URL=mysql+asyncmy://${MYSQL_USER:-myfinance}:${MYSQL_PASSWORD:-myfinance}@db:3306/${MYSQL_DB:-myfinance}?charset=utf8mb4
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - celery-worker
+
+volumes:
+  mysql_data:
+  redis_data:

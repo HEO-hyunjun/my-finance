@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build
+frontend/dist/
+*.egg-info/
+
+# Environment
+.env
+.env.local
+frontend/.env.local
+backend/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Coverage
+htmlcov/
+.coverage
+coverage/
+
+/**/.omc
+/**/.claude
+.bkit
+
+# Celery
+celerybeat-schedule
