@@ -1,0 +1,201 @@
+import { useState, useEffect } from 'react';
+import { useCategories } from '@/features/budget/api';
+import { useCarryoverSettings, useUpsertCarryoverSetting } from '../api/carryover';
+import type { CarryoverType, CarryoverSettingRequest } from '@/shared/types';
+import { CARRYOVER_TYPE_LABELS } from '@/shared/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Label } from '@/shared/ui/label';
+import { Input } from '@/shared/ui/input';
+import { Button } from '@/shared/ui/button';
+import { Skeleton } from '@/shared/ui/skeleton';
+
+const CARRYOVER_TYPES: CarryoverType[] = ['expire', 'next_month', 'savings', 'investment', 'deposit'];
+
+interface CategoryRowProps {
+  categoryId: string;
+  categoryName: string;
+  currentType: CarryoverType;
+  currentLimit?: number;
+  currentSavingsName?: string;
+  currentAnnualRate?: number;
+  onSave: (data: CarryoverSettingRequest) => void;
+  isSaving: boolean;
+}
+
+function CategoryRow({
+  categoryId,
+  categoryName,
+  currentType,
+  currentLimit,
+  currentSavingsName,
+  currentAnnualRate,
+  onSave,
+  isSaving,
+}: CategoryRowProps) {
+  const [type, setType] = useState<CarryoverType>(currentType);
+  const [limit, setLimit] = useState(currentLimit?.toString() ?? '');
+  const [savingsName, setSavingsName] = useState(currentSavingsName ?? '');
+  const [annualRate, setAnnualRate] = useState(currentAnnualRate?.toString() ?? '');
+
+  useEffect(() => {
+    setType(currentType);
+    setLimit(currentLimit?.toString() ?? '');
+    setSavingsName(currentSavingsName ?? '');
+    setAnnualRate(currentAnnualRate?.toString() ?? '');
+  }, [currentType, currentLimit, currentSavingsName, currentAnnualRate]);
+
+  const hasChanges =
+    type !== currentType ||
+    (type === 'next_month' && limit !== (currentLimit?.toString() ?? '')) ||
+    ((type === 'savings' || type === 'deposit') && savingsName !== (currentSavingsName ?? '')) ||
+    (type === 'deposit' && annualRate !== (currentAnnualRate?.toString() ?? ''));
+
+  const handleSave = () => {
+    const data: CarryoverSettingRequest = {
+      category_id: categoryId,
+      carryover_type: type,
+    };
+    if (type === 'next_month' && limit) {
+      data.carryover_limit = Number(limit);
+    }
+    if ((type === 'savings' || type === 'deposit') && savingsName) {
+      data.target_savings_name = savingsName;
+    }
+    if (type === 'deposit' && annualRate) {
+      data.target_annual_rate = Number(annualRate);
+    }
+    onSave(data);
+  };
+
+  return (
+    <div className="rounded-md border border-border px-4 py-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">{categoryName}</span>
+        <div className="flex items-center gap-2">
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as CarryoverType)}
+            className="rounded-md border border-border bg-background px-2 py-1 text-sm"
+          >
+            {CARRYOVER_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {CARRYOVER_TYPE_LABELS[t]}
+              </option>
+            ))}
+          </select>
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={!hasChanges || isSaving}
+          >
+            {isSaving ? '저장...' : '저장'}
+          </Button>
+        </div>
+      </div>
+
+      {type === 'next_month' && (
+        <div>
+          <Label className="text-xs">이월 한도 (원)</Label>
+          <Input
+            type="number"
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+            placeholder="한도 없음"
+            min="0"
+          />
+        </div>
+      )}
+
+      {(type === 'savings' || type === 'deposit') && (
+        <div>
+          <Label className="text-xs">
+            대상 {type === 'savings' ? '적금' : '예금'} 이름
+          </Label>
+          <Input
+            type="text"
+            value={savingsName}
+            onChange={(e) => setSavingsName(e.target.value)}
+            placeholder={`${type === 'savings' ? '적금' : '예금'}명 입력`}
+          />
+        </div>
+      )}
+
+      {type === 'deposit' && (
+        <div>
+          <Label className="text-xs">연 이율 (%)</Label>
+          <Input
+            type="number"
+            value={annualRate}
+            onChange={(e) => setAnnualRate(e.target.value)}
+            placeholder="예: 3.5"
+            step="0.1"
+            min="0"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CarryoverSection() {
+  const { data: categories, isLoading: categoriesLoading } = useCategories();
+  const { data: settings, isLoading: settingsLoading } = useCarryoverSettings();
+  const upsertSetting = useUpsertCarryoverSetting();
+
+  const isLoading = categoriesLoading || settingsLoading;
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-40" />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const activeCategories = categories?.filter((c) => c.is_active) ?? [];
+  const settingsMap = new Map(settings?.map((s) => [s.category_id, s]) ?? []);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>예산 이월 정책</CardTitle>
+        <p className="text-xs text-muted-foreground mt-1">
+          카테고리별 남은 예산의 처리 방식을 설정합니다.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {activeCategories.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">
+            활성화된 예산 카테고리가 없습니다.
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {activeCategories.map((category) => {
+              const setting = settingsMap.get(category.id);
+              return (
+                <CategoryRow
+                  key={category.id}
+                  categoryId={category.id}
+                  categoryName={category.name}
+                  currentType={setting?.carryover_type ?? 'expire'}
+                  currentLimit={setting?.carryover_limit}
+                  currentSavingsName={setting?.target_savings_name}
+                  currentAnnualRate={setting?.target_annual_rate}
+                  onSave={(data) => upsertSetting.mutate(data)}
+                  isSaving={upsertSetting.isPending}
+                />
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
