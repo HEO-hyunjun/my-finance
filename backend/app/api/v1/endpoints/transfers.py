@@ -26,6 +26,7 @@ class TransferRequest(BaseModel):
     source_asset_id: uuid.UUID
     target_asset_id: uuid.UUID
     amount: Decimal = Field(gt=0)
+    exchange_rate: Decimal | None = None  # 이종통화 이체 시 환율
     memo: str | None = None
     transacted_at: datetime | None = None
 
@@ -53,6 +54,7 @@ async def transfer(
         source_asset_id=data.source_asset_id,
         target_asset_id=data.target_asset_id,
         amount=data.amount,
+        exchange_rate=data.exchange_rate,
         memo=data.memo,
         transacted_at=data.transacted_at,
     )

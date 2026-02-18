@@ -935,6 +935,7 @@ export interface TransferRequest {
   source_asset_id: string;
   target_asset_id: string;
   amount: number;
+  exchange_rate?: number;
   memo?: string;
   transacted_at?: string;
 }

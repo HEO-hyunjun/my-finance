@@ -12,16 +12,25 @@ from app.models.auto_transfer import AutoTransfer
 from app.models.transaction import Transaction, TransactionType
 
 
+_USD_TYPES = {"stock_us", "cash_usd"}
+_KRW_TYPES = {"stock_kr", "cash_krw", "gold", "deposit", "savings", "parking"}
+
+
+def _asset_currency(asset: Asset) -> str:
+    return "USD" if asset.asset_type.value in _USD_TYPES else "KRW"
+
+
 async def execute_transfer(
     db: AsyncSession,
     user_id: uuid.UUID,
     source_asset_id: uuid.UUID,
     target_asset_id: uuid.UUID,
     amount: Decimal,
+    exchange_rate: Decimal | None = None,
     memo: str | None = None,
     transacted_at: datetime | None = None,
 ) -> dict:
-    """이체 실행: 출처에서 WITHDRAW + 대상에 DEPOSIT 생성"""
+    """이체 실행: 출처에서 WITHDRAW + 대상에 DEPOSIT 생성 (이종통화 환율 지원)"""
     if source_asset_id == target_asset_id:
         raise HTTPException(status_code=400, detail="Same source and target asset")
 
@@ -29,8 +38,30 @@ async def execute_transfer(
     source = await _get_user_asset(db, user_id, source_asset_id)
     target = await _get_user_asset(db, user_id, target_asset_id)
 
+    source_currency = _asset_currency(source)
+    target_currency = _asset_currency(target)
+    cross_currency = source_currency != target_currency
+
+    if cross_currency and not exchange_rate:
+        raise HTTPException(
+            status_code=400,
+            detail="Exchange rate required for cross-currency transfer",
+        )
+
     ts = transacted_at or datetime.now(timezone.utc)
-    transfer_memo = memo or f"{source.name} → {target.name} 이체"
+
+    # 입금 금액 계산
+    if cross_currency and exchange_rate:
+        if source_currency == "KRW":
+            # KRW → USD: 원화 출금, 달러 입금
+            deposit_amount = amount / exchange_rate
+        else:
+            # USD → KRW: 달러 출금, 원화 입금
+            deposit_amount = amount * exchange_rate
+        transfer_memo = memo or f"{source.name} → {target.name} 환전이체 (환율: {exchange_rate})"
+    else:
+        deposit_amount = amount
+        transfer_memo = memo or f"{source.name} → {target.name} 이체"
 
     # 출금
     withdraw_tx = Transaction(
@@ -39,7 +70,7 @@ async def execute_transfer(
         type=TransactionType.WITHDRAW,
         quantity=amount,
         unit_price=Decimal("1"),
-        currency="KRW",
+        currency=source_currency,
         memo=transfer_memo,
         transacted_at=ts,
     )
@@ -48,9 +79,9 @@ async def execute_transfer(
         user_id=user_id,
         asset_id=target_asset_id,
         type=TransactionType.DEPOSIT,
-        quantity=amount,
+        quantity=deposit_amount,
         unit_price=Decimal("1"),
-        currency="KRW",
+        currency=target_currency,
         memo=transfer_memo,
         transacted_at=ts,
     )
@@ -58,11 +89,15 @@ async def execute_transfer(
     db.add(deposit_tx)
     await db.commit()
 
-    return {
+    result = {
         "source": source.name,
         "target": target.name,
         "amount": float(amount),
+        "deposit_amount": float(deposit_amount),
     }
+    if cross_currency:
+        result["exchange_rate"] = float(exchange_rate)
+    return result
 
 
 # ── 자동이체 CRUD ──

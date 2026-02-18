@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T12:05:39.519Z",
+  "lastUpdated": "2026-02-18T13:13:17.115Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -84,7 +84,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-18T11:48:15.546Z"
+        "lastUpdated": "2026-02-18T13:11:13.965Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
     },
@@ -188,9 +188,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-18T11:49:57.549Z"
+        "lastUpdated": "2026-02-18T13:13:17.115Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/assets/index.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/TransferModal.tsx"
     },
     "budget": {
       "phase": "do",
@@ -368,7 +368,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:44.088Z",
-        "lastUpdated": "2026-02-18T11:43:14.569Z"
+        "lastUpdated": "2026-02-18T13:10:46.451Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/api/v1/endpoints/transfers.py"
     },
@@ -745,7 +745,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-18T11:43:06.303Z",
-        "lastUpdated": "2026-02-18T11:43:06.303Z"
+        "lastUpdated": "2026-02-18T13:11:07.729Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/transfer_service.py"
     }
@@ -758,7 +758,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T12:05:39.519Z"
+    "lastActivity": "2026-02-18T13:13:17.115Z"
   },
   "history": [
     {
@@ -7448,6 +7448,36 @@
     {
       "timestamp": "2026-02-18T12:05:39.518Z",
       "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T13:10:40.754Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T13:10:46.451Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T13:11:07.729Z",
+      "feature": "transfer_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T13:11:13.965Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T13:13:17.115Z",
+      "feature": "assets",
       "phase": "do",
       "action": "updated"
     }
