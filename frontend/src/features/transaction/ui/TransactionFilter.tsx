@@ -16,6 +16,7 @@ interface TransactionFilterProps {
   onFilterChange: (filters: {
     asset_type?: string;
     tx_type?: string;
+    memo?: string;
     start_date?: string;
     end_date?: string;
   }) => void;
@@ -42,6 +43,7 @@ const TX_TYPE_OPTIONS: { value: string; label: string }[] = [
 export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
   const [assetType, setAssetType] = useState(ALL_VALUE);
   const [txType, setTxType] = useState(ALL_VALUE);
+  const [memo, setMemo] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -49,6 +51,7 @@ export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
     onFilterChange({
       asset_type: assetType !== ALL_VALUE ? assetType : undefined,
       tx_type: txType !== ALL_VALUE ? txType : undefined,
+      memo: memo || undefined,
       start_date: startDate || undefined,
       end_date: endDate || undefined,
     });
@@ -57,6 +60,7 @@ export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
   const handleReset = () => {
     setAssetType(ALL_VALUE);
     setTxType(ALL_VALUE);
+    setMemo('');
     setStartDate('');
     setEndDate('');
     onFilterChange({});
@@ -98,6 +102,18 @@ export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* 메모 검색 */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">메모 검색</Label>
+            <Input
+              type="text"
+              placeholder="검색어 입력"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              className="w-[180px]"
+            />
           </div>
 
           {/* 시작일 */}

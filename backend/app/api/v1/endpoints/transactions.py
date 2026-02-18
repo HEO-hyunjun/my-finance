@@ -26,6 +26,7 @@ async def list_transactions(
     type: TransactionType | None = Query(default=None),
     start_date: datetime | None = Query(default=None),
     end_date: datetime | None = Query(default=None),
+    memo: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -39,6 +40,7 @@ async def list_transactions(
         tx_type=type,
         start_date=start_date,
         end_date=end_date,
+        memo=memo,
         page=page,
         per_page=per_page,
     )

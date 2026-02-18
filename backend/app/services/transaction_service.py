@@ -74,6 +74,7 @@ async def get_transactions(
     tx_type: TransactionType | None = None,
     start_date=None,
     end_date=None,
+    memo: str | None = None,
     page: int = 1,
     per_page: int = 20,
 ) -> TransactionListResponse:
@@ -87,6 +88,9 @@ async def get_transactions(
         base = base.where(Transaction.transacted_at >= start_date)
     if end_date:
         base = base.where(Transaction.transacted_at <= end_date)
+    if memo:
+        for word in memo.split():
+            base = base.where(Transaction.memo.ilike(f"%{word}%"))
 
     # asset_type 필터: join 필요
     if asset_type:

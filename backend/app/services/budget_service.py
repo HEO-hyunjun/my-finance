@@ -267,6 +267,7 @@ async def get_expenses(
     end_date: date | None = None,
     page: int = 1,
     per_page: int = 20,
+    memo: str | None = None,
 ) -> ExpenseListResponse:
     base = select(Expense).where(Expense.user_id == user_id)
 
@@ -276,6 +277,9 @@ async def get_expenses(
         base = base.where(Expense.spent_at >= start_date)
     if end_date:
         base = base.where(Expense.spent_at <= end_date)
+    if memo:
+        for word in memo.split():
+            base = base.where(Expense.memo.ilike(f"%{word}%"))
 
     # 총 개수
     count_stmt = select(func.count()).select_from(base.subquery())

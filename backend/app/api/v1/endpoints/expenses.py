@@ -23,13 +23,14 @@ async def list_expenses(
     category_id: uuid.UUID | None = Query(default=None),
     start: date | None = Query(default=None),
     end: date | None = Query(default=None),
+    memo: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return await budget_service.get_expenses(
-        db, current_user.id, category_id, start, end, page, per_page,
+        db, current_user.id, category_id, start, end, page, per_page, memo=memo,
     )
 
 

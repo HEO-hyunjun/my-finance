@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T10:02:46.001Z",
+  "lastUpdated": "2026-02-18T10:05:46.758Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -200,9 +200,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-18T10:02:46.001Z"
+        "lastUpdated": "2026-02-18T10:05:27.568Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/api/index.ts"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/ExpenseFilter.tsx"
     },
     "news": {
       "phase": "do",
@@ -367,9 +367,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:44.088Z",
-        "lastUpdated": "2026-02-18T10:01:34.472Z"
+        "lastUpdated": "2026-02-18T10:05:05.850Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/api/v1/endpoints/expenses.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/api/v1/endpoints/transactions.py"
     },
     "alembic": {
       "phase": "do",
@@ -406,7 +406,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T14:08:54.900Z",
-        "lastUpdated": "2026-02-15T11:23:19.410Z"
+        "lastUpdated": "2026-02-18T10:05:09.459Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/transaction_service.py"
     },
@@ -445,7 +445,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T22:30:18.478Z",
-        "lastUpdated": "2026-02-18T10:01:12.898Z"
+        "lastUpdated": "2026-02-18T10:04:58.399Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/budget_service.py"
     },
@@ -614,7 +614,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:42:28.898Z",
-        "lastUpdated": "2026-02-16T07:49:41.896Z"
+        "lastUpdated": "2026-02-18T10:05:46.758Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/transaction/ui/TransactionFilter.tsx"
     },
@@ -744,7 +744,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T10:02:46.001Z"
+    "lastActivity": "2026-02-18T10:05:46.758Z"
   },
   "history": [
     {
@@ -6816,6 +6816,102 @@
     {
       "timestamp": "2026-02-18T10:02:46.001Z",
       "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:04:53.561Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:04:55.214Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:04:58.399Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:04.721Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:05.850Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:09.459Z",
+      "feature": "transaction_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:21.122Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:22.857Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:24.317Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:25.345Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:27.568Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:40.000Z",
+      "feature": "transaction",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:41.686Z",
+      "feature": "transaction",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:43.118Z",
+      "feature": "transaction",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:44.334Z",
+      "feature": "transaction",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:05:46.758Z",
+      "feature": "transaction",
       "phase": "do",
       "action": "updated"
     }

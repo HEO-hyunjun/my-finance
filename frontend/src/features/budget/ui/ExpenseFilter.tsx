@@ -14,6 +14,7 @@ import {
 
 export interface ExpenseFilterValues {
   category_id?: string;
+  memo?: string;
   start?: string;
   end?: string;
 }
@@ -27,6 +28,7 @@ const ALL_VALUE = '__all__';
 
 export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps) {
   const [categoryId, setCategoryId] = useState(ALL_VALUE);
+  const [memo, setMemo] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -43,6 +45,7 @@ export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps
   const handleApply = () => {
     onFilterChange({
       category_id: categoryId !== ALL_VALUE ? categoryId : undefined,
+      memo: memo || undefined,
       start: startDate || undefined,
       end: endDate || undefined,
     });
@@ -50,6 +53,7 @@ export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps
 
   const handleReset = () => {
     setCategoryId(ALL_VALUE);
+    setMemo('');
     setStartDate('');
     setEndDate('');
     onFilterChange({});
@@ -74,6 +78,18 @@ export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* 메모 검색 */}
+          <div className="flex flex-col gap-1.5">
+            <Label className="text-xs">메모 검색</Label>
+            <Input
+              type="text"
+              placeholder="검색어 입력"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              className="w-[180px]"
+            />
           </div>
 
           {/* 시작일 */}
