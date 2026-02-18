@@ -234,7 +234,9 @@ export function useCreateFixedExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -257,7 +259,9 @@ export function useUpdateFixedExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -270,7 +274,9 @@ export function useDeleteFixedExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }
@@ -286,7 +292,9 @@ export function useToggleFixedExpense() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
+      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
   });
 }

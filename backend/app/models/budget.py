@@ -83,6 +83,12 @@ class Expense(Base):
         Enum(PaymentMethod, name="payment_method_enum", native_enum=False), nullable=True
     )
     tags: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fixed_expense_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("fixed_expenses.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     spent_at: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -91,6 +97,9 @@ class Expense(Base):
     # Relationships
     category: Mapped["BudgetCategory"] = relationship(
         "BudgetCategory", back_populates="expenses"
+    )
+    fixed_expense: Mapped["FixedExpense | None"] = relationship(
+        "FixedExpense", foreign_keys=[fixed_expense_id]
     )
 
 

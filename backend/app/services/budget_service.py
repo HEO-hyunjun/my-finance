@@ -2,10 +2,11 @@ import uuid
 from datetime import date
 
 from fastapi import HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.budget import BudgetCategory, Expense, FixedExpense, Installment
+from app.models.user import User
 from app.services.budget_period import get_budget_period
 from app.schemas.budget import (
     BudgetCategoryCreate,
@@ -388,8 +389,20 @@ async def get_budget_summary(
     )
     total_inst = float((await db.execute(inst_stmt)).scalar() or 0)
 
+    # 고정비 자동 Expense 합계 (fixed_expense_id IS NOT NULL)
+    auto_fixed_stmt = (
+        select(func.coalesce(func.sum(Expense.amount), 0))
+        .where(
+            Expense.user_id == user_id,
+            Expense.fixed_expense_id.isnot(None),
+            Expense.spent_at >= period_start,
+            Expense.spent_at <= period_end,
+        )
+    )
+    total_auto_fixed_spent = float((await db.execute(auto_fixed_stmt)).scalar() or 0)
+
     variable_budget = total_budget - total_fixed - total_inst
-    variable_spent = total_spent  # 향후 고정비/할부금 자동 기록 제외 가능
+    variable_spent = total_spent - total_auto_fixed_spent
     variable_remaining = variable_budget - variable_spent
 
     return BudgetSummaryResponse(
@@ -411,6 +424,56 @@ async def get_budget_summary(
 # ──────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────
+
+
+async def _get_current_period_for_user(
+    db: AsyncSession, user_id: uuid.UUID
+) -> tuple[date, date]:
+    """User.salary_day 기반 현재 예산 기간 반환."""
+    user = await db.get(User, user_id)
+    salary_day = user.salary_day if user else 1
+    return get_budget_period(date.today(), salary_day)
+
+
+async def _upsert_auto_expense_for_fixed(
+    db: AsyncSession, fe: FixedExpense, period_start: date
+) -> None:
+    """고정비에 대한 자동 Expense를 upsert (insert or update)."""
+    stmt = select(Expense).where(
+        Expense.fixed_expense_id == fe.id,
+        Expense.spent_at == period_start,
+    )
+    existing = (await db.execute(stmt)).scalar_one_or_none()
+
+    if existing:
+        existing.amount = fe.amount
+        existing.category_id = fe.category_id
+        existing.payment_method = fe.payment_method
+        existing.memo = f"[고정] {fe.name}"
+    else:
+        expense = Expense(
+            user_id=fe.user_id,
+            category_id=fe.category_id,
+            amount=fe.amount,
+            memo=f"[고정] {fe.name}",
+            payment_method=fe.payment_method,
+            fixed_expense_id=fe.id,
+            spent_at=period_start,
+        )
+        db.add(expense)
+
+
+async def _delete_auto_expense_for_fixed(
+    db: AsyncSession, fe_id: uuid.UUID, period_start: date
+) -> None:
+    """현재 기간의 자동 Expense를 삭제."""
+    stmt = select(Expense).where(
+        Expense.fixed_expense_id == fe_id,
+        Expense.spent_at == period_start,
+    )
+    existing = (await db.execute(stmt)).scalar_one_or_none()
+    if existing:
+        await db.delete(existing)
 
 
 async def _get_user_category(
@@ -507,6 +570,12 @@ async def create_fixed_expense(
         payment_method=data.payment_method,
     )
     db.add(fe)
+    await db.flush()
+
+    # 자동 Expense 생성
+    period_start, _ = await _get_current_period_for_user(db, user_id)
+    await _upsert_auto_expense_for_fixed(db, fe, period_start)
+
     await db.commit()
     await db.refresh(fe)
     return _fixed_expense_to_response(fe, category)
@@ -527,6 +596,11 @@ async def update_fixed_expense(
     for field, value in update_data.items():
         setattr(fe, field, value)
 
+    # 자동 Expense 동기화 (amount/category/payment_method 변경 시)
+    if fe.is_active:
+        period_start, _ = await _get_current_period_for_user(db, user_id)
+        await _upsert_auto_expense_for_fixed(db, fe, period_start)
+
     await db.commit()
     await db.refresh(fe)
     category = await db.get(BudgetCategory, fe.category_id)
@@ -537,6 +611,11 @@ async def delete_fixed_expense(
     db: AsyncSession, user_id: uuid.UUID, fe_id: uuid.UUID
 ) -> None:
     fe = await _get_user_fixed_expense(db, user_id, fe_id)
+
+    # 현재 기간의 자동 Expense 삭제
+    period_start, _ = await _get_current_period_for_user(db, user_id)
+    await _delete_auto_expense_for_fixed(db, fe.id, period_start)
+
     await db.delete(fe)
     await db.commit()
 
@@ -546,6 +625,15 @@ async def toggle_fixed_expense(
 ) -> FixedExpenseResponse:
     fe = await _get_user_fixed_expense(db, user_id, fe_id)
     fe.is_active = not fe.is_active
+
+    period_start, _ = await _get_current_period_for_user(db, user_id)
+    if fe.is_active:
+        # 활성화 → 자동 Expense 생성
+        await _upsert_auto_expense_for_fixed(db, fe, period_start)
+    else:
+        # 비활성화 → 현재 기간 자동 Expense 삭제
+        await _delete_auto_expense_for_fixed(db, fe.id, period_start)
+
     await db.commit()
     await db.refresh(fe)
     category = await db.get(BudgetCategory, fe.category_id)

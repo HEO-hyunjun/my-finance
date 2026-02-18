@@ -18,57 +18,66 @@ def _get_async_session():
     return async_session, engine
 
 
-@celery_app.task(name="app.tasks.budget_tasks.deduct_fixed_expenses")
-def deduct_fixed_expenses():
-    """고정비 자동 차감: 결제일에 해당하는 고정비를 지출로 자동 기록"""
-    return asyncio.run(_deduct_fixed_expenses_async())
+@celery_app.task(name="app.tasks.budget_tasks.initialize_period_fixed_expenses")
+def initialize_period_fixed_expenses():
+    """월급일에 해당하는 유저의 활성 고정비를 새 기간 Expense로 일괄 INSERT"""
+    return asyncio.run(_initialize_period_fixed_expenses_async())
 
 
-async def _deduct_fixed_expenses_async():
+async def _initialize_period_fixed_expenses_async():
     from sqlalchemy import select
     from app.models.budget import FixedExpense, Expense
+    from app.models.user import User
+    from app.services.budget_period import get_budget_period
 
     async_session, engine = _get_async_session()
     today = date.today()
 
     async with async_session() as db:
-        # Find all active fixed expenses where payment_day == today's day
-        stmt = select(FixedExpense).where(
-            FixedExpense.is_active == True,
-            FixedExpense.payment_day == today.day,
-        )
-        result = await db.execute(stmt)
-        fixed_expenses = result.scalars().all()
+        # salary_day == today.day 인 유저만 처리
+        user_stmt = select(User).where(User.salary_day == today.day)
+        users = (await db.execute(user_stmt)).scalars().all()
 
-        count = 0
-        for fe in fixed_expenses:
-            # Check if already deducted today (avoid duplicates)
-            check_stmt = select(Expense).where(
-                Expense.user_id == fe.user_id,
-                Expense.category_id == fe.category_id,
-                Expense.spent_at == today,
-                Expense.memo == f"[자동] {fe.name}",
-            )
-            existing = (await db.execute(check_stmt)).scalar_one_or_none()
-            if existing:
-                continue
+        total_count = 0
+        for user in users:
+            period_start, _ = get_budget_period(today, user.salary_day)
 
-            expense = Expense(
-                user_id=fe.user_id,
-                category_id=fe.category_id,
-                amount=fe.amount,
-                memo=f"[자동] {fe.name}",
-                payment_method=fe.payment_method,
-                spent_at=today,
+            # 해당 유저의 활성 고정비 전체 조회
+            fe_stmt = select(FixedExpense).where(
+                FixedExpense.user_id == user.id,
+                FixedExpense.is_active == True,
             )
-            db.add(expense)
-            count += 1
+            fixed_expenses = (await db.execute(fe_stmt)).scalars().all()
+
+            for fe in fixed_expenses:
+                # 중복 방지: fixed_expense_id + spent_at 조합
+                check_stmt = select(Expense).where(
+                    Expense.fixed_expense_id == fe.id,
+                    Expense.spent_at == period_start,
+                )
+                existing = (await db.execute(check_stmt)).scalar_one_or_none()
+                if existing:
+                    continue
+
+                expense = Expense(
+                    user_id=fe.user_id,
+                    category_id=fe.category_id,
+                    amount=fe.amount,
+                    memo=f"[고정] {fe.name}",
+                    payment_method=fe.payment_method,
+                    fixed_expense_id=fe.id,
+                    spent_at=period_start,
+                )
+                db.add(expense)
+                total_count += 1
 
         await db.commit()
-        logger.info(f"Fixed expenses deducted: {count} items on {today}")
+        logger.info(
+            f"Period fixed expenses initialized: {total_count} items for {len(users)} users on {today}"
+        )
 
     await engine.dispose()
-    return {"deducted": count, "date": str(today)}
+    return {"initialized": total_count, "users": len(users), "date": str(today)}
 
 
 @celery_app.task(name="app.tasks.budget_tasks.deduct_installments")

@@ -25,9 +25,9 @@ celery_app.conf.update(
 
 # Celery Beat schedule
 celery_app.conf.beat_schedule = {
-    "deduct-fixed-expenses-daily": {
-        "task": "app.tasks.budget_tasks.deduct_fixed_expenses",
-        "schedule": crontab(hour=0, minute=5),  # 매일 00:05
+    "initialize-period-fixed-expenses-daily": {
+        "task": "app.tasks.budget_tasks.initialize_period_fixed_expenses",
+        "schedule": crontab(hour=0, minute=1),  # 매일 00:01
     },
     "deduct-installments-daily": {
         "task": "app.tasks.budget_tasks.deduct_installments",
