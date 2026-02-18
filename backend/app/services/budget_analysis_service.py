@@ -145,9 +145,22 @@ async def get_budget_analysis(
         remaining_amount=total_fixed_amount - paid_fixed,
     )
 
+    # 고정비 자동 Expense 합계 (이중 차감 방지)
+    auto_fixed_stmt = (
+        select(func.coalesce(func.sum(Expense.amount), 0))
+        .where(
+            Expense.user_id == user_id,
+            Expense.fixed_expense_id.isnot(None),
+            Expense.spent_at >= period_start,
+            Expense.spent_at <= period_end,
+        )
+    )
+    total_auto_fixed_spent = float((await db.execute(auto_fixed_stmt)).scalar() or 0)
+
     # Variable budget
     variable_budget = total_budget - total_fixed_amount
-    variable_remaining = variable_budget - total_spent
+    variable_spent = total_spent - total_auto_fixed_spent
+    variable_remaining = variable_budget - variable_spent
 
     # Daily available
     remaining_days = max((period_end - today).days + 1, 1)
