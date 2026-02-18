@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T16:02:34.457Z",
+  "lastUpdated": "2026-02-18T16:28:47.117Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -201,9 +201,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-18T15:30:28.681Z"
+        "lastUpdated": "2026-02-18T16:28:47.117Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/InstallmentList.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/AddInstallmentModal.tsx"
     },
     "news": {
       "phase": "do",
@@ -758,7 +758,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T16:02:34.457Z"
+    "lastActivity": "2026-02-18T16:28:47.117Z"
   },
   "history": [
     {
@@ -8216,6 +8216,24 @@
     {
       "timestamp": "2026-02-18T16:02:34.457Z",
       "feature": "calendar",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:28:33.330Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:28:45.356Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:28:47.117Z",
+      "feature": "budget",
       "phase": "do",
       "action": "updated"
     }

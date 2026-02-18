@@ -113,7 +113,7 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
               <option value="">선택</option>
               {sourceAssets.map((a: AssetHolding) => (
                 <option key={a.id} value={a.id}>
-                  {a.name} ({(a.principal ?? 0).toLocaleString()}원)
+                  {a.name} ({(a.total_value_krw ?? 0).toLocaleString()}원)
                 </option>
               ))}
             </select>
