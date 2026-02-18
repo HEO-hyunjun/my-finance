@@ -57,7 +57,9 @@ Frontend (React + Vite)           Backend (FastAPI)
 - Node.js 20+ (프론트엔드 로컬 개발 시)
 - Python 3.11+ (백엔드 로컬 개발 시)
 
-### Docker Compose로 실행
+### 로컬 개발
+
+개발용 `docker-compose.yml`은 backend(8000), db(3307), redis(6379) 포트를 외부에 노출합니다.
 
 ```bash
 # 1. 저장소 클론
@@ -80,10 +82,9 @@ docker compose run --rm migrate
 - Backend API: http://localhost:8000
 - API 문서 (Swagger): http://localhost:8000/docs
 
-### 로컬 개발
+인프라만 Docker로 띄우고 앱은 직접 실행할 수도 있습니다.
 
 ```bash
-# 인프라만 Docker로 실행
 docker compose up -d db redis
 
 # 백엔드
@@ -97,6 +98,38 @@ cd frontend
 npm install
 npm run dev
 ```
+
+### 배포 (Production)
+
+배포용 `docker-compose.prod.yml`은 프론트엔드(80)만 외부에 노출합니다.
+backend, db, redis는 Docker 내부 네트워크에서만 통신하므로 외부에서 직접 접근할 수 없습니다.
+
+```bash
+# 1. 환경 변수 설정 (반드시 강력한 비밀번호로 변경)
+cp .env.example .env
+vi .env
+
+# 2. 서비스 실행
+docker compose -f docker-compose.prod.yml up -d --build
+
+# 3. DB 마이그레이션
+docker compose -f docker-compose.prod.yml run --rm migrate
+
+# 4. 접속
+# http://<서버 IP>
+```
+
+개발용과 배포용의 주요 차이:
+
+| 항목 | 개발 (`docker-compose.yml`) | 배포 (`docker-compose.prod.yml`) |
+|------|---------------------------|--------------------------------|
+| 프론트엔드 포트 | 3000 | 80 |
+| backend 포트 | 8000 (외부 노출) | 미노출 (내부 전용) |
+| db 포트 | 3307 (외부 노출) | 미노출 (내부 전용) |
+| redis 포트 | 6379 (외부 노출) | 미노출 (내부 전용) |
+| 소스 볼륨 마운트 | O (핫 리로드) | X |
+| restart 정책 | 없음 | `unless-stopped` |
+| 로그 레벨 | info | warning |
 
 ## 환경 변수
 
@@ -144,7 +177,8 @@ MyFinance/
 │       ├── schemas/             # Pydantic 스키마
 │       ├── core/                # 설정, DB, 보안, Celery
 │       └── tasks/               # Celery 비동기 작업
-├── docker-compose.yml           # 서비스 오케스트레이션
+├── docker-compose.yml           # 개발용 오케스트레이션
+├── docker-compose.prod.yml      # 배포용 오케스트레이션
 └── .env.example                 # 환경 변수 템플릿
 ```
 
