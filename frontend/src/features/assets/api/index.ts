@@ -102,7 +102,9 @@ export function useCreateAsset() {
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: assetKeys.list() });
+      queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
   });
 }
@@ -116,6 +118,8 @@ export function useUpdateAsset() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
   });
 }
@@ -128,6 +132,8 @@ export function useDeleteAsset() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
   });
 }
@@ -145,6 +151,8 @@ export function useCreateTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
   });
 }
@@ -168,6 +176,8 @@ export function useUpdateTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
   });
 }
@@ -181,6 +191,8 @@ export function useDeleteTransaction() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
   });
 }

@@ -84,6 +84,8 @@ export function useCreateIncome() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: incomeKeys.list() });
       queryClient.invalidateQueries({ queryKey: incomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
     },
   });
 }
@@ -109,6 +111,8 @@ export function useUpdateIncome() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: incomeKeys.list() });
       queryClient.invalidateQueries({ queryKey: incomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
     },
   });
 }
@@ -124,6 +128,8 @@ export function useDeleteIncome() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: incomeKeys.list() });
       queryClient.invalidateQueries({ queryKey: incomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['calendar'] });
     },
   });
 }
