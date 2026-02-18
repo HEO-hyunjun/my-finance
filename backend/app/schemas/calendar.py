@@ -31,7 +31,7 @@ class CalendarEvent(BaseModel):
     amount: float
     color: str  # HEX 색상 코드
     description: str | None = None
-    payment_method: str | None = None
+    source_asset_name: str | None = None
 
 
 class DaySummary(BaseModel):

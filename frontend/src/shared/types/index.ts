@@ -220,7 +220,6 @@ export interface Expense {
   category_color?: string;
   amount: number;
   memo?: string;
-  payment_method?: PaymentMethod;
   tags?: string;
   source_asset_id?: string;
   source_asset_name?: string;
@@ -232,7 +231,6 @@ export interface ExpenseCreateRequest {
   category_id: string;
   amount: number;
   memo?: string;
-  payment_method?: PaymentMethod;
   tags?: string;
   spent_at: string;
   source_asset_id?: string;
@@ -242,7 +240,6 @@ export interface ExpenseUpdateRequest {
   category_id?: string;
   amount?: number;
   memo?: string;
-  payment_method?: PaymentMethod;
   tags?: string;
   spent_at?: string;
   source_asset_id?: string;
@@ -526,7 +523,7 @@ export interface CalendarEvent {
   amount: number;
   color: string;
   description?: string;
-  payment_method?: string;
+  source_asset_name?: string;
 }
 
 export interface DaySummary {

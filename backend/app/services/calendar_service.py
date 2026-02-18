@@ -68,14 +68,32 @@ async def get_calendar_events(
         _get_incomes(db, user_id, month_start, month_end),
     )
 
-    # 4. 이벤트 조합
+    # 4. 소스 자산 이름 일괄 조회
+    all_source_ids: set[uuid.UUID] = set()
+    for fe, _ in fixed_expenses:
+        if fe.source_asset_id:
+            all_source_ids.add(fe.source_asset_id)
+    for inst, _ in installments:
+        if inst.source_asset_id:
+            all_source_ids.add(inst.source_asset_id)
+    for exp, _ in expenses:
+        if exp.source_asset_id:
+            all_source_ids.add(exp.source_asset_id)
+
+    asset_name_cache: dict[uuid.UUID, str] = {}
+    if all_source_ids:
+        asset_stmt = select(Asset.id, Asset.name).where(Asset.id.in_(all_source_ids))
+        asset_rows = (await db.execute(asset_stmt)).all()
+        asset_name_cache = {row.id: row.name for row in asset_rows}
+
+    # 5. 이벤트 조합
     events: list[CalendarEvent] = []
 
-    # 4-1. 고정비 → 매월 payment_day
+    # 5-1. 고정비 → 매월 payment_day (0 = 말일)
     for fe, cat in fixed_expenses:
         if not fe.is_active:
             continue
-        day = min(fe.payment_day, last_day)
+        day = last_day if fe.payment_day == 0 else min(fe.payment_day, last_day)
         events.append(CalendarEvent(
             date=date(year, month, day),
             type=CalendarEventType.FIXED_EXPENSE,
@@ -83,14 +101,14 @@ async def get_calendar_events(
             amount=float(fe.amount),
             color=EVENT_COLOR_MAP[CalendarEventType.FIXED_EXPENSE],
             description=cat.name if cat else None,
-            payment_method=fe.payment_method.value if fe.payment_method else None,
+            source_asset_name=asset_name_cache.get(fe.source_asset_id) if fe.source_asset_id else None,
         ))
 
-    # 4-2. 할부 → 범위 내 payment_day
+    # 5-2. 할부 → 범위 내 payment_day (0 = 말일)
     for inst, cat in installments:
         if not inst.is_active:
             continue
-        day = min(inst.payment_day, last_day)
+        day = last_day if inst.payment_day == 0 else min(inst.payment_day, last_day)
         events.append(CalendarEvent(
             date=date(year, month, day),
             type=CalendarEventType.INSTALLMENT,
@@ -98,10 +116,10 @@ async def get_calendar_events(
             amount=float(inst.monthly_amount),
             color=EVENT_COLOR_MAP[CalendarEventType.INSTALLMENT],
             description=f"{inst.paid_installments}/{inst.total_installments}회" + (f" ({cat.name})" if cat else ""),
-            payment_method=inst.payment_method.value if inst.payment_method else None,
+            source_asset_name=asset_name_cache.get(inst.source_asset_id) if inst.source_asset_id else None,
         ))
 
-    # 4-3. 만기 도래
+    # 5-3. 만기 도래
     for asset in maturity_assets:
         events.append(CalendarEvent(
             date=asset.maturity_date,
@@ -112,7 +130,7 @@ async def get_calendar_events(
             description=asset.bank_name,
         ))
 
-    # 4-4. 지출 내역 (개별 항목)
+    # 5-4. 지출 내역 (개별 항목)
     for exp, cat in expenses:
         events.append(CalendarEvent(
             date=exp.spent_at,
@@ -121,10 +139,10 @@ async def get_calendar_events(
             amount=float(exp.amount),
             color=cat.color if cat else EVENT_COLOR_MAP[CalendarEventType.EXPENSE],
             description=cat.name if cat else None,
-            payment_method=exp.payment_method.value if exp.payment_method else None,
+            source_asset_name=asset_name_cache.get(exp.source_asset_id) if exp.source_asset_id else None,
         ))
 
-    # 4-5. 수입 내역
+    # 5-5. 수입 내역
     INCOME_TYPE_LABELS = {
         IncomeType.SALARY: "급여",
         IncomeType.SIDE: "부수입",
@@ -141,7 +159,7 @@ async def get_calendar_events(
             description=INCOME_TYPE_LABELS.get(inc.type, "수입"),
         ))
 
-    # 5. 정렬 (날짜순 → 유형순)
+    # 6. 정렬 (날짜순 → 유형순)
     type_order = {
         CalendarEventType.MATURITY: 0,
         CalendarEventType.INCOME: 1,
@@ -151,14 +169,14 @@ async def get_calendar_events(
     }
     events.sort(key=lambda e: (e.date, type_order.get(e.type, 99)))
 
-    # 6. 일자별 요약 생성 (SQL GROUP BY 2회)
+    # 7. 일자별 요약 생성 (SQL GROUP BY 2회)
     daily_expenses, daily_incomes = await asyncio.gather(
         _get_daily_expense_totals(db, user_id, month_start, month_end),
         _get_daily_income_totals(db, user_id, month_start, month_end),
     )
     day_summaries = _build_day_summaries(daily_expenses, daily_incomes, events)
 
-    # 7. 월 요약 생성
+    # 8. 월 요약 생성
     month_summary = _build_month_summary(daily_expenses, daily_incomes, events, year, month)
 
     result = CalendarEventsResponse(
@@ -167,7 +185,7 @@ async def get_calendar_events(
         month_summary=month_summary,
     )
 
-    # 8. 캐시 저장
+    # 9. 캐시 저장
     if redis_client:
         try:
             await redis_client.set(

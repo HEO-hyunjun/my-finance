@@ -64,7 +64,7 @@ async def _initialize_period_fixed_expenses_async():
                     category_id=fe.category_id,
                     amount=fe.amount,
                     memo=f"[고정] {fe.name}",
-                    payment_method=fe.payment_method,
+                    source_asset_id=fe.source_asset_id,
                     fixed_expense_id=fe.id,
                     spent_at=period_start,
                 )
@@ -123,7 +123,7 @@ async def _deduct_installments_async():
                 category_id=inst.category_id,
                 amount=inst.monthly_amount,
                 memo=description,
-                payment_method=inst.payment_method,
+                source_asset_id=inst.source_asset_id,
                 spent_at=today,
             )
             db.add(expense)

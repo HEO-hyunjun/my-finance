@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T15:46:23.347Z",
+  "lastUpdated": "2026-02-18T16:02:34.457Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -84,7 +84,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-18T15:13:23.522Z"
+        "lastUpdated": "2026-02-18T16:02:33.039Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
     },
@@ -237,11 +237,11 @@
       },
       "timestamps": {
         "started": "2026-02-13T13:00:00.000Z",
-        "lastUpdated": "2026-02-16T17:51:41.573Z",
+        "lastUpdated": "2026-02-18T16:02:34.457Z",
         "doCompletedAt": "2026-02-13T14:00:00.000Z",
         "checkCompletedAt": "2026-02-13T14:30:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/calendar/ui/CalendarDayCell.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/calendar/ui/EventList.tsx"
     },
     "chatbot": {
       "phase": "do",
@@ -316,9 +316,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-18T15:27:27.422Z"
+        "lastUpdated": "2026-02-18T16:01:08.326Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/budget.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/calendar.py"
     },
     "__init__.py": {
       "phase": "do",
@@ -342,9 +342,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:42.343Z",
-        "lastUpdated": "2026-02-18T14:13:04.026Z"
+        "lastUpdated": "2026-02-18T16:01:18.018Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/auto_transfer_tasks.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/budget_tasks.py"
     },
     "v1": {
       "phase": "do",
@@ -485,7 +485,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-12T23:08:54.896Z",
-        "lastUpdated": "2026-02-16T17:54:02.013Z"
+        "lastUpdated": "2026-02-18T16:01:58.129Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/calendar_service.py"
     },
@@ -758,7 +758,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T15:46:23.347Z"
+    "lastActivity": "2026-02-18T16:02:34.457Z"
   },
   "history": [
     {
@@ -8132,6 +8132,90 @@
     {
       "timestamp": "2026-02-18T15:46:23.346Z",
       "feature": "income_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:08.326Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:11.193Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:18.018Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:41.218Z",
+      "feature": "calendar_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:54.454Z",
+      "feature": "calendar_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:55.418Z",
+      "feature": "calendar_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:56.493Z",
+      "feature": "calendar_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:57.295Z",
+      "feature": "calendar_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:01:58.129Z",
+      "feature": "calendar_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:02:28.983Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:02:30.486Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:02:32.083Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:02:33.039Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T16:02:34.457Z",
+      "feature": "calendar",
       "phase": "do",
       "action": "updated"
     }

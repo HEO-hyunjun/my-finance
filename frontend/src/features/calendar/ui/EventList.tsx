@@ -107,7 +107,7 @@ function EventRow({ event, isIncome }: { event: CalendarEvent; isIncome?: boolea
           <p className="text-xs text-muted-foreground truncate">
             {config.label}
             {event.description ? ` · ${event.description}` : ''}
-            {event.payment_method ? ` · ${event.payment_method}` : ''}
+            {event.source_asset_name ? ` · ${event.source_asset_name}` : ''}
           </p>
         </div>
       </div>
