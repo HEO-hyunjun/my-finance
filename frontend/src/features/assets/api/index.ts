@@ -48,6 +48,7 @@ export function useAssets() {
       const { data } = await apiClient.get<Asset[]>('/v1/assets');
       return data;
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -69,6 +70,7 @@ export function useAssetSummary() {
       const { data } = await apiClient.get<AssetSummary>('/v1/assets/summary');
       return data;
     },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -88,6 +90,37 @@ export function useTransactions(filters: TransactionFilters = {}) {
         `/v1/transactions?${params.toString()}`,
       );
       return data;
+    },
+  });
+}
+
+// --- Price Refresh ---
+
+export function useRefreshPrice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ symbol, asset_type }: { symbol: string; asset_type?: string }) => {
+      const { data } = await apiClient.post('/v1/market/refresh-price', {
+        symbol,
+        asset_type,
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.summary() });
+    },
+  });
+}
+
+export function useRefreshExchangeRate() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post('/v1/market/refresh-exchange-rate');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.summary() });
     },
   });
 }

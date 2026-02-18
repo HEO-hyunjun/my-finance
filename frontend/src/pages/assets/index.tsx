@@ -8,6 +8,7 @@ import {
   useUpdateAsset,
   useDeleteAsset,
   useDeleteTransaction,
+  useRefreshPrice,
 } from '@/features/assets/api';
 import { AssetSummaryCard } from '@/features/assets/ui/AssetSummaryCard';
 import { AssetList } from '@/features/assets/ui/AssetList';
@@ -31,6 +32,7 @@ export function Component() {
   const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
   const deleteTx = useDeleteTransaction();
+  const refreshPrice = useRefreshPrice();
 
   const editingAsset = useMemo(
     () => (editingAssetId ? assets.find((a) => a.id === editingAssetId) ?? null : null),
@@ -38,12 +40,20 @@ export function Component() {
   );
 
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const [refreshingSymbol, setRefreshingSymbol] = useState<string | null>(null);
   const handleDeleteAsset = useCallback((id: string) => {
     setDeletingAssetId(id);
     deleteAsset.mutate(id, {
       onSettled: () => setDeletingAssetId(null),
     });
   }, [deleteAsset]);
+  const handleRefreshPrice = useCallback((symbol: string, assetType: string) => {
+    setRefreshingSymbol(symbol);
+    refreshPrice.mutate(
+      { symbol, asset_type: assetType },
+      { onSettled: () => setRefreshingSymbol(null) },
+    );
+  }, [refreshPrice]);
   const handleDeleteTx = useCallback((id: string) => deleteTx.mutate(id), [deleteTx]);
   const handleOpenAddAsset = useCallback(() => setShowAddAsset(true), []);
   const handleCloseAddAsset = useCallback(() => setShowAddAsset(false), []);
@@ -88,7 +98,9 @@ export function Component() {
           holdings={summary?.holdings || []}
           onEdit={handleEditAsset}
           onDelete={handleDeleteAsset}
+          onRefresh={handleRefreshPrice}
           deletingId={deletingAssetId}
+          refreshingSymbol={refreshingSymbol}
         />
       </div>
 

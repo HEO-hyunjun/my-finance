@@ -47,11 +47,19 @@ async def get_dashboard_summary(
 
     today = date.today()
 
-    # 외부 API 호출 (병렬)
-    exchange_rate_raw, gold_price_raw = await asyncio.gather(
-        market.get_exchange_rate(),
-        _safe_get_gold_price(market),
-    )
+    # 시세: 캐시 전용 (yfinance 호출 없음)
+    exchange_rate_raw = await market.get_cached_exchange_rate()
+    if not exchange_rate_raw:
+        # 캐시 없으면 fallback으로 한번만 fetch
+        try:
+            exchange_rate_raw = await market.get_exchange_rate()
+        except Exception:
+            from app.schemas.market import ExchangeRateResponse
+            exchange_rate_raw = ExchangeRateResponse(
+                pair="USD/KRW", rate=0, cached=False
+            )
+
+    gold_price_raw = await market.get_cached_price("KRX:GOLD", AssetType.GOLD)
 
     # DB 쿼리 (순차 - 단일 연결에서 동시 쿼리 불가)
     asset_summary_raw = await get_asset_summary(db, user_id, market)
@@ -74,12 +82,12 @@ async def get_dashboard_summary(
         maturity_alerts=maturity_alerts,
     )
 
-    # Redis 캐시 저장
+    # Redis 캐시 저장 (5분)
     if redis:
         await redis.set(
             f"dashboard:{user_id}",
             result.model_dump_json(),
-            ex=60,
+            ex=300,
         )
 
     return result
@@ -206,10 +214,10 @@ def _map_market_info(exchange_rate_raw, gold_price_raw) -> DashboardMarketInfo:
         exchange_rate=DashboardMarketItem(
             symbol="USD/KRW",
             name="미국 달러",
-            price=exchange_rate_raw.rate,
+            price=exchange_rate_raw.rate if exchange_rate_raw else 0,
             currency="KRW",
-            change=exchange_rate_raw.change,
-            change_percent=exchange_rate_raw.change_percent,
+            change=exchange_rate_raw.change if exchange_rate_raw else None,
+            change_percent=exchange_rate_raw.change_percent if exchange_rate_raw else None,
         ),
         gold_price=(
             DashboardMarketItem(

@@ -122,6 +122,7 @@ class AssetHoldingResponse(BaseModel):
     elapsed_months: int | None = None
     total_months: int | None = None
     paid_count: int | None = None
+    price_cached: bool = True
 
 
 class AssetSummaryResponse(BaseModel):

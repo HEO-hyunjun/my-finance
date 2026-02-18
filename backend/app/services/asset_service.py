@@ -303,23 +303,38 @@ async def _calculate_holding(
 
     current_price = 0.0
     current_exchange_rate: float | None = None
+    price_cached = True
 
     if asset.asset_type == AssetType.CASH_KRW:
         current_price = 1.0
         total_value_krw = quantity
         total_invested_krw = quantity
     elif asset.asset_type == AssetType.CASH_USD:
-        rate_resp = await market.get_exchange_rate()
-        current_price = 1.0
-        current_exchange_rate = rate_resp.rate
-        total_value_krw = quantity * rate_resp.rate
-    elif asset.symbol:
-        price_resp = await market.get_price(asset.symbol, asset.asset_type)
-        current_price = price_resp.price
-        if is_foreign:
-            rate_resp = await market.get_exchange_rate()
+        rate_resp = await market.get_cached_exchange_rate()
+        if rate_resp:
+            current_price = 1.0
             current_exchange_rate = rate_resp.rate
-            total_value_krw = quantity * current_price * rate_resp.rate
+            total_value_krw = quantity * rate_resp.rate
+        else:
+            price_cached = False
+            current_price = 1.0
+            total_value_krw = 0.0
+    elif asset.symbol:
+        price_resp = await market.get_cached_price(asset.symbol, asset.asset_type)
+        if price_resp:
+            current_price = price_resp.price
+        else:
+            price_cached = False
+            current_price = 0.0
+
+        if is_foreign:
+            rate_resp = await market.get_cached_exchange_rate()
+            if rate_resp:
+                current_exchange_rate = rate_resp.rate
+                total_value_krw = quantity * current_price * rate_resp.rate
+            else:
+                price_cached = False
+                total_value_krw = 0.0
         else:
             total_value_krw = quantity * current_price
     else:
@@ -342,4 +357,5 @@ async def _calculate_holding(
         profit_loss=round(profit_loss, 2),
         profit_loss_rate=round(profit_loss_rate, 2),
         created_at=asset.created_at,
+        price_cached=price_cached,
     )

@@ -98,6 +98,7 @@ export interface AssetHolding {
   elapsed_months?: number;
   total_months?: number;
   paid_count?: number;
+  price_cached?: boolean;
 }
 
 // 자산 요약

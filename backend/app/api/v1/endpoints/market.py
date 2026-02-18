@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from app.api.deps import get_current_user
 from app.core.redis import get_redis
@@ -9,6 +10,11 @@ from app.schemas.market import (
     MarketTrendsResponse, MarketSearchResponse,
 )
 from app.services.market_service import MarketService
+
+
+class RefreshPriceRequest(BaseModel):
+    symbol: str
+    asset_type: str | None = None
 
 router = APIRouter(prefix="/market", tags=["market"])
 
@@ -75,3 +81,38 @@ async def search_market(
         return await market.search_market(query)
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Market search unavailable: {e}")
+
+
+@router.post("/refresh-price", response_model=PriceResponse)
+async def refresh_price(
+    body: RefreshPriceRequest,
+    current_user: User = Depends(get_current_user),
+    redis=Depends(get_redis),
+):
+    """특정 심볼의 시세를 강제로 새로고침하여 캐시에 저장."""
+    market = MarketService(redis)
+    asset_type_map = {
+        "stock_kr": AssetType.STOCK_KR,
+        "stock_us": AssetType.STOCK_US,
+        "gold": AssetType.GOLD,
+        "cash_usd": AssetType.CASH_USD,
+    }
+    asset_type = asset_type_map.get(body.asset_type) if body.asset_type else None
+
+    try:
+        return await market.get_price(body.symbol, asset_type)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Price refresh failed: {e}")
+
+
+@router.post("/refresh-exchange-rate", response_model=ExchangeRateResponse)
+async def refresh_exchange_rate(
+    current_user: User = Depends(get_current_user),
+    redis=Depends(get_redis),
+):
+    """환율을 강제로 새로고침하여 캐시에 저장."""
+    market = MarketService(redis)
+    try:
+        return await market.get_exchange_rate()
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Exchange rate refresh failed: {e}")

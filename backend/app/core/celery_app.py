@@ -10,6 +10,7 @@ celery_app = Celery(
         "app.tasks.budget_tasks",
         "app.tasks.snapshot_tasks",
         "app.tasks.news_tasks",
+        "app.tasks.market_tasks",
     ],
 )
 
@@ -44,5 +45,18 @@ celery_app.conf.beat_schedule = {
     "process-and-cluster-news": {
         "task": "app.tasks.news_tasks.process_and_cluster_news",
         "schedule": crontab(hour="*/6", minute=30),  # 6시간마다
+    },
+    # 시세 캐시 워밍: 한국장 마감(15:35), 미국장 마감(06:05 KST), 자정
+    "warm-market-cache-kr-close": {
+        "task": "app.tasks.market_tasks.warm_market_cache",
+        "schedule": crontab(hour=15, minute=35),
+    },
+    "warm-market-cache-us-close": {
+        "task": "app.tasks.market_tasks.warm_market_cache",
+        "schedule": crontab(hour=6, minute=5),
+    },
+    "warm-market-cache-midnight": {
+        "task": "app.tasks.market_tasks.warm_market_cache",
+        "schedule": crontab(hour=0, minute=0),
     },
 }

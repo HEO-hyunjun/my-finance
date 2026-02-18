@@ -7,10 +7,12 @@ interface Props {
   onAssetClick?: (id: string) => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onRefresh?: (symbol: string, assetType: string) => void;
   deletingId?: string | null;
+  refreshingSymbol?: string | null;
 }
 
-function AssetListInner({ holdings, onAssetClick, onEdit, onDelete, deletingId }: Props) {
+function AssetListInner({ holdings, onAssetClick, onEdit, onDelete, onRefresh, deletingId, refreshingSymbol }: Props) {
   if (holdings.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-8 text-center">
@@ -29,7 +31,9 @@ function AssetListInner({ holdings, onAssetClick, onEdit, onDelete, deletingId }
           onClick={() => onAssetClick?.(holding.id)}
           onEdit={onEdit}
           onDelete={onDelete}
+          onRefresh={onRefresh}
           isDeleting={deletingId === holding.id}
+          isRefreshing={refreshingSymbol === holding.symbol}
         />
       ))}
     </div>

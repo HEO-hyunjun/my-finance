@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatKRW } from '@/shared/lib/format';
@@ -12,7 +12,9 @@ interface Props {
   onClick?: () => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onRefresh?: (symbol: string, assetType: string) => void;
   isDeleting?: boolean;
+  isRefreshing?: boolean;
 }
 
 const INTEREST_BASED_TYPES = ['deposit', 'savings', 'parking'];
@@ -54,7 +56,7 @@ const Row = memo(({
   );
 });
 
-function AssetCardInner({ holding, onClick, onEdit, onDelete, isDeleting }: Props) {
+function AssetCardInner({ holding, onClick, onEdit, onDelete, onRefresh, isDeleting, isRefreshing }: Props) {
   const isPositive = holding.profit_loss >= 0;
   const isInterestBased = INTEREST_BASED_TYPES.includes(holding.asset_type);
   const isParking = holding.asset_type === 'parking';
@@ -111,6 +113,24 @@ function AssetCardInner({ holding, onClick, onEdit, onDelete, isDeleting }: Prop
             )}
           </div>
         </div>
+
+        {holding.price_cached === false && holding.symbol && (
+          <div className="mb-2 flex items-center gap-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 dark:bg-amber-950 dark:text-amber-300">
+            <span className="flex-1">시세 정보 없음</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRefresh?.(holding.symbol!, holding.asset_type);
+              }}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        )}
 
         <div className="space-y-1.5 text-sm">
           {isInterestBased ? (

@@ -180,6 +180,49 @@ class MarketService:
 
     # ─── 시세 (yfinance) ────────────────────────
 
+    async def get_cached_price(
+        self, symbol: str, asset_type: AssetType | None = None
+    ) -> PriceResponse | None:
+        """캐시된 시세만 반환. 캐시 미스 시 None."""
+        if symbol == "KRX:GOLD" or (asset_type == AssetType.GOLD and symbol in ("KRX:GOLD", "")):
+            cached = await self._get_cached("market:krx_gold")
+        else:
+            ticker_symbol = _to_yf_ticker(symbol, asset_type)
+            cached = await self._get_cached(f"market:price:{ticker_symbol}")
+
+        if cached:
+            cached.pop("cached", None)
+            return PriceResponse(**cached, cached=True)
+        return None
+
+    async def get_cached_exchange_rate(self) -> ExchangeRateResponse | None:
+        """캐시된 환율만 반환. 캐시 미스 시 None."""
+        cached = await self._get_cached("market:exchange_rate:USDKRW")
+        if cached:
+            cached.pop("cached", None)
+            return ExchangeRateResponse(**cached, cached=True)
+        return None
+
+    async def warm_cache_for_symbols(
+        self, symbols: list[tuple[str, AssetType | None]]
+    ) -> dict[str, bool]:
+        """심볼 목록의 시세를 일괄 fetch하여 캐시에 저장."""
+        results: dict[str, bool] = {}
+        # 환율은 항상 포함
+        try:
+            await self.get_exchange_rate()
+            results["USDKRW"] = True
+        except Exception:
+            results["USDKRW"] = False
+
+        for symbol, asset_type in symbols:
+            try:
+                await self.get_price(symbol, asset_type)
+                results[symbol] = True
+            except Exception:
+                results[symbol] = False
+        return results
+
     async def get_price(
         self, symbol: str, asset_type: AssetType | None = None
     ) -> PriceResponse:
