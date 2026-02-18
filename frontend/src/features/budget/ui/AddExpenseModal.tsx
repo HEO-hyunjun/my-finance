@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import type { AssetHolding, BudgetCategory, ExpenseCreateRequest, PaymentMethod } from '@/shared/types';
-import { PAYMENT_METHOD_LABELS } from '@/shared/types';
+import type { AssetHolding, BudgetCategory, ExpenseCreateRequest } from '@/shared/types';
 import { useAssetSummary } from '@/features/assets/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Button } from '@/shared/ui/button';
-import { cn } from '@/shared/lib/utils';
 
 const ALLOWED_SOURCE_TYPES = new Set(['cash_krw', 'deposit', 'parking']);
 
@@ -22,8 +20,6 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
   const [categoryId, setCategoryId] = useState('');
   const [amount, setAmount] = useState('');
   const [memo, setMemo] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
-  const [tags, setTags] = useState('');
   const [spentAt, setSpentAt] = useState(new Date().toISOString().slice(0, 10));
   const [sourceAssetId, setSourceAssetId] = useState('');
 
@@ -36,24 +32,20 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId || !amount || !spentAt) return;
+    if (!categoryId || !amount || !spentAt || !sourceAssetId) return;
 
     onSubmit({
       category_id: categoryId,
       amount: Number(amount),
       memo: memo || undefined,
-      payment_method: paymentMethod || undefined,
-      tags: tags || undefined,
       spent_at: spentAt,
-      source_asset_id: sourceAssetId || undefined,
+      source_asset_id: sourceAssetId,
     });
 
     // 리셋
     setCategoryId('');
     setAmount('');
     setMemo('');
-    setPaymentMethod('');
-    setTags('');
     setSpentAt(new Date().toISOString().slice(0, 10));
     setSourceAssetId('');
     onClose();
@@ -112,59 +104,23 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
             />
           </div>
 
-          {/* 결제수단 */}
-          <div className="space-y-2">
-            <Label>결제수단</Label>
-            <div className="flex gap-2">
-              {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(
-                ([method, label]) => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => setPaymentMethod(paymentMethod === method ? '' : method)}
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-sm transition',
-                      paymentMethod === method
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:bg-accent',
-                    )}
-                  >
-                    {label}
-                  </button>
-                ),
-              )}
-            </div>
-          </div>
-
           {/* 출금 자산 */}
           <div className="space-y-2">
-            <Label htmlFor="source-asset">출금 자산 (선택)</Label>
+            <Label htmlFor="source-asset">출금 자산</Label>
             <select
               id="source-asset"
               value={sourceAssetId}
               onChange={(e) => setSourceAssetId(e.target.value)}
+              required
               className="w-full rounded border border-border bg-background text-foreground px-3 py-2 text-sm"
             >
-              <option value="">선택 안함</option>
+              <option value="">선택</option>
               {sourceAssets.map((a: AssetHolding) => (
                 <option key={a.id} value={a.id}>
                   {a.name} ({(a.principal ?? 0).toLocaleString()}원)
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* 태그 */}
-          <div className="space-y-2">
-            <Label htmlFor="tags">태그</Label>
-            <Input
-              id="tags"
-              type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="쉼표로 구분 (예: 회식, 팀점심)"
-              maxLength={200}
-            />
           </div>
 
           {/* 날짜 */}
@@ -191,7 +147,7 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !categoryId || !amount}
+              disabled={isLoading || !categoryId || !amount || !sourceAssetId}
               className="flex-1"
             >
               {isLoading ? '저장 중...' : '저장'}

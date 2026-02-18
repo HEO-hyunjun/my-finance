@@ -142,8 +142,6 @@ def _expense_to_response(
         category_color=category.color,
         amount=float(exp.amount),
         memo=exp.memo,
-        payment_method=exp.payment_method.value if exp.payment_method else None,
-        tags=exp.tags,
         source_asset_id=exp.source_asset_id,
         source_asset_name=source_asset_name,
         spent_at=exp.spent_at,
@@ -252,8 +250,6 @@ async def create_expense(
         category_id=data.category_id,
         amount=data.amount,
         memo=data.memo,
-        payment_method=data.payment_method,
-        tags=data.tags,
         spent_at=data.spent_at,
         source_asset_id=data.source_asset_id,
     )
@@ -271,7 +267,6 @@ async def get_expenses(
     end_date: date | None = None,
     page: int = 1,
     per_page: int = 20,
-    payment_method: str | None = None,
 ) -> ExpenseListResponse:
     base = select(Expense).where(Expense.user_id == user_id)
 
@@ -281,8 +276,6 @@ async def get_expenses(
         base = base.where(Expense.spent_at >= start_date)
     if end_date:
         base = base.where(Expense.spent_at <= end_date)
-    if payment_method:
-        base = base.where(Expense.payment_method == payment_method)
 
     # 총 개수
     count_stmt = select(func.count()).select_from(base.subquery())

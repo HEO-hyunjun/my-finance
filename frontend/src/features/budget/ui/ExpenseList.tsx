@@ -1,7 +1,5 @@
 import { memo, useMemo, useCallback } from 'react';
 import type { Expense } from '@/shared/types';
-import { PAYMENT_METHOD_LABELS } from '@/shared/types';
-import type { PaymentMethod } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
@@ -64,10 +62,6 @@ function ExpenseListInner({
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <span>{exp.spent_at}</span>
-                {exp.payment_method && (
-                  <span>{PAYMENT_METHOD_LABELS[exp.payment_method as PaymentMethod] || exp.payment_method}</span>
-                )}
-                {exp.tags && <span>{exp.tags}</span>}
               </div>
             </div>
           </div>

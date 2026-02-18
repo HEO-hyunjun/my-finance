@@ -48,18 +48,14 @@ class ExpenseCreate(BaseModel):
     category_id: uuid.UUID
     amount: Decimal = Field(gt=0)
     memo: str | None = Field(default=None, max_length=500)
-    payment_method: str | None = None
-    tags: str | None = Field(default=None, max_length=200)
     spent_at: date
-    source_asset_id: uuid.UUID | None = None
+    source_asset_id: uuid.UUID
 
 
 class ExpenseUpdate(BaseModel):
     category_id: uuid.UUID | None = None
     amount: Decimal | None = Field(default=None, gt=0)
     memo: str | None = Field(default=None, max_length=500)
-    payment_method: str | None = None
-    tags: str | None = None
     spent_at: date | None = None
     source_asset_id: uuid.UUID | None = None
 
@@ -74,8 +70,6 @@ class ExpenseResponse(BaseModel):
     category_color: str | None
     amount: float
     memo: str | None
-    payment_method: str | None
-    tags: str | None
     source_asset_id: uuid.UUID | None = None
     source_asset_name: str | None = None
     spent_at: date

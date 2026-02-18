@@ -79,10 +79,6 @@ class Expense(Base):
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 0), nullable=False)
     memo: Mapped[str | None] = mapped_column(Text, nullable=True)
-    payment_method: Mapped[PaymentMethod | None] = mapped_column(
-        Enum(PaymentMethod, name="payment_method_enum", native_enum=False), nullable=True
-    )
-    tags: Mapped[str | None] = mapped_column(Text, nullable=True)
     fixed_expense_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
         ForeignKey("fixed_expenses.id", ondelete="SET NULL"),

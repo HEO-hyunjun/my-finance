@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { BudgetCategory } from '@/shared/types';
-import { PAYMENT_METHOD_LABELS } from '@/shared/types';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
@@ -15,7 +14,6 @@ import {
 
 export interface ExpenseFilterValues {
   category_id?: string;
-  payment_method?: string;
   start?: string;
   end?: string;
 }
@@ -27,17 +25,8 @@ interface ExpenseFilterProps {
 
 const ALL_VALUE = '__all__';
 
-const PAYMENT_OPTIONS = [
-  { value: ALL_VALUE, label: '전체' },
-  ...Object.entries(PAYMENT_METHOD_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  })),
-];
-
 export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps) {
   const [categoryId, setCategoryId] = useState(ALL_VALUE);
-  const [paymentMethod, setPaymentMethod] = useState(ALL_VALUE);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -54,7 +43,6 @@ export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps
   const handleApply = () => {
     onFilterChange({
       category_id: categoryId !== ALL_VALUE ? categoryId : undefined,
-      payment_method: paymentMethod !== ALL_VALUE ? paymentMethod : undefined,
       start: startDate || undefined,
       end: endDate || undefined,
     });
@@ -62,7 +50,6 @@ export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps
 
   const handleReset = () => {
     setCategoryId(ALL_VALUE);
-    setPaymentMethod(ALL_VALUE);
     setStartDate('');
     setEndDate('');
     onFilterChange({});
@@ -81,23 +68,6 @@ export function ExpenseFilter({ categories, onFilterChange }: ExpenseFilterProps
               </SelectTrigger>
               <SelectContent>
                 {categoryOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 결제수단 */}
-          <div className="flex flex-col gap-1.5">
-            <Label className="text-xs">결제수단</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue placeholder="전체" />
-              </SelectTrigger>
-              <SelectContent>
-                {PAYMENT_OPTIONS.map((opt) => (
                   <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
                   </SelectItem>

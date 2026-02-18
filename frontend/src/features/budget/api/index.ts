@@ -126,7 +126,6 @@ export interface ExpenseFilters {
   category_id?: string;
   start?: string;
   end?: string;
-  payment_method?: string;
   page?: number;
   per_page?: number;
 }

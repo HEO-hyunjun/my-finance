@@ -23,7 +23,6 @@ async def list_expenses(
     category_id: uuid.UUID | None = Query(default=None),
     start: date | None = Query(default=None),
     end: date | None = Query(default=None),
-    payment_method: str | None = Query(default=None),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -31,7 +30,6 @@ async def list_expenses(
 ):
     return await budget_service.get_expenses(
         db, current_user.id, category_id, start, end, page, per_page,
-        payment_method=payment_method,
     )
 
 
