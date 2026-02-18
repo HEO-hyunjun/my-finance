@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T16:28:47.117Z",
+  "lastUpdated": "2026-02-18T21:44:22.545Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -201,9 +201,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-18T16:28:47.117Z"
+        "lastUpdated": "2026-02-18T21:30:09.065Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/AddInstallmentModal.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/EditExpenseModal.tsx"
     },
     "news": {
       "phase": "do",
@@ -394,7 +394,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T14:08:31.804Z",
-        "lastUpdated": "2026-02-18T14:16:54.844Z"
+        "lastUpdated": "2026-02-18T21:42:12.824Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/asset_service.py"
     },
@@ -446,7 +446,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T22:30:18.478Z",
-        "lastUpdated": "2026-02-18T15:12:11.286Z"
+        "lastUpdated": "2026-02-18T21:44:22.545Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/budget_service.py"
     },
@@ -732,7 +732,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-16T17:35:36.545Z",
-        "lastUpdated": "2026-02-18T10:17:26.017Z"
+        "lastUpdated": "2026-02-18T21:30:39.858Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/expenses/index.tsx"
     },
@@ -758,7 +758,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T16:28:47.117Z"
+    "lastActivity": "2026-02-18T21:44:22.545Z"
   },
   "history": [
     {
@@ -8234,6 +8234,108 @@
     {
       "timestamp": "2026-02-18T16:28:47.117Z",
       "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:29:32.867Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:30:09.065Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:30:15.680Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:30:21.725Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:30:27.123Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:30:33.204Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:30:39.858Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:32:23.826Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:41:36.104Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:41:46.722Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:41:52.065Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:42:12.824Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:42:22.574Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:43:34.688Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:43:58.383Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:44:10.373Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T21:44:22.545Z",
+      "feature": "budget_service.py",
       "phase": "do",
       "action": "updated"
     }

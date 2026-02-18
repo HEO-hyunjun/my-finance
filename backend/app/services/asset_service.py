@@ -2,11 +2,13 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.asset import Asset, AssetType, InterestType
+from app.models.budget import Expense
+from app.models.income import Income
 from app.models.transaction import Transaction, TransactionType
 from app.schemas.asset import (
     AssetCreate,
@@ -128,8 +130,30 @@ async def get_asset_summary(
     total_value = 0.0
     total_invested = 0.0
 
+    # cash_krw 자산의 지출/수입 합계를 사전 조회 (동적 잔액 계산용)
+    today = date.today()
+    expense_stmt = (
+        select(Expense.source_asset_id, func.coalesce(func.sum(Expense.amount), 0))
+        .where(Expense.user_id == user_id, Expense.spent_at <= today, Expense.source_asset_id.isnot(None))
+        .group_by(Expense.source_asset_id)
+    )
+    expense_rows = (await db.execute(expense_stmt)).all()
+    expense_by_asset: dict[uuid.UUID, float] = {row[0]: float(row[1]) for row in expense_rows}
+
+    income_stmt = (
+        select(Income.target_asset_id, func.coalesce(func.sum(Income.amount), 0))
+        .where(Income.user_id == user_id, Income.received_at <= today, Income.target_asset_id.isnot(None))
+        .group_by(Income.target_asset_id)
+    )
+    income_rows = (await db.execute(income_stmt)).all()
+    income_by_asset: dict[uuid.UUID, float] = {row[0]: float(row[1]) for row in income_rows}
+
     for asset in assets:
-        holding = await _calculate_holding(asset, market)
+        holding = await _calculate_holding(
+            asset, market,
+            expense_sum=expense_by_asset.get(asset.id, 0.0),
+            income_sum=income_by_asset.get(asset.id, 0.0),
+        )
         holdings.append(holding)
         total_value += holding.total_value_krw
         total_invested += holding.total_invested_krw
@@ -183,7 +207,8 @@ async def delete_asset(
 
 
 async def _calculate_holding(
-    asset: Asset, market: MarketService
+    asset: Asset, market: MarketService,
+    expense_sum: float = 0.0, income_sum: float = 0.0,
 ) -> AssetHoldingResponse:
     """보유량, 평균단가, 수익률 계산 (이자 기반 자산 포함)"""
     today = date.today()
@@ -332,7 +357,8 @@ async def _calculate_holding(
 
     if asset.asset_type == AssetType.CASH_KRW:
         current_price = 1.0
-        total_value_krw = quantity
+        # 동적 계산: 거래잔액 - 지출합계 + 수입합계
+        total_value_krw = quantity - expense_sum + income_sum
         total_invested_krw = quantity
     elif asset.asset_type == AssetType.CASH_USD:
         rate_resp = await market.get_cached_exchange_rate()

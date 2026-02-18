@@ -5,12 +5,14 @@ import {
   useExpenses,
   useCategories,
   useCreateExpense,
+  useUpdateExpense,
   useDeleteExpense,
 } from '@/features/budget/api';
 import { ExpenseFilter } from '@/features/budget/ui/ExpenseFilter';
 import type { ExpenseFilterValues } from '@/features/budget/ui/ExpenseFilter';
 import { ExpenseList } from '@/features/budget/ui/ExpenseList';
 import { AddExpenseModal } from '@/features/budget/ui/AddExpenseModal';
+import { EditExpenseModal } from '@/features/budget/ui/EditExpenseModal';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
@@ -23,7 +25,7 @@ export function Component() {
   const [filters, setFilters] = useState<ExpenseFilterValues>({});
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddIncome, setShowAddIncome] = useState(false);
-  const [_editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [confirmState, setConfirmState] = useState<{ action: () => void } | null>(null);
 
   const page = Number(searchParams.get('page')) || 1;
@@ -36,6 +38,7 @@ export function Component() {
     per_page: perPage,
   });
   const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
 
   const handleFilterChange = useCallback(
@@ -143,6 +146,17 @@ export function Component() {
         onSubmit={handleSubmitExpense}
         isLoading={createExpense.isPending}
       />
+
+      {editingExpense && (
+        <EditExpenseModal
+          expense={editingExpense}
+          categories={categories}
+          isOpen={!!editingExpense}
+          onClose={() => setEditingExpense(null)}
+          onSubmit={(data) => updateExpense.mutate(data)}
+          isLoading={updateExpense.isPending}
+        />
+      )}
 
       <AddIncomeModal
         isOpen={showAddIncome}

@@ -1,9 +1,10 @@
 import uuid
+from calendar import monthrange
 from datetime import date
 from decimal import Decimal
 
 from fastapi import HTTPException
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset, AssetType
@@ -124,6 +125,10 @@ async def _validate_source_asset(
 
 
 async def _adjust_asset_principal(asset: Asset, delta: Decimal) -> None:
+    if asset.asset_type == AssetType.CASH_KRW:
+        # cash_krw: 잔액은 거래+지출+수입에서 동적 계산 → principal 조정 불필요
+        return
+
     current = asset.principal or Decimal("0")
     new_val = current + delta
     if new_val < 0:
@@ -271,6 +276,13 @@ async def get_expenses(
     per_page: int = 20,
     memo: str | None = None,
 ) -> ExpenseListResponse:
+    # 조회 기간 내 고정비 자동 Expense 보장
+    if start_date and end_date:
+        await _ensure_auto_expenses_for_range(db, user_id, start_date, end_date)
+    elif not start_date and not end_date:
+        ps, pe = await _get_current_period_for_user(db, user_id)
+        await _ensure_auto_expenses_for_range(db, user_id, ps, pe)
+
     base = select(Expense).where(Expense.user_id == user_id)
 
     if category_id:
@@ -399,6 +411,9 @@ async def get_budget_summary(
     if not period_start or not period_end:
         period_start, period_end = get_budget_period(today, salary_day)
 
+    # 조회 기간 내 고정비 자동 Expense 보장
+    await _ensure_auto_expenses_for_range(db, user_id, period_start, period_end)
+
     # 카테고리 목록 (기본 카테고리는 get_categories에서 자동 생성)
     stmt = (
         select(BudgetCategory)
@@ -512,21 +527,94 @@ async def _get_current_period_for_user(
     return get_budget_period(date.today(), salary_day)
 
 
+async def _ensure_auto_expenses_for_range(
+    db: AsyncSession, user_id: uuid.UUID,
+    range_start: date, range_end: date,
+) -> None:
+    """기간 내 활성 고정비에 대한 자동 Expense를 누락 시 생성한다."""
+    stmt = select(FixedExpense).where(
+        FixedExpense.user_id == user_id,
+        FixedExpense.is_active == True,
+    )
+    fixed_expenses = (await db.execute(stmt)).scalars().all()
+    if not fixed_expenses:
+        return
+
+    # 기간 내 포함된 월 목록
+    months: list[tuple[int, int]] = []
+    cur = range_start.replace(day=1)
+    end_month = range_end.replace(day=1)
+    while cur <= end_month:
+        months.append((cur.year, cur.month))
+        if cur.month == 12:
+            cur = date(cur.year + 1, 1, 1)
+        else:
+            cur = date(cur.year, cur.month + 1, 1)
+
+    # 이미 존재하는 자동 Expense (고정비ID, 년, 월) 조회
+    fe_ids = [fe.id for fe in fixed_expenses]
+    existing_stmt = select(
+        Expense.fixed_expense_id,
+        extract("year", Expense.spent_at).label("y"),
+        extract("month", Expense.spent_at).label("m"),
+    ).where(
+        Expense.fixed_expense_id.in_(fe_ids),
+        Expense.spent_at >= range_start,
+        Expense.spent_at <= range_end,
+    )
+    existing = set(
+        (row[0], int(row[1]), int(row[2]))
+        for row in (await db.execute(existing_stmt)).all()
+    )
+
+    # 누락된 자동 Expense 생성
+    new_expenses = []
+    for fe in fixed_expenses:
+        for year, month in months:
+            if (fe.id, year, month) in existing:
+                continue
+            _, last_day = monthrange(year, month)
+            pay_day = last_day if fe.payment_day == 0 else min(fe.payment_day, last_day)
+            spent_at = date(year, month, pay_day)
+            if spent_at < range_start or spent_at > range_end:
+                continue
+            new_expenses.append(Expense(
+                user_id=user_id,
+                category_id=fe.category_id,
+                amount=fe.amount,
+                memo=f"[고정] {fe.name}",
+                source_asset_id=fe.source_asset_id,
+                fixed_expense_id=fe.id,
+                spent_at=spent_at,
+            ))
+
+    if new_expenses:
+        db.add_all(new_expenses)
+        await db.flush()
+
+
 async def _upsert_auto_expense_for_fixed(
     db: AsyncSession, fe: FixedExpense, period_start: date
 ) -> None:
-    """고정비에 대한 자동 Expense를 upsert (insert or update)."""
+    """고정비에 대한 자동 Expense를 upsert (insert or update). 현재 기간용."""
+    # 같은 월에 이미 존재하는 자동 Expense 조회
     stmt = select(Expense).where(
         Expense.fixed_expense_id == fe.id,
-        Expense.spent_at == period_start,
+        extract("year", Expense.spent_at) == period_start.year,
+        extract("month", Expense.spent_at) == period_start.month,
     )
     existing = (await db.execute(stmt)).scalar_one_or_none()
+
+    _, last_day = monthrange(period_start.year, period_start.month)
+    pay_day = last_day if fe.payment_day == 0 else min(fe.payment_day, last_day)
+    spent_at = date(period_start.year, period_start.month, pay_day)
 
     if existing:
         existing.amount = fe.amount
         existing.category_id = fe.category_id
         existing.source_asset_id = fe.source_asset_id
         existing.memo = f"[고정] {fe.name}"
+        existing.spent_at = spent_at
     else:
         expense = Expense(
             user_id=fe.user_id,
@@ -535,7 +623,7 @@ async def _upsert_auto_expense_for_fixed(
             memo=f"[고정] {fe.name}",
             source_asset_id=fe.source_asset_id,
             fixed_expense_id=fe.id,
-            spent_at=period_start,
+            spent_at=spent_at,
         )
         db.add(expense)
 
@@ -543,10 +631,11 @@ async def _upsert_auto_expense_for_fixed(
 async def _delete_auto_expense_for_fixed(
     db: AsyncSession, fe_id: uuid.UUID, period_start: date
 ) -> None:
-    """현재 기간의 자동 Expense를 삭제."""
+    """현재 기간(월)의 자동 Expense를 삭제."""
     stmt = select(Expense).where(
         Expense.fixed_expense_id == fe_id,
-        Expense.spent_at == period_start,
+        extract("year", Expense.spent_at) == period_start.year,
+        extract("month", Expense.spent_at) == period_start.month,
     )
     existing = (await db.execute(stmt)).scalar_one_or_none()
     if existing:
