@@ -28,7 +28,7 @@ export function TransferModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
   const [sourceId, setSourceId] = useState('');
   const [targetId, setTargetId] = useState('');
   const [amount, setAmount] = useState('');
-  const [exchangeRate, setExchangeRate] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
   const [memo, setMemo] = useState('');
   const [transactedAt, setTransactedAt] = useState(
     new Date().toISOString().slice(0, 16),
@@ -45,33 +45,33 @@ export function TransferModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
   const sourceCurrency = sourceAsset ? getCurrency(sourceAsset) : null;
   const targetCurrency = targetAsset ? getCurrency(targetAsset) : null;
 
-  const depositAmount = useMemo(() => {
-    if (!isCrossCurrency || !amount || !exchangeRate) return null;
-    const amt = parseFloat(amount);
-    const rate = parseFloat(exchangeRate);
-    if (!amt || !rate) return null;
-    if (sourceCurrency === 'KRW') {
-      return amt / rate; // KRW → USD
-    }
-    return amt * rate; // USD → KRW
-  }, [isCrossCurrency, amount, exchangeRate, sourceCurrency]);
-
   const resetForm = () => {
     setSourceId('');
     setTargetId('');
     setAmount('');
-    setExchangeRate('');
+    setDepositAmount('');
     setMemo('');
     setTransactedAt(new Date().toISOString().slice(0, 16));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const amt = parseFloat(amount);
+    let exchangeRate: number | undefined;
+    if (isCrossCurrency && depositAmount) {
+      const dep = parseFloat(depositAmount);
+      // 환율 = 출금액 기준 역산 (1 USD = ? KRW)
+      if (sourceCurrency === 'KRW') {
+        exchangeRate = amt / dep; // KRW→USD: rate = krw / usd
+      } else {
+        exchangeRate = dep / amt; // USD→KRW: rate = krw / usd
+      }
+    }
     onSubmit({
       source_asset_id: sourceId,
       target_asset_id: targetId,
-      amount: parseFloat(amount),
-      exchange_rate: isCrossCurrency ? parseFloat(exchangeRate) : undefined,
+      amount: amt,
+      exchange_rate: exchangeRate,
       memo: memo || undefined,
       transacted_at: new Date(transactedAt).toISOString(),
     });
@@ -135,30 +135,18 @@ export function TransferModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
           </div>
 
           {isCrossCurrency && (
-            <>
-              <div className="space-y-1.5">
-                <Label>환율 (1 USD = ? KRW)</Label>
-                <Input
-                  type="number"
-                  step="any"
-                  min="0"
-                  placeholder="예: 1350"
-                  value={exchangeRate}
-                  onChange={(e) => setExchangeRate(e.target.value)}
-                  required
-                />
-              </div>
-              {depositAmount != null && (
-                <div className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                  입금 예상 금액:{' '}
-                  <span className="font-semibold text-foreground">
-                    {targetCurrency === 'USD'
-                      ? `$${depositAmount.toFixed(2)}`
-                      : `₩${Math.round(depositAmount).toLocaleString()}`}
-                  </span>
-                </div>
-              )}
-            </>
+            <div className="space-y-1.5">
+              <Label>입금 금액 {targetCurrency && `(${targetCurrency})`}</Label>
+              <Input
+                type="number"
+                step="any"
+                min="0"
+                placeholder={targetCurrency === 'USD' ? '예: 100.00' : '예: 135000'}
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                required
+              />
+            </div>
           )}
 
           <div className="space-y-1.5">
@@ -187,7 +175,7 @@ export function TransferModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !sourceId || !targetId || (isCrossCurrency && !exchangeRate)}
+              disabled={isLoading || !sourceId || !targetId || (isCrossCurrency && !depositAmount)}
             >
               {isLoading ? '이체 중...' : '이체'}
             </Button>
