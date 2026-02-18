@@ -615,6 +615,7 @@ export interface UserProfile {
   salary_day: number;
   salary_asset_id?: string;
   salary_asset_name?: string;
+  salary_amount?: number;
   notification_preferences: NotificationPreferences | null;
   created_at: string;
   updated_at: string;
@@ -625,6 +626,7 @@ export interface ProfileUpdateRequest {
   default_currency?: string;
   salary_day?: number;
   salary_asset_id?: string | null;
+  salary_amount?: number | null;
 }
 
 export interface PasswordChangeRequest {

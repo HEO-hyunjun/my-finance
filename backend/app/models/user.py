@@ -28,6 +28,9 @@ class User(Base):
         nullable=True,
         default=None,
     )
+    salary_amount: Mapped[int | None] = mapped_column(
+        Integer, nullable=True, default=None
+    )
     investment_prompt: Mapped[str | None] = mapped_column(
         Text, nullable=True, default=None
     )

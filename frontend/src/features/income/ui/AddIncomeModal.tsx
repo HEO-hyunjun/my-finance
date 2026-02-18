@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { AssetHolding, IncomeCreateRequest, IncomeType } from '@/shared/types';
 import { INCOME_TYPE_LABELS } from '@/shared/types';
 import { useAssetSummary } from '@/features/assets/api';
+import { useProfile } from '@/features/settings/api';
 import { useCreateIncome } from '../api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
@@ -28,9 +29,21 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
 
   const createIncome = useCreateIncome();
   const { data: assetSummary } = useAssetSummary();
+  const { data: profile } = useProfile();
   const targetAssets = (assetSummary?.holdings ?? []).filter(
     (h: AssetHolding) => ALLOWED_TARGET_TYPES.has(h.asset_type),
   );
+
+  // 급여 유형 선택 시 설정값 자동 적용
+  useEffect(() => {
+    if (type === 'salary' && profile) {
+      if (profile.salary_amount) setAmount(profile.salary_amount.toString());
+      if (profile.salary_asset_id) setTargetAssetId(profile.salary_asset_id);
+      setDescription('급여');
+      setIsRecurring(true);
+      if (profile.salary_day) setRecurringDay(profile.salary_day.toString());
+    }
+  }, [type, profile]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

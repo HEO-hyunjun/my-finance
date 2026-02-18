@@ -11,11 +11,9 @@ import {
 import { useAssets } from '@/features/assets/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { ProfileSection } from '@/features/settings/ui/ProfileSection';
-import { SalaryDaySection } from '@/features/settings/ui/SalaryDaySection';
-import { SalaryAssetSection } from '@/features/settings/ui/SalaryAssetSection';
+import { SalarySettingSection } from '@/features/settings/ui/SalarySettingSection';
 import { PasswordSection } from '@/features/settings/ui/PasswordSection';
 import { NotificationSection } from '@/features/settings/ui/NotificationSection';
-import { IncomeSection } from '@/features/settings/ui/IncomeSection';
 import { CarryoverSection } from '@/features/settings/ui/CarryoverSection';
 import { ThemeSection } from '@/features/settings/ui/ThemeSection';
 import { InvestmentPromptSection } from '@/features/settings/ui/InvestmentPromptSection';
@@ -75,18 +73,12 @@ export function Component() {
 
       <Separator />
 
-      <SalaryDaySection
+      <SalarySettingSection
         currentDay={profile.salary_day ?? 1}
-        onUpdate={(day: number) => updateProfile.mutate({ salary_day: day })}
-        isLoading={updateProfile.isPending}
-      />
-
-      <Separator />
-
-      <SalaryAssetSection
         currentAssetId={profile.salary_asset_id}
+        currentAmount={profile.salary_amount}
         assets={assets}
-        onUpdate={(assetId) => updateProfile.mutate({ salary_asset_id: assetId })}
+        onUpdate={(data) => updateProfile.mutate(data)}
         isLoading={updateProfile.isPending}
       />
 
@@ -118,10 +110,6 @@ export function Component() {
           updateNotifications.mutate({ ...current, [key]: value });
         }}
       />
-
-      <Separator />
-
-      <IncomeSection />
 
       <Separator />
 

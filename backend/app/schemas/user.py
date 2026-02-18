@@ -18,6 +18,7 @@ class UserProfileResponse(BaseModel):
     salary_day: int = 1
     salary_asset_id: str | None = None
     salary_asset_name: str | None = None
+    salary_amount: int | None = None
     notification_preferences: NotificationPreferences | None = None
     created_at: datetime
     updated_at: datetime
@@ -30,6 +31,7 @@ class ProfileUpdateRequest(BaseModel):
     default_currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
     salary_day: int | None = Field(default=None, ge=1, le=28)
     salary_asset_id: str | None = None
+    salary_amount: int | None = Field(default=None, ge=0)
 
 
 # --- Password ---

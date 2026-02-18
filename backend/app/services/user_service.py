@@ -37,6 +37,7 @@ async def get_profile(
         salary_day=user.salary_day,
         salary_asset_id=str(user.salary_asset_id) if user.salary_asset_id else None,
         salary_asset_name=salary_asset_name,
+        salary_amount=user.salary_amount,
         notification_preferences=(
             NotificationPreferences(**user.notification_preferences)
             if user.notification_preferences
@@ -61,6 +62,8 @@ async def update_profile(
         user.salary_day = data.salary_day
     if "salary_asset_id" in data.model_fields_set:
         user.salary_asset_id = uuid.UUID(data.salary_asset_id) if data.salary_asset_id else None
+    if "salary_amount" in data.model_fields_set:
+        user.salary_amount = data.salary_amount
 
     await db.commit()
     await db.refresh(user)
