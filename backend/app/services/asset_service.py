@@ -357,8 +357,9 @@ async def _calculate_holding(
 
     if asset.asset_type == AssetType.CASH_KRW:
         current_price = 1.0
-        # 동적 계산: 거래잔액 - 지출합계 + 수입합계
-        total_value_krw = quantity - expense_sum + income_sum
+        # 보유량 자체에 지출/수입 반영
+        quantity = quantity - expense_sum + income_sum
+        total_value_krw = quantity
         total_invested_krw = quantity
     elif asset.asset_type == AssetType.CASH_USD:
         rate_resp = await market.get_cached_exchange_rate()
