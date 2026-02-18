@@ -58,7 +58,7 @@ function InstallmentListInner({ installments, onDelete }: Props) {
             {inst.source_asset_name && (
               <span>{inst.source_asset_name}</span>
             )}
-            <span>매월 {inst.payment_day}일</span>
+            <span>매월 {inst.payment_day === 0 ? '말일' : `${inst.payment_day}일`}</span>
           </div>
 
           {/* 진행률 바 */}

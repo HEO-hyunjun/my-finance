@@ -22,6 +22,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
   const [totalAmount, setTotalAmount] = useState('');
   const [monthlyAmount, setMonthlyAmount] = useState('');
   const [paymentDay, setPaymentDay] = useState('');
+  const [isMonthEnd, setIsMonthEnd] = useState(false);
   const [totalInstallments, setTotalInstallments] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -36,14 +37,14 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId || !name || !totalAmount || !monthlyAmount || !paymentDay || !totalInstallments || !startDate || !endDate) return;
+    if (!categoryId || !name || !totalAmount || !monthlyAmount || (!isMonthEnd && !paymentDay) || !totalInstallments || !startDate || !endDate) return;
 
     onSubmit({
       category_id: categoryId,
       name,
       total_amount: Number(totalAmount),
       monthly_amount: Number(monthlyAmount),
-      payment_day: Number(paymentDay),
+      payment_day: isMonthEnd ? 0 : Number(paymentDay),
       total_installments: Number(totalInstallments),
       start_date: startDate,
       end_date: endDate,
@@ -55,6 +56,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
     setTotalAmount('');
     setMonthlyAmount('');
     setPaymentDay('');
+    setIsMonthEnd(false);
     setTotalInstallments('');
     setStartDate('');
     setEndDate('');
@@ -130,16 +132,32 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="payment-day">결제일 (매월)</Label>
-              <Input
-                id="payment-day"
-                type="number"
-                value={paymentDay}
-                onChange={(e) => setPaymentDay(e.target.value)}
-                placeholder="1~31"
-                required
-                min={1}
-                max={31}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  id="payment-day"
+                  type="number"
+                  value={isMonthEnd ? '' : paymentDay}
+                  onChange={(e) => setPaymentDay(e.target.value)}
+                  placeholder="1~31"
+                  required={!isMonthEnd}
+                  disabled={isMonthEnd}
+                  min={1}
+                  max={31}
+                  className="flex-1"
+                />
+                <label className="flex items-center gap-1 text-sm whitespace-nowrap cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isMonthEnd}
+                    onChange={(e) => {
+                      setIsMonthEnd(e.target.checked);
+                      if (e.target.checked) setPaymentDay('');
+                    }}
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  말일
+                </label>
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="total-installments">총 개월수</Label>
@@ -207,7 +225,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !categoryId || !name || !totalAmount || !monthlyAmount || !paymentDay || !totalInstallments || !startDate || !endDate}
+              disabled={isLoading || !categoryId || !name || !totalAmount || !monthlyAmount || (!isMonthEnd && !paymentDay) || !totalInstallments || !startDate || !endDate}
               className="flex-1"
             >
               {isLoading ? '저장 중...' : '저장'}

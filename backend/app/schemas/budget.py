@@ -120,7 +120,7 @@ class FixedExpenseCreate(BaseModel):
     category_id: uuid.UUID
     name: str = Field(max_length=100)
     amount: Decimal = Field(gt=0)
-    payment_day: int = Field(ge=1, le=31)
+    payment_day: int = Field(ge=0, le=31)  # 0 = 월말
     source_asset_id: uuid.UUID | None = None
 
 
@@ -128,7 +128,7 @@ class FixedExpenseUpdate(BaseModel):
     category_id: uuid.UUID | None = None
     name: str | None = Field(default=None, max_length=100)
     amount: Decimal | None = Field(default=None, gt=0)
-    payment_day: int | None = Field(default=None, ge=1, le=31)
+    payment_day: int | None = Field(default=None, ge=0, le=31)  # 0 = 월말
     source_asset_id: uuid.UUID | None = None
     is_active: bool | None = None
 
@@ -159,7 +159,7 @@ class InstallmentCreate(BaseModel):
     name: str = Field(max_length=100)
     total_amount: Decimal = Field(gt=0)
     monthly_amount: Decimal = Field(gt=0)
-    payment_day: int = Field(ge=1, le=31)
+    payment_day: int = Field(ge=0, le=31)  # 0 = 월말
     total_installments: int = Field(gt=0)
     start_date: date
     end_date: date
@@ -170,7 +170,7 @@ class InstallmentUpdate(BaseModel):
     category_id: uuid.UUID | None = None
     name: str | None = Field(default=None, max_length=100)
     monthly_amount: Decimal | None = Field(default=None, gt=0)
-    payment_day: int | None = Field(default=None, ge=1, le=31)
+    payment_day: int | None = Field(default=None, ge=0, le=31)  # 0 = 월말
     source_asset_id: uuid.UUID | None = None
     is_active: bool | None = None
 

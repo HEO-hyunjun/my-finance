@@ -21,6 +21,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentDay, setPaymentDay] = useState('');
+  const [isMonthEnd, setIsMonthEnd] = useState(false);
   const [sourceAssetId, setSourceAssetId] = useState('');
 
   const { data: assetSummary } = useAssetSummary();
@@ -32,13 +33,13 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId || !name || !amount || !paymentDay) return;
+    if (!categoryId || !name || !amount || (!isMonthEnd && !paymentDay)) return;
 
     onSubmit({
       category_id: categoryId,
       name,
       amount: Number(amount),
-      payment_day: Number(paymentDay),
+      payment_day: isMonthEnd ? 0 : Number(paymentDay),
       source_asset_id: sourceAssetId || undefined,
     });
 
@@ -46,6 +47,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
     setName('');
     setAmount('');
     setPaymentDay('');
+    setIsMonthEnd(false);
     setSourceAssetId('');
     onClose();
   };
@@ -103,16 +105,32 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
 
           <div className="space-y-2">
             <Label htmlFor="payment-day">결제일 (매월)</Label>
-            <Input
-              id="payment-day"
-              type="number"
-              value={paymentDay}
-              onChange={(e) => setPaymentDay(e.target.value)}
-              placeholder="1~31"
-              required
-              min={1}
-              max={31}
-            />
+            <div className="flex items-center gap-3">
+              <Input
+                id="payment-day"
+                type="number"
+                value={isMonthEnd ? '' : paymentDay}
+                onChange={(e) => setPaymentDay(e.target.value)}
+                placeholder="1~31"
+                required={!isMonthEnd}
+                disabled={isMonthEnd}
+                min={1}
+                max={31}
+                className="flex-1"
+              />
+              <label className="flex items-center gap-1.5 text-sm whitespace-nowrap cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isMonthEnd}
+                  onChange={(e) => {
+                    setIsMonthEnd(e.target.checked);
+                    if (e.target.checked) setPaymentDay('');
+                  }}
+                  className="h-4 w-4 rounded border-border"
+                />
+                말일
+              </label>
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -143,7 +161,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !categoryId || !name || !amount || !paymentDay}
+              disabled={isLoading || !categoryId || !name || !amount || (!isMonthEnd && !paymentDay)}
               className="flex-1"
             >
               {isLoading ? '저장 중...' : '저장'}

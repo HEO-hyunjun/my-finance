@@ -49,7 +49,7 @@ function FixedExpenseListInner({ fixedExpenses, onToggle, onDelete }: Props) {
               {fe.source_asset_name && (
                 <span>{fe.source_asset_name}</span>
               )}
-              <span>매월 {fe.payment_day}일</span>
+              <span>매월 {fe.payment_day === 0 ? '말일' : `${fe.payment_day}일`}</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
