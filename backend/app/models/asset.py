@@ -67,5 +67,8 @@ class Asset(Base):
 
     # Relationships
     transactions: Mapped[list["Transaction"]] = relationship(
-        "Transaction", back_populates="asset", cascade="all, delete-orphan"
+        "Transaction",
+        foreign_keys="[Transaction.asset_id]",
+        back_populates="asset",
+        cascade="all, delete-orphan",
     )
