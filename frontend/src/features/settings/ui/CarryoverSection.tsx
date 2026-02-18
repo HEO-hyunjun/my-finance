@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useCategories } from '@/features/budget/api';
+import { useAssets } from '@/features/assets/api';
 import { useCarryoverSettings, useUpsertCarryoverSetting } from '../api/carryover';
-import type { CarryoverType, CarryoverSettingRequest } from '@/shared/types';
+import type { CarryoverType, CarryoverSettingRequest, Asset } from '@/shared/types';
 import { CARRYOVER_TYPE_LABELS } from '@/shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Label } from '@/shared/ui/label';
@@ -16,8 +17,9 @@ interface CategoryRowProps {
   categoryName: string;
   currentType: CarryoverType;
   currentLimit?: number;
-  currentSavingsName?: string;
+  currentAssetId?: string;
   currentAnnualRate?: number;
+  assets: Asset[];
   onSave: (data: CarryoverSettingRequest) => void;
   isSaving: boolean;
 }
@@ -27,27 +29,44 @@ function CategoryRow({
   categoryName,
   currentType,
   currentLimit,
-  currentSavingsName,
+  currentAssetId,
   currentAnnualRate,
+  assets,
   onSave,
   isSaving,
 }: CategoryRowProps) {
   const [type, setType] = useState<CarryoverType>(currentType);
   const [limit, setLimit] = useState(currentLimit?.toString() ?? '');
-  const [savingsName, setSavingsName] = useState(currentSavingsName ?? '');
+  const [assetId, setAssetId] = useState(currentAssetId ?? '');
   const [annualRate, setAnnualRate] = useState(currentAnnualRate?.toString() ?? '');
 
   useEffect(() => {
     setType(currentType);
     setLimit(currentLimit?.toString() ?? '');
-    setSavingsName(currentSavingsName ?? '');
+    setAssetId(currentAssetId ?? '');
     setAnnualRate(currentAnnualRate?.toString() ?? '');
-  }, [currentType, currentLimit, currentSavingsName, currentAnnualRate]);
+  }, [currentType, currentLimit, currentAssetId, currentAnnualRate]);
+
+  const filteredAssets = assets.filter((a) => {
+    if (type === 'savings') return a.asset_type === 'savings';
+    if (type === 'deposit') return a.asset_type === 'deposit';
+    return false;
+  });
+
+  const handleAssetChange = (id: string) => {
+    setAssetId(id);
+    if (type === 'deposit' && id) {
+      const selected = assets.find((a) => a.id === id);
+      if (selected?.interest_rate != null) {
+        setAnnualRate(selected.interest_rate.toString());
+      }
+    }
+  };
 
   const hasChanges =
     type !== currentType ||
     (type === 'next_month' && limit !== (currentLimit?.toString() ?? '')) ||
-    ((type === 'savings' || type === 'deposit') && savingsName !== (currentSavingsName ?? '')) ||
+    ((type === 'savings' || type === 'deposit') && assetId !== (currentAssetId ?? '')) ||
     (type === 'deposit' && annualRate !== (currentAnnualRate?.toString() ?? ''));
 
   const handleSave = () => {
@@ -58,8 +77,12 @@ function CategoryRow({
     if (type === 'next_month' && limit) {
       data.carryover_limit = Number(limit);
     }
-    if ((type === 'savings' || type === 'deposit') && savingsName) {
-      data.target_savings_name = savingsName;
+    if ((type === 'savings' || type === 'deposit') && assetId) {
+      data.target_asset_id = assetId;
+      const selected = assets.find((a) => a.id === assetId);
+      if (selected) {
+        data.target_savings_name = selected.name;
+      }
     }
     if (type === 'deposit' && annualRate) {
       data.target_annual_rate = Number(annualRate);
@@ -109,14 +132,26 @@ function CategoryRow({
       {(type === 'savings' || type === 'deposit') && (
         <div>
           <Label className="text-xs">
-            대상 {type === 'savings' ? '적금' : '예금'} 이름
+            대상 {type === 'savings' ? '적금' : '예금'}
           </Label>
-          <Input
-            type="text"
-            value={savingsName}
-            onChange={(e) => setSavingsName(e.target.value)}
-            placeholder={`${type === 'savings' ? '적금' : '예금'}명 입력`}
-          />
+          {filteredAssets.length > 0 ? (
+            <select
+              value={assetId}
+              onChange={(e) => handleAssetChange(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">선택하세요</option>
+              {filteredAssets.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}{a.bank_name ? ` (${a.bank_name})` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-xs text-muted-foreground py-1">
+              등록된 {type === 'savings' ? '적금' : '예금'} 자산이 없습니다. 자산 관리에서 먼저 추가해주세요.
+            </p>
+          )}
         </div>
       )}
 
@@ -140,9 +175,10 @@ function CategoryRow({
 export function CarryoverSection() {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: settings, isLoading: settingsLoading } = useCarryoverSettings();
+  const { data: assets = [], isLoading: assetsLoading } = useAssets();
   const upsertSetting = useUpsertCarryoverSetting();
 
-  const isLoading = categoriesLoading || settingsLoading;
+  const isLoading = categoriesLoading || settingsLoading || assetsLoading;
 
   if (isLoading) {
     return (
@@ -186,8 +222,9 @@ export function CarryoverSection() {
                   categoryName={category.name}
                   currentType={setting?.carryover_type ?? 'expire'}
                   currentLimit={setting?.carryover_limit}
-                  currentSavingsName={setting?.target_savings_name}
+                  currentAssetId={setting?.target_asset_id}
                   currentAnnualRate={setting?.target_annual_rate}
+                  assets={assets}
                   onSave={(data) => upsertSetting.mutate(data)}
                   isSaving={upsertSetting.isPending}
                 />

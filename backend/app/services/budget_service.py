@@ -321,9 +321,7 @@ async def get_budget_summary(
     if not period_start or not period_end:
         period_start, period_end = get_budget_period(today, salary_day)
 
-    # 카테고리 목록 (기본 카테고리 자동 생성 포함)
-    await _ensure_default_categories(db, user_id)
-
+    # 카테고리 목록 (기본 카테고리는 get_categories에서 자동 생성)
     stmt = (
         select(BudgetCategory)
         .where(BudgetCategory.user_id == user_id, BudgetCategory.is_active == True)
