@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Menu, Plus } from 'lucide-react';
+import { Sun, Moon, Menu, Plus, ArrowLeftRight } from 'lucide-react';
 import { Button } from '@/shared/ui/button';
 import { useTheme } from '@/app/providers/ThemeProvider';
 import { useCategories, useCreateExpense } from '@/features/budget/api';
 import { AddExpenseModal } from '@/features/budget/ui/AddExpenseModal';
+import { useAssets, useCreateTransaction } from '@/features/assets/api';
+import { AddTransactionModal } from '@/features/assets/ui/AddTransactionModal';
 
 const PAGE_TITLES: Record<string, string> = {
   '/': '대시보드',
@@ -25,9 +27,12 @@ export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
   const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [showTxModal, setShowTxModal] = useState(false);
 
   const { data: categories = [] } = useCategories();
   const createExpense = useCreateExpense();
+  const { data: assets = [] } = useAssets();
+  const createTx = useCreateTransaction();
 
   const title = PAGE_TITLES[location.pathname] || '';
 
@@ -62,6 +67,15 @@ export function Header({ onMenuClick }: HeaderProps) {
             <span className="hidden sm:inline">지출 추가</span>
           </Button>
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowTxModal(true)}
+            className="gap-1.5"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+            <span className="hidden sm:inline">거래 기록</span>
+          </Button>
+          <Button
             variant="ghost"
             size="icon"
             onClick={toggleTheme}
@@ -83,6 +97,14 @@ export function Header({ onMenuClick }: HeaderProps) {
         onClose={() => setShowExpenseModal(false)}
         onSubmit={(data) => createExpense.mutate(data)}
         isLoading={createExpense.isPending}
+      />
+
+      <AddTransactionModal
+        isOpen={showTxModal}
+        onClose={() => setShowTxModal(false)}
+        onSubmit={(data) => createTx.mutate(data, { onSuccess: () => setShowTxModal(false) })}
+        assets={assets}
+        isLoading={createTx.isPending}
       />
     </>
   );
