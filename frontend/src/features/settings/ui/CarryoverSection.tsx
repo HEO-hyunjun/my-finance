@@ -10,7 +10,9 @@ import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 
-const CARRYOVER_TYPES: CarryoverType[] = ['expire', 'next_month', 'savings', 'investment', 'deposit'];
+const CARRYOVER_TYPES: CarryoverType[] = ['expire', 'next_month', 'savings', 'transfer', 'deposit'];
+
+const TRANSFER_TARGET_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
 
 interface CategoryRowProps {
   categoryId: string;
@@ -50,6 +52,7 @@ function CategoryRow({
   const filteredAssets = assets.filter((a) => {
     if (type === 'savings') return a.asset_type === 'savings';
     if (type === 'deposit') return a.asset_type === 'deposit';
+    if (type === 'transfer') return TRANSFER_TARGET_TYPES.has(a.asset_type);
     return false;
   });
 
@@ -66,7 +69,7 @@ function CategoryRow({
   const hasChanges =
     type !== currentType ||
     (type === 'next_month' && limit !== (currentLimit?.toString() ?? '')) ||
-    ((type === 'savings' || type === 'deposit') && assetId !== (currentAssetId ?? '')) ||
+    ((type === 'savings' || type === 'deposit' || type === 'transfer') && assetId !== (currentAssetId ?? '')) ||
     (type === 'deposit' && annualRate !== (currentAnnualRate?.toString() ?? ''));
 
   const handleSave = () => {
@@ -77,7 +80,7 @@ function CategoryRow({
     if (type === 'next_month' && limit) {
       data.carryover_limit = Number(limit);
     }
-    if ((type === 'savings' || type === 'deposit') && assetId) {
+    if ((type === 'savings' || type === 'deposit' || type === 'transfer') && assetId) {
       data.target_asset_id = assetId;
       const selected = assets.find((a) => a.id === assetId);
       if (selected) {
@@ -129,10 +132,10 @@ function CategoryRow({
         </div>
       )}
 
-      {(type === 'savings' || type === 'deposit') && (
+      {(type === 'savings' || type === 'deposit' || type === 'transfer') && (
         <div>
           <Label className="text-xs">
-            대상 {type === 'savings' ? '적금' : '예금'}
+            대상 {type === 'savings' ? '적금' : type === 'deposit' ? '예금' : '자산'}
           </Label>
           {filteredAssets.length > 0 ? (
             <select
@@ -149,7 +152,7 @@ function CategoryRow({
             </select>
           ) : (
             <p className="text-xs text-muted-foreground py-1">
-              등록된 {type === 'savings' ? '적금' : '예금'} 자산이 없습니다. 자산 관리에서 먼저 추가해주세요.
+              등록된 {type === 'savings' ? '적금' : type === 'deposit' ? '예금' : '현금성'} 자산이 없습니다. 자산 관리에서 먼저 추가해주세요.
             </p>
           )}
         </div>

@@ -13,7 +13,7 @@ class CarryoverType(str, PyEnum):
     EXPIRE = "expire"
     NEXT_MONTH = "next_month"
     SAVINGS = "savings"
-    INVESTMENT = "investment"
+    TRANSFER = "transfer"
     DEPOSIT = "deposit"
 
 

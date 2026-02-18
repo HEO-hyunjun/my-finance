@@ -140,8 +140,8 @@ async def get_carryover_preview(
         if setting:
             if setting.carryover_type == CarryoverType.SAVINGS:
                 target_desc = setting.target_savings_name or "저축"
-            elif setting.carryover_type == CarryoverType.INVESTMENT:
-                target_desc = "투자 계좌"
+            elif setting.carryover_type == CarryoverType.TRANSFER:
+                target_desc = setting.target_savings_name or "이체 대상"
             elif setting.carryover_type == CarryoverType.DEPOSIT:
                 rate = float(setting.target_annual_rate) if setting.target_annual_rate else 0
                 target_desc = f"{setting.target_savings_name or '예금'} (연 {rate}%)"

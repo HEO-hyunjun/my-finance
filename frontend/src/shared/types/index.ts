@@ -699,13 +699,13 @@ export interface IncomeSummary {
 
 // ========== Carryover Types ==========
 
-export type CarryoverType = 'expire' | 'next_month' | 'savings' | 'investment' | 'deposit';
+export type CarryoverType = 'expire' | 'next_month' | 'savings' | 'transfer' | 'deposit';
 
 export const CARRYOVER_TYPE_LABELS: Record<CarryoverType, string> = {
   expire: '소멸',
   next_month: '다음달 이월',
   savings: '저축 이동',
-  investment: '투자 이동',
+  transfer: '단순 이체',
   deposit: '예금 이동',
 };
 

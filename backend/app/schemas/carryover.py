@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class CarryoverSettingCreate(BaseModel):
     category_id: uuid.UUID
-    carryover_type: str = Field(pattern=r"^(expire|next_month|savings|investment|deposit)$")
+    carryover_type: str = Field(pattern=r"^(expire|next_month|savings|transfer|deposit)$")
     carryover_limit: Decimal | None = Field(default=None, ge=0)
     target_asset_id: uuid.UUID | None = None
     target_savings_name: str | None = Field(default=None, max_length=100)
@@ -15,7 +15,7 @@ class CarryoverSettingCreate(BaseModel):
 
 
 class CarryoverSettingUpdate(BaseModel):
-    carryover_type: str | None = Field(default=None, pattern=r"^(expire|next_month|savings|investment|deposit)$")
+    carryover_type: str | None = Field(default=None, pattern=r"^(expire|next_month|savings|transfer|deposit)$")
     carryover_limit: Decimal | None = Field(default=None, ge=0)
     target_asset_id: uuid.UUID | None = None
     target_savings_name: str | None = Field(default=None, max_length=100)
