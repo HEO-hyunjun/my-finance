@@ -1,6 +1,10 @@
+import uuid
+
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
+from app.models.asset import Asset
 from app.models.user import User
 from app.schemas.user import (
     AccountDeleteRequest,
@@ -16,12 +20,23 @@ async def get_profile(
     user: User,
 ) -> UserProfileResponse:
     """사용자 프로필 조회"""
+    # 급여 자산 이름 조회
+    salary_asset_name = None
+    if user.salary_asset_id:
+        asset = (await db.execute(
+            select(Asset).where(Asset.id == user.salary_asset_id)
+        )).scalar_one_or_none()
+        if asset:
+            salary_asset_name = asset.name
+
     return UserProfileResponse(
         id=str(user.id),
         email=user.email,
         name=user.name,
         default_currency=user.default_currency,
         salary_day=user.salary_day,
+        salary_asset_id=str(user.salary_asset_id) if user.salary_asset_id else None,
+        salary_asset_name=salary_asset_name,
         notification_preferences=(
             NotificationPreferences(**user.notification_preferences)
             if user.notification_preferences
@@ -37,13 +52,15 @@ async def update_profile(
     user: User,
     data: ProfileUpdateRequest,
 ) -> UserProfileResponse:
-    """프로필 수정 (name, default_currency, salary_day)"""
+    """프로필 수정 (name, default_currency, salary_day, salary_asset_id)"""
     if data.name is not None:
         user.name = data.name
     if data.default_currency is not None:
         user.default_currency = data.default_currency
     if data.salary_day is not None:
         user.salary_day = data.salary_day
+    if "salary_asset_id" in data.model_fields_set:
+        user.salary_asset_id = uuid.UUID(data.salary_asset_id) if data.salary_asset_id else None
 
     await db.commit()
     await db.refresh(user)

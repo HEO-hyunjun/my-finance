@@ -10,6 +10,9 @@ import type {
   TransactionCreateRequest,
   TransactionUpdateRequest,
   PaginatedResponse,
+  TransferRequest,
+  AutoTransfer,
+  AutoTransferCreateRequest,
 } from '@/shared/types';
 
 // --- Types ---
@@ -242,6 +245,81 @@ export function useDeleteTransaction() {
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
+    },
+  });
+}
+
+// --- Transfer ---
+
+export const transferKeys = {
+  all: ['transfers'] as const,
+  autoList: () => [...transferKeys.all, 'auto'] as const,
+};
+
+export function useTransfer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: TransferRequest) => {
+      const { data: result } = await apiClient.post('/v1/transfers', data);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: transactionKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useAutoTransfers() {
+  return useQuery({
+    queryKey: transferKeys.autoList(),
+    queryFn: async () => {
+      const { data } = await apiClient.get<AutoTransfer[]>('/v1/transfers/auto');
+      return data;
+    },
+  });
+}
+
+export function useCreateAutoTransfer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: AutoTransferCreateRequest) => {
+      const { data: result } = await apiClient.post<AutoTransfer>(
+        '/v1/transfers/auto',
+        data,
+      );
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: transferKeys.autoList() });
+    },
+  });
+}
+
+export function useToggleAutoTransfer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data: result } = await apiClient.patch<AutoTransfer>(
+        `/v1/transfers/auto/${id}/toggle`,
+      );
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: transferKeys.autoList() });
+    },
+  });
+}
+
+export function useDeleteAutoTransfer() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/v1/transfers/auto/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: transferKeys.autoList() });
     },
   });
 }

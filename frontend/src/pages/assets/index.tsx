@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import {
   useAssets,
   useAssetSummary,
@@ -10,12 +10,20 @@ import {
   useDeleteTransaction,
   useRefreshPrice,
   useRefreshAll,
+  useTransfer,
+  useAutoTransfers,
+  useCreateAutoTransfer,
+  useToggleAutoTransfer,
+  useDeleteAutoTransfer,
 } from '@/features/assets/api';
 import { AssetSummaryCard } from '@/features/assets/ui/AssetSummaryCard';
 import { AssetList } from '@/features/assets/ui/AssetList';
 import { TransactionList } from '@/features/assets/ui/TransactionList';
 import { AddAssetModal } from '@/features/assets/ui/AddAssetModal';
 import { EditAssetModal } from '@/features/assets/ui/EditAssetModal';
+import { TransferModal } from '@/features/assets/ui/TransferModal';
+import { AutoTransferList } from '@/features/assets/ui/AutoTransferList';
+import { AddAutoTransferModal } from '@/features/assets/ui/AddAutoTransferModal';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 import type { AssetUpdateRequest } from '@/shared/types';
@@ -24,10 +32,13 @@ export function Component() {
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [txPage, setTxPage] = useState(1);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [showAddAutoTransfer, setShowAddAutoTransfer] = useState(false);
 
   const { data: assets = [] } = useAssets();
   const { data: summary, isLoading: summaryLoading } = useAssetSummary();
   const { data: txData } = useTransactions({ page: txPage, per_page: 10 });
+  const { data: autoTransfers = [] } = useAutoTransfers();
 
   const createAsset = useCreateAsset();
   const updateAsset = useUpdateAsset();
@@ -35,6 +46,10 @@ export function Component() {
   const deleteTx = useDeleteTransaction();
   const refreshPrice = useRefreshPrice();
   const refreshAll = useRefreshAll();
+  const transfer = useTransfer();
+  const createAutoTransfer = useCreateAutoTransfer();
+  const toggleAutoTransfer = useToggleAutoTransfer();
+  const deleteAutoTransfer = useDeleteAutoTransfer();
 
   const editingAsset = useMemo(
     () => (editingAssetId ? assets.find((a) => a.id === editingAssetId) ?? null : null),
@@ -93,6 +108,14 @@ export function Component() {
           <h2 className="text-lg font-semibold">보유 자산</h2>
           <div className="flex gap-2">
             <Button
+              onClick={() => setShowTransfer(true)}
+              size="sm"
+              variant="outline"
+            >
+              <ArrowRightLeft className="mr-1.5 h-4 w-4" />
+              이체
+            </Button>
+            <Button
               onClick={() => refreshAll.mutate()}
               size="sm"
               variant="outline"
@@ -114,6 +137,22 @@ export function Component() {
           onRefresh={handleRefreshPrice}
           deletingId={deletingAssetId}
           refreshingSymbol={refreshingSymbol}
+        />
+      </div>
+
+      {/* Auto Transfers */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">자동이체</h2>
+          <Button onClick={() => setShowAddAutoTransfer(true)} size="sm">
+            <Plus className="mr-1.5 h-4 w-4" />
+            자동이체 추가
+          </Button>
+        </div>
+        <AutoTransferList
+          autoTransfers={autoTransfers}
+          onToggle={(id) => toggleAutoTransfer.mutate(id)}
+          onDelete={(id) => deleteAutoTransfer.mutate(id)}
         />
       </div>
 
@@ -144,6 +183,28 @@ export function Component() {
         onSubmit={handleSubmitEdit}
         asset={editingAsset}
         isLoading={updateAsset.isPending}
+      />
+
+      <TransferModal
+        isOpen={showTransfer}
+        onClose={() => setShowTransfer(false)}
+        onSubmit={(data) => {
+          transfer.mutate(data, { onSuccess: () => setShowTransfer(false) });
+        }}
+        assets={assets}
+        isLoading={transfer.isPending}
+      />
+
+      <AddAutoTransferModal
+        isOpen={showAddAutoTransfer}
+        onClose={() => setShowAddAutoTransfer(false)}
+        onSubmit={(data) => {
+          createAutoTransfer.mutate(data, {
+            onSuccess: () => setShowAddAutoTransfer(false),
+          });
+        }}
+        assets={assets}
+        isLoading={createAutoTransfer.isPending}
       />
     </div>
   );

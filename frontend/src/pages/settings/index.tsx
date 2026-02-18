@@ -8,9 +8,11 @@ import {
   useUpdateNotifications,
   useDeleteAccount,
 } from '@/features/settings/api';
+import { useAssets } from '@/features/assets/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { ProfileSection } from '@/features/settings/ui/ProfileSection';
 import { SalaryDaySection } from '@/features/settings/ui/SalaryDaySection';
+import { SalaryAssetSection } from '@/features/settings/ui/SalaryAssetSection';
 import { PasswordSection } from '@/features/settings/ui/PasswordSection';
 import { NotificationSection } from '@/features/settings/ui/NotificationSection';
 import { IncomeSection } from '@/features/settings/ui/IncomeSection';
@@ -31,6 +33,7 @@ export function Component() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const { data: profile, isLoading } = useProfile();
+  const { data: assets = [] } = useAssets();
   const updateProfile = useUpdateProfile();
   const changePassword = useChangePassword();
   const updateNotifications = useUpdateNotifications();
@@ -75,6 +78,15 @@ export function Component() {
       <SalaryDaySection
         currentDay={profile.salary_day ?? 1}
         onUpdate={(day: number) => updateProfile.mutate({ salary_day: day })}
+        isLoading={updateProfile.isPending}
+      />
+
+      <Separator />
+
+      <SalaryAssetSection
+        currentAssetId={profile.salary_asset_id}
+        assets={assets}
+        onUpdate={(assetId) => updateProfile.mutate({ salary_asset_id: assetId })}
         isLoading={updateProfile.isPending}
       />
 

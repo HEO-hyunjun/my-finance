@@ -279,10 +279,14 @@ async def _calculate_holding(
     # --- 기존 자산 유형 (주식, 금, 현금) ---
     buy_txns = [t for t in asset.transactions if t.type == TransactionType.BUY]
     sell_txns = [t for t in asset.transactions if t.type == TransactionType.SELL]
+    deposit_txns = [t for t in asset.transactions if t.type == TransactionType.DEPOSIT]
+    withdraw_txns = [t for t in asset.transactions if t.type == TransactionType.WITHDRAW]
 
     buy_qty = sum(float(t.quantity) for t in buy_txns)
     sell_qty = sum(float(t.quantity) for t in sell_txns)
-    quantity = buy_qty - sell_qty
+    deposit_qty = sum(float(t.quantity) for t in deposit_txns)
+    withdraw_qty = sum(float(t.quantity) for t in withdraw_txns)
+    quantity = buy_qty + deposit_qty - sell_qty - withdraw_qty
 
     is_foreign = asset.asset_type in (AssetType.STOCK_US, AssetType.CASH_USD)
 

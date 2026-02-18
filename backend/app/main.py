@@ -8,7 +8,7 @@ from app.core.redis import close_redis
 from app.api.v1.endpoints import (
     assets, transactions, market, budget, expenses, fixed_expenses,
     installments, dashboard, news, calendar, chatbot, users,
-    incomes, carryover, portfolio, auth,
+    incomes, carryover, portfolio, auth, transfers,
 )
 from app.api.v1.endpoints import settings as settings_endpoints
 
@@ -52,6 +52,7 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(incomes.router, prefix="/api/v1")
 app.include_router(carryover.router, prefix="/api/v1")
 app.include_router(portfolio.router, prefix="/api/v1")
+app.include_router(transfers.router, prefix="/api/v1")
 app.include_router(settings_endpoints.router, prefix="/api/v1")
 
 

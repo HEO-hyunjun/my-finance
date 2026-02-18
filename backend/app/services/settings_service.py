@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.models.asset import Asset
 from app.models.settings import ApiKey, ApiServiceType, LlmSetting
 from app.models.user import User
 from app.schemas.settings import (
@@ -251,6 +252,15 @@ async def get_app_settings(
 
     prefs = user.notification_preferences or {}
 
+    # 월급 자산 이름 조회
+    salary_asset_name = None
+    if user.salary_asset_id:
+        asset = (await db.execute(
+            select(Asset).where(Asset.id == user.salary_asset_id)
+        )).scalar_one_or_none()
+        if asset:
+            salary_asset_name = asset.name
+
     return AppSettingsResponse(
         api_keys=api_keys,
         llm=llm,
@@ -258,6 +268,8 @@ async def get_app_settings(
         default_currency=user.default_currency,
         news_refresh_interval=prefs.get("news_refresh_interval", 30),
         investment_prompt=user.investment_prompt,
+        salary_asset_id=user.salary_asset_id,
+        salary_asset_name=salary_asset_name,
     )
 
 
@@ -272,6 +284,8 @@ async def update_app_settings(
         user.default_currency = data.default_currency
     if data.news_refresh_interval is not None:
         prefs["news_refresh_interval"] = data.news_refresh_interval
+    if "salary_asset_id" in data.model_fields_set:
+        user.salary_asset_id = data.salary_asset_id
 
     user.notification_preferences = prefs
     await db.commit()

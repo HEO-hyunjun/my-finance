@@ -12,6 +12,8 @@ celery_app = Celery(
         "app.tasks.news_tasks",
         "app.tasks.market_tasks",
         "app.tasks.insight_tasks",
+        "app.tasks.interest_tasks",
+        "app.tasks.auto_transfer_tasks",
     ],
 )
 
@@ -63,5 +65,17 @@ celery_app.conf.beat_schedule = {
     "generate-daily-insights": {
         "task": "app.tasks.insight_tasks.generate_all_user_insights",
         "schedule": crontab(hour=6, minute=0),  # 매일 06:00
+    },
+    "record-parking-interest-daily": {
+        "task": "app.tasks.interest_tasks.record_daily_parking_interest",
+        "schedule": crontab(hour=0, minute=5),  # 매일 00:05
+    },
+    "record-deposit-interest-monthly": {
+        "task": "app.tasks.interest_tasks.record_monthly_deposit_interest",
+        "schedule": crontab(hour=0, minute=15, day_of_month=1),  # 매월 1일 00:15
+    },
+    "execute-auto-transfers-daily": {
+        "task": "app.tasks.auto_transfer_tasks.execute_auto_transfers",
+        "schedule": crontab(hour=9, minute=0),  # 매일 09:00
     },
 }

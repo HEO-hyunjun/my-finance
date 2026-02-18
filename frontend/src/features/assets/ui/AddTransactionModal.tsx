@@ -22,7 +22,22 @@ interface Props {
   isLoading?: boolean;
 }
 
-const TX_TYPES: TransactionType[] = ['buy', 'sell', 'exchange'];
+const CASH_LIKE_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
+
+function getTxTypesForAsset(assetType?: string): TransactionType[] {
+  if (!assetType) return ['buy', 'sell', 'exchange', 'deposit', 'withdraw'];
+  if (CASH_LIKE_TYPES.has(assetType)) return ['deposit', 'withdraw'];
+  return ['buy', 'sell', 'exchange'];
+}
+
+function getTxTypeColor(t: TransactionType, selected: boolean) {
+  if (!selected) return 'border-border hover:bg-accent';
+  switch (t) {
+    case 'buy': case 'deposit': return 'border-green-500 bg-green-500/10 text-green-700 dark:text-green-400';
+    case 'sell': case 'withdraw': return 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-400';
+    default: return 'border-primary bg-primary/10 text-primary';
+  }
+}
 
 export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoading }: Props) {
   const [assetId, setAssetId] = useState('');
@@ -33,6 +48,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
   const [exchangeRate, setExchangeRate] = useState('');
   const [fee, setFee] = useState('');
   const [memo, setMemo] = useState('');
+  const [sourceAssetId, setSourceAssetId] = useState('');
   const [transactedAt, setTransactedAt] = useState(
     new Date().toISOString().slice(0, 16),
   );
@@ -42,6 +58,13 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
   const selectedAsset = assets.find((a) => a.id === assetId);
   const isForeign = selectedAsset?.asset_type === 'stock_us' || selectedAsset?.asset_type === 'cash_usd';
   const hasSymbol = !!selectedAsset?.symbol;
+  const isCashLike = selectedAsset ? CASH_LIKE_TYPES.has(selectedAsset.asset_type) : false;
+  const txTypes = getTxTypesForAsset(selectedAsset?.asset_type);
+
+  // 출처 계좌 후보: 현금성 자산 중 현재 선택된 자산 제외
+  const sourceAssets = assets.filter(
+    (a) => CASH_LIKE_TYPES.has(a.asset_type) && a.id !== assetId,
+  );
 
   const handleFetchPrice = useCallback(async () => {
     if (!selectedAsset?.symbol) return;
@@ -62,20 +85,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
     }
   }, [selectedAsset?.symbol, isForeign]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmit({
-      asset_id: assetId,
-      type,
-      quantity: parseFloat(quantity),
-      unit_price: parseFloat(unitPrice),
-      currency,
-      exchange_rate: isForeign && exchangeRate ? parseFloat(exchangeRate) : undefined,
-      fee: fee ? parseFloat(fee) : undefined,
-      memo: memo || undefined,
-      transacted_at: new Date(transactedAt).toISOString(),
-    });
-
+  const resetForm = () => {
     setAssetId('');
     setType('buy');
     setQuantity('');
@@ -84,7 +94,49 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
     setExchangeRate('');
     setFee('');
     setMemo('');
+    setSourceAssetId('');
     setTransactedAt(new Date().toISOString().slice(0, 16));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const data: TransactionCreateRequest = {
+      asset_id: assetId,
+      type,
+      quantity: parseFloat(quantity),
+      unit_price: isCashLike ? 1 : parseFloat(unitPrice),
+      currency,
+      exchange_rate: isForeign && exchangeRate ? parseFloat(exchangeRate) : undefined,
+      fee: fee ? parseFloat(fee) : undefined,
+      memo: memo || undefined,
+      transacted_at: new Date(transactedAt).toISOString(),
+    };
+
+    if (type === 'buy' && sourceAssetId) {
+      data.source_asset_id = sourceAssetId;
+    }
+
+    onSubmit(data);
+    resetForm();
+  };
+
+  const handleAssetChange = (newAssetId: string) => {
+    setAssetId(newAssetId);
+    const asset = assets.find((a) => a.id === newAssetId);
+    if (!asset) return;
+
+    if (asset.asset_type === 'stock_us' || asset.asset_type === 'cash_usd') {
+      setCurrency('USD');
+    } else {
+      setCurrency('KRW');
+    }
+
+    // 자산 유형에 맞는 기본 거래 유형 설정
+    const validTypes = getTxTypesForAsset(asset.asset_type);
+    if (!validTypes.includes(type)) {
+      setType(validTypes[0]);
+    }
   };
 
   return (
@@ -99,15 +151,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
             <select
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
               value={assetId}
-              onChange={(e) => {
-                setAssetId(e.target.value);
-                const asset = assets.find((a) => a.id === e.target.value);
-                if (asset?.asset_type === 'stock_us' || asset?.asset_type === 'cash_usd') {
-                  setCurrency('USD');
-                } else {
-                  setCurrency('KRW');
-                }
-              }}
+              onChange={(e) => handleAssetChange(e.target.value)}
               required
             >
               <option value="">자산을 선택하세요</option>
@@ -122,19 +166,13 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
           <div className="space-y-1.5">
             <Label>거래 유형</Label>
             <div className="flex gap-2">
-              {TX_TYPES.map((t) => (
+              {txTypes.map((t) => (
                 <button
                   key={t}
                   type="button"
                   className={cn(
                     'flex-1 rounded-lg border px-3 py-2 text-sm transition',
-                    type === t
-                      ? t === 'buy'
-                        ? 'border-green-500 bg-green-500/10 text-green-700 dark:text-green-400'
-                        : t === 'sell'
-                          ? 'border-red-500 bg-red-500/10 text-red-700 dark:text-red-400'
-                          : 'border-primary bg-primary/10 text-primary'
-                      : 'border-border hover:bg-accent',
+                    getTxTypeColor(t, type === t),
                   )}
                   onClick={() => setType(t)}
                 >
@@ -144,75 +182,117 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* 현금성 자산: 금액만 입력 */}
+          {isCashLike ? (
             <div className="space-y-1.5">
-              <Label>수량</Label>
+              <Label>금액 ({currency})</Label>
               <Input
                 type="number"
                 step="any"
                 min="0"
+                placeholder="금액을 입력하세요"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 required
               />
             </div>
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>단가 ({currency})</Label>
-                {hasSymbol && (
-                  <button
-                    type="button"
-                    className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
-                    onClick={handleFetchPrice}
-                    disabled={isFetchingPrice}
-                  >
-                    {isFetchingPrice ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-3 w-3" />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>수량</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label>단가 ({currency})</Label>
+                    {hasSymbol && (
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+                        onClick={handleFetchPrice}
+                        disabled={isFetchingPrice}
+                      >
+                        {isFetchingPrice ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3 w-3" />
+                        )}
+                        현재가 불러오기
+                      </button>
                     )}
-                    현재가 불러오기
-                  </button>
-                )}
+                  </div>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
-              <Input
-                type="number"
-                step="any"
-                min="0"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(e.target.value)}
-                required
-              />
-            </div>
-          </div>
 
-          {isForeign && (
+              {isForeign && (
+                <div className="space-y-1.5">
+                  <Label>환율 (USD/KRW)</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder="1380"
+                    value={exchangeRate}
+                    onChange={(e) => setExchangeRate(e.target.value)}
+                  />
+                </div>
+              )}
+            </>
+          )}
+
+          {/* 매수 시 출처 계좌 선택 */}
+          {type === 'buy' && sourceAssets.length > 0 && (
             <div className="space-y-1.5">
-              <Label>환율 (USD/KRW)</Label>
-              <Input
-                type="number"
-                step="any"
-                min="0"
-                placeholder="1380"
-                value={exchangeRate}
-                onChange={(e) => setExchangeRate(e.target.value)}
-              />
+              <Label>출처 계좌 (선택)</Label>
+              <select
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={sourceAssetId}
+                onChange={(e) => setSourceAssetId(e.target.value)}
+              >
+                <option value="">출처 없음</option>
+                {sourceAssets.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                선택 시 해당 계좌에서 매수 금액이 자동 출금됩니다
+              </p>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>수수료</Label>
-              <Input
-                type="number"
-                step="any"
-                min="0"
-                placeholder="0"
-                value={fee}
-                onChange={(e) => setFee(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
+            {!isCashLike && (
+              <div className="space-y-1.5">
+                <Label>수수료</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="0"
+                  value={fee}
+                  onChange={(e) => setFee(e.target.value)}
+                />
+              </div>
+            )}
+            <div className={cn('space-y-1.5', isCashLike && 'col-span-2')}>
               <Label>거래일시</Label>
               <Input
                 type="datetime-local"

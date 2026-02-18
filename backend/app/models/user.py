@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Integer, String, Text, DateTime, JSON, Uuid
+from sqlalchemy import Integer, String, Text, DateTime, JSON, Uuid, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -21,6 +21,12 @@ class User(Base):
     )
     salary_day: Mapped[int] = mapped_column(
         Integer, default=1, nullable=False, server_default="1"
+    )
+    salary_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
+        default=None,
     )
     investment_prompt: Mapped[str | None] = mapped_column(
         Text, nullable=True, default=None

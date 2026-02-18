@@ -20,6 +20,7 @@ class TransactionCreate(BaseModel):
     fee: Decimal = Field(default=Decimal("0"), ge=0)
     memo: str | None = Field(default=None, max_length=500)
     transacted_at: datetime
+    source_asset_id: uuid.UUID | None = None
 
 
 class TransactionUpdate(BaseModel):
@@ -48,6 +49,8 @@ class TransactionResponse(BaseModel):
     exchange_rate: float | None
     fee: float
     memo: str | None
+    source_asset_id: uuid.UUID | None = None
+    source_asset_name: str | None = None
     transacted_at: datetime
     created_at: datetime
 

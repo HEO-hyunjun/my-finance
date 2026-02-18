@@ -13,6 +13,8 @@ class TransactionType(str, PyEnum):
     BUY = "buy"
     SELL = "sell"
     EXCHANGE = "exchange"
+    DEPOSIT = "deposit"
+    WITHDRAW = "withdraw"
 
 
 class CurrencyType(str, PyEnum):
@@ -52,6 +54,11 @@ class Transaction(Base):
     )
     fee: Mapped[Decimal] = mapped_column(
         Numeric(18, 4), default=Decimal("0"), nullable=False
+    )
+    source_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
     )
     memo: Mapped[str | None] = mapped_column(Text, nullable=True)
     transacted_at: Mapped[datetime] = mapped_column(

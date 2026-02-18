@@ -7,7 +7,7 @@ export type AssetType =
 export type InterestType = 'simple' | 'compound';
 
 // 거래 유형
-export type TransactionType = 'buy' | 'sell' | 'exchange';
+export type TransactionType = 'buy' | 'sell' | 'exchange' | 'deposit' | 'withdraw';
 
 // 통화
 export type CurrencyType = 'KRW' | 'USD';
@@ -124,6 +124,8 @@ export interface Transaction {
   exchange_rate?: number;
   fee: number;
   memo?: string;
+  source_asset_id?: string;
+  source_asset_name?: string;
   transacted_at: string;
   created_at: string;
 }
@@ -139,6 +141,7 @@ export interface TransactionCreateRequest {
   fee?: number;
   memo?: string;
   transacted_at: string;
+  source_asset_id?: string;
 }
 
 // 거래 수정 요청
@@ -383,6 +386,8 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   buy: '매수',
   sell: '매도',
   exchange: '환전',
+  deposit: '입금',
+  withdraw: '출금',
 };
 
 // ========== Dashboard Types ==========
@@ -604,6 +609,8 @@ export interface UserProfile {
   name: string;
   default_currency: string;
   salary_day: number;
+  salary_asset_id?: string;
+  salary_asset_name?: string;
   notification_preferences: NotificationPreferences | null;
   created_at: string;
   updated_at: string;
@@ -613,6 +620,7 @@ export interface ProfileUpdateRequest {
   name?: string;
   default_currency?: string;
   salary_day?: number;
+  salary_asset_id?: string | null;
 }
 
 export interface PasswordChangeRequest {
@@ -919,6 +927,37 @@ export interface NewsCluster {
   keywords: string[];
   importance_score: number;
   created_at: string;
+}
+
+// ========== Transfer Types ==========
+
+export interface TransferRequest {
+  source_asset_id: string;
+  target_asset_id: string;
+  amount: number;
+  memo?: string;
+  transacted_at?: string;
+}
+
+export interface AutoTransfer {
+  id: string;
+  name: string;
+  source_asset_id: string;
+  source_asset_name?: string;
+  target_asset_id: string;
+  target_asset_name?: string;
+  amount: number;
+  transfer_day: number;
+  is_active: boolean;
+  created_at?: string;
+}
+
+export interface AutoTransferCreateRequest {
+  source_asset_id: string;
+  target_asset_id: string;
+  name: string;
+  amount: number;
+  transfer_day: number;
 }
 
 export interface NewsClustersResponse {
