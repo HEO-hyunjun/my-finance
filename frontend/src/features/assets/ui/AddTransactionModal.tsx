@@ -32,7 +32,7 @@ function getCurrency(asset: Asset): 'USD' | 'KRW' {
 }
 
 function getTxTypesForAsset(assetType?: string): TransactionType[] {
-  if (!assetType) return ['buy', 'sell', 'exchange', 'deposit', 'withdraw'];
+  if (!assetType) return ['buy', 'sell', 'exchange', 'deposit', 'withdraw', 'transfer'];
   if (CASH_LIKE_TYPES.has(assetType)) return ['deposit', 'withdraw', 'transfer'];
   return ['buy', 'sell', 'exchange'];
 }
