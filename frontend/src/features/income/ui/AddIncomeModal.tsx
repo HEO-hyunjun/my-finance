@@ -175,7 +175,7 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
               <option value="">선택 안함</option>
               {targetAssets.map((a: AssetHolding) => (
                 <option key={a.id} value={a.id}>
-                  {a.name} ({(a.principal ?? 0).toLocaleString()}원)
+                  {a.name} ({(a.total_value_krw ?? 0).toLocaleString()}원)
                 </option>
               ))}
             </select>
