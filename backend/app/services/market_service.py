@@ -180,6 +180,10 @@ class MarketService:
     async def get_price(
         self, symbol: str, asset_type: AssetType | None = None
     ) -> PriceResponse:
+        # KRX 금 현물은 전용 조회 사용
+        if symbol == "KRX:GOLD" or (asset_type == AssetType.GOLD and symbol in ("KRX:GOLD", "")):
+            return await self.get_krx_gold_price()
+
         ticker_symbol = _to_yf_ticker(symbol, asset_type)
         cache_key = f"market:price:{ticker_symbol}"
 
@@ -292,6 +296,16 @@ class MarketService:
             )
             for item in raw_results
         ]
+
+        # 금 관련 검색어면 KRX 금 현물을 결과 맨 앞에 추가
+        gold_keywords = {"금", "gold", "골드", "krx gold", "krx:gold", "금현물"}
+        if query.strip().lower() in gold_keywords:
+            krx_gold = MarketSearchResult(
+                symbol="KRX:GOLD",
+                name="금 현물 (KRX)",
+                exchange="KRX",
+            )
+            results.insert(0, krx_gold)
 
         response = MarketSearchResponse(query=query, results=results, cached=False)
         await self._set_cached(cache_key, response.model_dump(), 600)

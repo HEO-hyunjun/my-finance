@@ -177,7 +177,7 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder={assetType === 'stock_kr' ? '삼성전자 또는 005930' : assetType === 'gold' ? 'GLD 또는 gold' : 'TSLA 또는 Tesla'}
+                  placeholder={assetType === 'stock_kr' ? '삼성전자 또는 005930' : assetType === 'gold' ? '금 또는 gold' : 'TSLA 또는 Tesla'}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
