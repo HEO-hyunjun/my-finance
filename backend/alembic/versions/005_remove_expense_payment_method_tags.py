@@ -8,7 +8,7 @@ Create Date: 2026-02-18
 from alembic import op
 import sqlalchemy as sa
 
-revision = "005_remove_expense_payment_method_tags"
+revision = "005_rm_expense_pm_tags"
 down_revision = "004_add_asset_link"
 branch_labels = None
 depends_on = None

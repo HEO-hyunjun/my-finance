@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T10:05:46.758Z",
+  "lastUpdated": "2026-02-18T10:08:43.916Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -679,7 +679,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T13:06:49.621Z",
-        "lastUpdated": "2026-02-18T10:00:31.617Z"
+        "lastUpdated": "2026-02-18T10:08:43.916Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/alembic/versions/005_remove_expense_payment_method_tags.py"
     },
@@ -744,7 +744,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T10:05:46.758Z"
+    "lastActivity": "2026-02-18T10:08:43.916Z"
   },
   "history": [
     {
@@ -6912,6 +6912,12 @@
     {
       "timestamp": "2026-02-18T10:05:46.758Z",
       "feature": "transaction",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:08:43.916Z",
+      "feature": "versions",
       "phase": "do",
       "action": "updated"
     }
