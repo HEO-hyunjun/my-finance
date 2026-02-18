@@ -121,7 +121,7 @@ class FixedExpenseCreate(BaseModel):
     name: str = Field(max_length=100)
     amount: Decimal = Field(gt=0)
     payment_day: int = Field(ge=1, le=31)
-    payment_method: str | None = None
+    source_asset_id: uuid.UUID | None = None
 
 
 class FixedExpenseUpdate(BaseModel):
@@ -129,7 +129,7 @@ class FixedExpenseUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=100)
     amount: Decimal | None = Field(default=None, gt=0)
     payment_day: int | None = Field(default=None, ge=1, le=31)
-    payment_method: str | None = None
+    source_asset_id: uuid.UUID | None = None
     is_active: bool | None = None
 
 
@@ -144,7 +144,8 @@ class FixedExpenseResponse(BaseModel):
     name: str
     amount: float
     payment_day: int
-    payment_method: str | None
+    source_asset_id: uuid.UUID | None = None
+    source_asset_name: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -162,7 +163,7 @@ class InstallmentCreate(BaseModel):
     total_installments: int = Field(gt=0)
     start_date: date
     end_date: date
-    payment_method: str | None = None
+    source_asset_id: uuid.UUID | None = None
 
 
 class InstallmentUpdate(BaseModel):
@@ -170,7 +171,7 @@ class InstallmentUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=100)
     monthly_amount: Decimal | None = Field(default=None, gt=0)
     payment_day: int | None = Field(default=None, ge=1, le=31)
-    payment_method: str | None = None
+    source_asset_id: uuid.UUID | None = None
     is_active: bool | None = None
 
 
@@ -193,7 +194,8 @@ class InstallmentResponse(BaseModel):
     progress_rate: float
     start_date: date
     end_date: date
-    payment_method: str | None
+    source_asset_id: uuid.UUID | None = None
+    source_asset_name: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

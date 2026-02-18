@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { BudgetCategory, FixedExpenseCreateRequest, PaymentMethod } from '@/shared/types';
-import { PAYMENT_METHOD_LABELS } from '@/shared/types';
+import type { AssetHolding, BudgetCategory, FixedExpenseCreateRequest } from '@/shared/types';
+import { useAssetSummary } from '@/features/assets/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Button } from '@/shared/ui/button';
-import { cn } from '@/shared/lib/utils';
+
+const ALLOWED_SOURCE_TYPES = new Set(['cash_krw', 'deposit', 'parking']);
 
 interface Props {
   categories: BudgetCategory[];
@@ -20,7 +21,12 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentDay, setPaymentDay] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
+  const [sourceAssetId, setSourceAssetId] = useState('');
+
+  const { data: assetSummary } = useAssetSummary();
+  const sourceAssets = (assetSummary?.holdings ?? []).filter(
+    (h: AssetHolding) => ALLOWED_SOURCE_TYPES.has(h.asset_type),
+  );
 
   const activeCategories = categories.filter((c) => c.is_active);
 
@@ -33,14 +39,14 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
       name,
       amount: Number(amount),
       payment_day: Number(paymentDay),
-      payment_method: paymentMethod || undefined,
+      source_asset_id: sourceAssetId || undefined,
     });
 
     setCategoryId('');
     setName('');
     setAmount('');
     setPaymentDay('');
-    setPaymentMethod('');
+    setSourceAssetId('');
     onClose();
   };
 
@@ -110,26 +116,20 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
           </div>
 
           <div className="space-y-2">
-            <Label>결제수단</Label>
-            <div className="flex gap-2">
-              {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(
-                ([method, label]) => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => setPaymentMethod(paymentMethod === method ? '' : method)}
-                    className={cn(
-                      'rounded-full border px-3 py-1 text-sm transition',
-                      paymentMethod === method
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border hover:bg-accent',
-                    )}
-                  >
-                    {label}
-                  </button>
-                ),
-              )}
-            </div>
+            <Label htmlFor="source-asset">출금 자산</Label>
+            <select
+              id="source-asset"
+              value={sourceAssetId}
+              onChange={(e) => setSourceAssetId(e.target.value)}
+              className="w-full rounded border border-border bg-background text-foreground px-3 py-2 text-sm"
+            >
+              <option value="">선택 (선택사항)</option>
+              {sourceAssets.map((a: AssetHolding) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({(a.principal ?? 0).toLocaleString()}원)
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="flex gap-2 pt-2">

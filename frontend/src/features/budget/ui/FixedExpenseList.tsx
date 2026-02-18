@@ -1,7 +1,5 @@
 import { memo, useMemo } from 'react';
 import type { FixedExpense } from '@/shared/types';
-import { PAYMENT_METHOD_LABELS } from '@/shared/types';
-import type { PaymentMethod } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
@@ -48,10 +46,8 @@ function FixedExpenseListInner({ fixedExpenses, onToggle, onDelete }: Props) {
             </div>
             <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
               <Badge variant="outline" className="text-[10px] px-1.5 py-0">{fe.category_name}</Badge>
-              {fe.payment_method && (
-                <span>
-                  {PAYMENT_METHOD_LABELS[fe.payment_method as PaymentMethod] || fe.payment_method}
-                </span>
+              {fe.source_asset_name && (
+                <span>{fe.source_asset_name}</span>
               )}
               <span>매월 {fe.payment_day}일</span>
             </div>

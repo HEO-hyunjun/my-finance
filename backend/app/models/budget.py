@@ -9,12 +9,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
-class PaymentMethod(str, PyEnum):
-    CASH = "cash"
-    CARD = "card"
-    TRANSFER = "transfer"
-
-
 class CarryoverType(str, PyEnum):
     EXPIRE = "expire"
     NEXT_MONTH = "next_month"
@@ -127,9 +121,11 @@ class FixedExpense(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 0), nullable=False)
     payment_day: Mapped[int] = mapped_column(nullable=False)
-    payment_method: Mapped[PaymentMethod | None] = mapped_column(
-        Enum(PaymentMethod, name="payment_method_enum", native_enum=False),
+    source_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("assets.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -144,6 +140,9 @@ class FixedExpense(Base):
     # Relationships
     category: Mapped["BudgetCategory"] = relationship(
         "BudgetCategory", foreign_keys=[category_id]
+    )
+    source_asset: Mapped["Asset | None"] = relationship(
+        "Asset", foreign_keys=[source_asset_id]
     )
 
 
@@ -171,9 +170,11 @@ class Installment(Base):
     paid_installments: Mapped[int] = mapped_column(default=0, nullable=False)
     start_date: Mapped[date] = mapped_column(Date, nullable=False)
     end_date: Mapped[date] = mapped_column(Date, nullable=False)
-    payment_method: Mapped[PaymentMethod | None] = mapped_column(
-        Enum(PaymentMethod, name="payment_method_enum", native_enum=False),
+    source_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("assets.id", ondelete="SET NULL"),
         nullable=True,
+        index=True,
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -188,6 +189,9 @@ class Installment(Base):
     # Relationships
     category: Mapped["BudgetCategory"] = relationship(
         "BudgetCategory", foreign_keys=[category_id]
+    )
+    source_asset: Mapped["Asset | None"] = relationship(
+        "Asset", foreign_keys=[source_asset_id]
     )
 
 

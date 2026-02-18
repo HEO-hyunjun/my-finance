@@ -285,7 +285,8 @@ export interface FixedExpense {
   name: string;
   amount: number;
   payment_day: number;
-  payment_method?: PaymentMethod;
+  source_asset_id?: string;
+  source_asset_name?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -296,7 +297,7 @@ export interface FixedExpenseCreateRequest {
   name: string;
   amount: number;
   payment_day: number;
-  payment_method?: PaymentMethod;
+  source_asset_id?: string;
 }
 
 export interface FixedExpenseUpdateRequest {
@@ -304,7 +305,7 @@ export interface FixedExpenseUpdateRequest {
   name?: string;
   amount?: number;
   payment_day?: number;
-  payment_method?: PaymentMethod;
+  source_asset_id?: string;
   is_active?: boolean;
 }
 
@@ -325,7 +326,8 @@ export interface Installment {
   progress_rate: number;
   start_date: string;
   end_date: string;
-  payment_method?: PaymentMethod;
+  source_asset_id?: string;
+  source_asset_name?: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -340,7 +342,7 @@ export interface InstallmentCreateRequest {
   total_installments: number;
   start_date: string;
   end_date: string;
-  payment_method?: PaymentMethod;
+  source_asset_id?: string;
 }
 
 export interface InstallmentUpdateRequest {
@@ -348,7 +350,7 @@ export interface InstallmentUpdateRequest {
   name?: string;
   monthly_amount?: number;
   payment_day?: number;
-  payment_method?: PaymentMethod;
+  source_asset_id?: string;
   is_active?: boolean;
 }
 

@@ -1,7 +1,5 @@
 import { memo, useMemo } from 'react';
 import type { Installment } from '@/shared/types';
-import { PAYMENT_METHOD_LABELS } from '@/shared/types';
-import type { PaymentMethod } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
 import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
@@ -57,10 +55,8 @@ function InstallmentListInner({ installments, onDelete }: Props) {
 
           <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
             <Badge variant="outline" className="text-[10px] px-1.5 py-0">{inst.category_name}</Badge>
-            {inst.payment_method && (
-              <span>
-                {PAYMENT_METHOD_LABELS[inst.payment_method as PaymentMethod] || inst.payment_method}
-              </span>
+            {inst.source_asset_name && (
+              <span>{inst.source_asset_name}</span>
             )}
             <span>매월 {inst.payment_day}일</span>
           </div>

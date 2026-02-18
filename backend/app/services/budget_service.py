@@ -56,7 +56,7 @@ def _category_to_response(cat: BudgetCategory) -> BudgetCategoryResponse:
 
 
 def _fixed_expense_to_response(
-    fe: FixedExpense, category: BudgetCategory
+    fe: FixedExpense, category: BudgetCategory, source_asset_name: str | None = None
 ) -> FixedExpenseResponse:
     return FixedExpenseResponse(
         id=fe.id,
@@ -66,7 +66,8 @@ def _fixed_expense_to_response(
         name=fe.name,
         amount=float(fe.amount),
         payment_day=fe.payment_day,
-        payment_method=fe.payment_method.value if fe.payment_method else None,
+        source_asset_id=fe.source_asset_id,
+        source_asset_name=source_asset_name,
         is_active=fe.is_active,
         created_at=fe.created_at,
         updated_at=fe.updated_at,
@@ -74,7 +75,7 @@ def _fixed_expense_to_response(
 
 
 def _installment_to_response(
-    inst: Installment, category: BudgetCategory
+    inst: Installment, category: BudgetCategory, source_asset_name: str | None = None
 ) -> InstallmentResponse:
     remaining = inst.total_installments - inst.paid_installments
     return InstallmentResponse(
@@ -97,7 +98,8 @@ def _installment_to_response(
         else 0.0,
         start_date=inst.start_date,
         end_date=inst.end_date,
-        payment_method=inst.payment_method.value if inst.payment_method else None,
+        source_asset_id=inst.source_asset_id,
+        source_asset_name=source_asset_name,
         is_active=inst.is_active,
         created_at=inst.created_at,
         updated_at=inst.updated_at,
@@ -523,7 +525,7 @@ async def _upsert_auto_expense_for_fixed(
     if existing:
         existing.amount = fe.amount
         existing.category_id = fe.category_id
-        existing.payment_method = fe.payment_method
+        existing.source_asset_id = fe.source_asset_id
         existing.memo = f"[고정] {fe.name}"
     else:
         expense = Expense(
@@ -531,7 +533,7 @@ async def _upsert_auto_expense_for_fixed(
             category_id=fe.category_id,
             amount=fe.amount,
             memo=f"[고정] {fe.name}",
-            payment_method=fe.payment_method,
+            source_asset_id=fe.source_asset_id,
             fixed_expense_id=fe.id,
             spent_at=period_start,
         )
@@ -623,11 +625,20 @@ async def get_fixed_expenses(
         cats = (await db.execute(cat_stmt)).scalars().all()
         cat_cache = {cat.id: cat for cat in cats}
 
+    # 출금 자산명 일괄 조회
+    asset_ids = {fe.source_asset_id for fe in items if fe.source_asset_id}
+    asset_cache: dict[uuid.UUID, str] = {}
+    if asset_ids:
+        asset_stmt = select(Asset).where(Asset.id.in_(asset_ids))
+        assets = (await db.execute(asset_stmt)).scalars().all()
+        asset_cache = {a.id: a.name for a in assets}
+
     responses = []
     for fe in items:
         cat = cat_cache.get(fe.category_id)
         if cat:
-            responses.append(_fixed_expense_to_response(fe, cat))
+            asset_name = asset_cache.get(fe.source_asset_id) if fe.source_asset_id else None
+            responses.append(_fixed_expense_to_response(fe, cat, asset_name))
     return responses
 
 
@@ -636,13 +647,16 @@ async def create_fixed_expense(
 ) -> FixedExpenseResponse:
     category = await _get_user_category(db, user_id, data.category_id)
 
+    if data.source_asset_id:
+        await _validate_source_asset(db, user_id, data.source_asset_id)
+
     fe = FixedExpense(
         user_id=user_id,
         category_id=data.category_id,
         name=data.name,
         amount=data.amount,
         payment_day=data.payment_day,
-        payment_method=data.payment_method,
+        source_asset_id=data.source_asset_id,
     )
     db.add(fe)
     await db.flush()
@@ -653,7 +667,11 @@ async def create_fixed_expense(
 
     await db.commit()
     await db.refresh(fe)
-    return _fixed_expense_to_response(fe, category)
+    asset_name = None
+    if fe.source_asset_id:
+        asset = await db.get(Asset, fe.source_asset_id)
+        asset_name = asset.name if asset else None
+    return _fixed_expense_to_response(fe, category, asset_name)
 
 
 async def update_fixed_expense(
@@ -668,10 +686,13 @@ async def update_fixed_expense(
     if "category_id" in update_data:
         await _get_user_category(db, user_id, update_data["category_id"])
 
+    if "source_asset_id" in update_data and update_data["source_asset_id"]:
+        await _validate_source_asset(db, user_id, update_data["source_asset_id"])
+
     for field, value in update_data.items():
         setattr(fe, field, value)
 
-    # 자동 Expense 동기화 (amount/category/payment_method 변경 시)
+    # 자동 Expense 동기화 (amount/category/source_asset 변경 시)
     if fe.is_active:
         period_start, _ = await _get_current_period_for_user(db, user_id)
         await _upsert_auto_expense_for_fixed(db, fe, period_start)
@@ -679,7 +700,11 @@ async def update_fixed_expense(
     await db.commit()
     await db.refresh(fe)
     category = await db.get(BudgetCategory, fe.category_id)
-    return _fixed_expense_to_response(fe, category)
+    asset_name = None
+    if fe.source_asset_id:
+        asset = await db.get(Asset, fe.source_asset_id)
+        asset_name = asset.name if asset else None
+    return _fixed_expense_to_response(fe, category, asset_name)
 
 
 async def delete_fixed_expense(
@@ -712,7 +737,11 @@ async def toggle_fixed_expense(
     await db.commit()
     await db.refresh(fe)
     category = await db.get(BudgetCategory, fe.category_id)
-    return _fixed_expense_to_response(fe, category)
+    asset_name = None
+    if fe.source_asset_id:
+        asset = await db.get(Asset, fe.source_asset_id)
+        asset_name = asset.name if asset else None
+    return _fixed_expense_to_response(fe, category, asset_name)
 
 
 # ──────────────────────────────────────────────
@@ -739,11 +768,20 @@ async def get_installments(
         cats = (await db.execute(cat_stmt)).scalars().all()
         cat_cache = {cat.id: cat for cat in cats}
 
+    # 출금 자산명 일괄 조회
+    asset_ids = {inst.source_asset_id for inst in items if inst.source_asset_id}
+    asset_cache: dict[uuid.UUID, str] = {}
+    if asset_ids:
+        asset_stmt = select(Asset).where(Asset.id.in_(asset_ids))
+        assets = (await db.execute(asset_stmt)).scalars().all()
+        asset_cache = {a.id: a.name for a in assets}
+
     responses = []
     for inst in items:
         cat = cat_cache.get(inst.category_id)
         if cat:
-            responses.append(_installment_to_response(inst, cat))
+            asset_name = asset_cache.get(inst.source_asset_id) if inst.source_asset_id else None
+            responses.append(_installment_to_response(inst, cat, asset_name))
     return responses
 
 
@@ -751,6 +789,9 @@ async def create_installment(
     db: AsyncSession, user_id: uuid.UUID, data: InstallmentCreate
 ) -> InstallmentResponse:
     category = await _get_user_category(db, user_id, data.category_id)
+
+    if data.source_asset_id:
+        await _validate_source_asset(db, user_id, data.source_asset_id)
 
     inst = Installment(
         user_id=user_id,
@@ -762,12 +803,16 @@ async def create_installment(
         total_installments=data.total_installments,
         start_date=data.start_date,
         end_date=data.end_date,
-        payment_method=data.payment_method,
+        source_asset_id=data.source_asset_id,
     )
     db.add(inst)
     await db.commit()
     await db.refresh(inst)
-    return _installment_to_response(inst, category)
+    asset_name = None
+    if inst.source_asset_id:
+        asset = await db.get(Asset, inst.source_asset_id)
+        asset_name = asset.name if asset else None
+    return _installment_to_response(inst, category, asset_name)
 
 
 async def update_installment(
@@ -782,13 +827,20 @@ async def update_installment(
     if "category_id" in update_data:
         await _get_user_category(db, user_id, update_data["category_id"])
 
+    if "source_asset_id" in update_data and update_data["source_asset_id"]:
+        await _validate_source_asset(db, user_id, update_data["source_asset_id"])
+
     for field, value in update_data.items():
         setattr(inst, field, value)
 
     await db.commit()
     await db.refresh(inst)
     category = await db.get(BudgetCategory, inst.category_id)
-    return _installment_to_response(inst, category)
+    asset_name = None
+    if inst.source_asset_id:
+        asset = await db.get(Asset, inst.source_asset_id)
+        asset_name = asset.name if asset else None
+    return _installment_to_response(inst, category, asset_name)
 
 
 async def delete_installment(
