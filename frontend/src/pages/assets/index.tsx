@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import {
   useAssets,
   useAssetSummary,
@@ -9,6 +9,7 @@ import {
   useDeleteAsset,
   useDeleteTransaction,
   useRefreshPrice,
+  useRefreshAll,
 } from '@/features/assets/api';
 import { AssetSummaryCard } from '@/features/assets/ui/AssetSummaryCard';
 import { AssetList } from '@/features/assets/ui/AssetList';
@@ -33,6 +34,7 @@ export function Component() {
   const deleteAsset = useDeleteAsset();
   const deleteTx = useDeleteTransaction();
   const refreshPrice = useRefreshPrice();
+  const refreshAll = useRefreshAll();
 
   const editingAsset = useMemo(
     () => (editingAssetId ? assets.find((a) => a.id === editingAssetId) ?? null : null),
@@ -89,10 +91,21 @@ export function Component() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-semibold">보유 자산</h2>
-          <Button onClick={handleOpenAddAsset} size="sm">
-            <Plus className="mr-1.5 h-4 w-4" />
-            자산 추가
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => refreshAll.mutate()}
+              size="sm"
+              variant="outline"
+              disabled={refreshAll.isPending}
+            >
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${refreshAll.isPending ? 'animate-spin' : ''}`} />
+              {refreshAll.isPending ? '새로고침 중...' : '전체 새로고침'}
+            </Button>
+            <Button onClick={handleOpenAddAsset} size="sm">
+              <Plus className="mr-1.5 h-4 w-4" />
+              자산 추가
+            </Button>
+          </div>
         </div>
         <AssetList
           holdings={summary?.holdings || []}

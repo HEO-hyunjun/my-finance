@@ -125,6 +125,22 @@ export function useRefreshExchangeRate() {
   });
 }
 
+export function useRefreshAll() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post<{ success: number; failed: number; total: number }>(
+        '/v1/market/refresh-all',
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 // --- Mutations ---
 
 export function useCreateAsset() {

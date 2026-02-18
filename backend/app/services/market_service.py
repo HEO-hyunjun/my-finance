@@ -16,8 +16,8 @@ from app.schemas.market import (
 
 logger = logging.getLogger(__name__)
 
-CACHE_TTL = 300  # 시세 캐시 5분
-KRX_GOLD_CACHE_TTL = 600  # KRX 금 시세 캐시 10분
+CACHE_TTL = 86400  # 시세 캐시 24시간 (Celery Beat가 장 마감/자정에 갱신)
+KRX_GOLD_CACHE_TTL = 86400  # KRX 금 시세 캐시 24시간
 
 # yfinance 티커 변환: asset_type → suffix
 YF_SUFFIX_MAP = {
