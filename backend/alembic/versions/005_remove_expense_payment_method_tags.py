@@ -14,9 +14,18 @@ branch_labels = None
 depends_on = None
 
 
+def _column_exists(table: str, column: str) -> bool:
+    bind = op.get_bind()
+    insp = sa.inspect(bind)
+    columns = [c["name"] for c in insp.get_columns(table)]
+    return column in columns
+
+
 def upgrade() -> None:
-    op.drop_column("expenses", "payment_method")
-    op.drop_column("expenses", "tags")
+    if _column_exists("expenses", "payment_method"):
+        op.drop_column("expenses", "payment_method")
+    if _column_exists("expenses", "tags"):
+        op.drop_column("expenses", "tags")
 
 
 def downgrade() -> None:
