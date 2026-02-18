@@ -57,9 +57,13 @@ def calculate_savings_interest(
     as_of_date: date,
     maturity_date: date,
     tax_rate: Decimal,
+    principal: Decimal | None = None,
 ) -> dict:
     """
     적금 이자 계산 (정액적립식 단리)
+
+    principal이 지정되면 실제 납입액으로 사용 (추가 입금 반영).
+    미지정 시 monthly_amount × 경과개월수로 자동 계산.
 
     Returns:
         paid_count, total_months, total_paid,
@@ -75,7 +79,9 @@ def calculate_savings_interest(
     total_months = max(1, round(total_days / 30.44))
     paid_count = max(0, min(round(elapsed_days / 30.44), total_months))
 
-    total_paid = m * paid_count
+    auto_paid = m * paid_count
+    # principal이 지정되면 실제 납입액 사용 (추가 입금 반영)
+    total_paid = float(principal) if principal is not None and float(principal) > 0 else auto_paid
 
     # 정액적립식 단리: m × (rate/12) × n(n+1)/2
     accrued_pretax = m * (rate / 12) * paid_count * (paid_count + 1) / 2

@@ -216,6 +216,7 @@ async def _calculate_holding(
             as_of_date=today,
             maturity_date=asset.maturity_date,
             tax_rate=asset.tax_rate or Decimal("15.4"),
+            principal=asset.principal,
         )
         return AssetHoldingResponse(
             id=asset.id,
