@@ -43,6 +43,7 @@ coverage/
 /**/.omc
 /**/.claude
 .bkit
+volume
 
 # Celery
 celerybeat-schedule

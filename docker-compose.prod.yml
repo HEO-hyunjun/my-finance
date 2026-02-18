@@ -6,7 +6,7 @@ services:
       args:
         - VITE_API_BASE_URL=/api
     ports:
-      - "80:80"
+      - "8585:80"
     restart: unless-stopped
     depends_on:
       - backend
@@ -35,7 +35,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DB}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./volume/mysql:/var/lib/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -47,7 +47,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     volumes:
-      - redis_data:/data
+      - ./volume/redis:/data
 
   migrate:
     profiles:
@@ -91,7 +91,3 @@ services:
       - REDIS_URL=redis://redis:6379/0
     depends_on:
       - celery-worker
-
-volumes:
-  mysql_data:
-  redis_data:
