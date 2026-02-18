@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Settings } from 'lucide-react';
 import {
@@ -114,30 +114,9 @@ export function Component() {
     });
   }, [setSearchParams]);
 
-  const addButtonConfig = useMemo<Partial<Record<Tab, { label: string; action: () => void }>>>(
-    () => ({
-      fixed: { label: '고정비 추가', action: handleOpenAddFixed },
-      installments: { label: '할부금 추가', action: handleOpenAddInstallment },
-    }),
-    [handleOpenAddFixed, handleOpenAddInstallment],
-  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" onClick={handleOpenAddIncome}>
-          <Plus className="mr-2 h-4 w-4" />
-          수입 추가
-        </Button>
-        {addButtonConfig[activeTab] && (
-          <Button onClick={addButtonConfig[activeTab].action}>
-            <Plus className="mr-2 h-4 w-4" />
-            {addButtonConfig[activeTab].label}
-          </Button>
-        )}
-      </div>
-
       {isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-40 w-full" />
@@ -193,6 +172,16 @@ export function Component() {
             </TabsList>
 
             <TabsContent value="fixed">
+              <div className="mb-3 flex justify-end gap-2">
+                <Button variant="outline" onClick={handleOpenAddIncome}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  수입 추가
+                </Button>
+                <Button onClick={handleOpenAddFixed}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  고정비 추가
+                </Button>
+              </div>
               <FixedExpenseList
                 fixedExpenses={fixedExpenses}
                 onToggle={handleToggleFixed}
@@ -201,6 +190,16 @@ export function Component() {
             </TabsContent>
 
             <TabsContent value="installments">
+              <div className="mb-3 flex justify-end gap-2">
+                <Button variant="outline" onClick={handleOpenAddIncome}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  수입 추가
+                </Button>
+                <Button onClick={handleOpenAddInstallment}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  할부금 추가
+                </Button>
+              </div>
               <InstallmentList
                 installments={installments}
                 onDelete={handleDeleteInstallment}

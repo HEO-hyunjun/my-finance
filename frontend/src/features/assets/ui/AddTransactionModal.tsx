@@ -84,7 +84,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
           <DialogTitle>거래 기록</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-1.5">
             <Label>자산</Label>
             <select
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
@@ -109,7 +109,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
             </select>
           </div>
 
-          <div>
+          <div className="space-y-1.5">
             <Label>거래 유형</Label>
             <div className="flex gap-2">
               {TX_TYPES.map((t) => (
@@ -135,7 +135,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="space-y-1.5">
               <Label>수량</Label>
               <Input
                 type="number"
@@ -146,7 +146,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
                 required
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label>단가 ({currency})</Label>
                 {hasSymbol && (
@@ -177,7 +177,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
           </div>
 
           {isForeign && (
-            <div>
+            <div className="space-y-1.5">
               <Label>환율 (USD/KRW)</Label>
               <Input
                 type="number"
@@ -191,7 +191,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="space-y-1.5">
               <Label>수수료</Label>
               <Input
                 type="number"
@@ -202,7 +202,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
                 onChange={(e) => setFee(e.target.value)}
               />
             </div>
-            <div>
+            <div className="space-y-1.5">
               <Label>거래일시</Label>
               <Input
                 type="datetime-local"
@@ -213,7 +213,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
             </div>
           </div>
 
-          <div>
+          <div className="space-y-1.5">
             <Label>메모</Label>
             <Input
               type="text"
