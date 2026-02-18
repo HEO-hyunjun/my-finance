@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset, AssetType
 from app.models.income import Income, IncomeType
+from app.models.transaction import Transaction, TransactionType, CurrencyType
 from app.schemas.income import (
     IncomeCreate, IncomeUpdate, IncomeResponse,
     IncomeListResponse, IncomeSummaryResponse,
@@ -114,6 +115,20 @@ async def create_income(
         await _adjust_asset_principal(asset, data.amount)
         target_asset_name = asset.name
 
+        # 거래내역에도 입금 기록 생성
+        from datetime import datetime, timezone as tz
+        tx = Transaction(
+            user_id=user_id,
+            asset_id=data.target_asset_id,
+            type=TransactionType.DEPOSIT,
+            quantity=Decimal("1"),
+            unit_price=data.amount,
+            currency=CurrencyType.KRW,
+            memo=f"[수입] {data.description}",
+            transacted_at=datetime.combine(data.received_at, datetime.min.time(), tzinfo=tz.utc),
+        )
+        db.add(tx)
+
     income = Income(
         user_id=user_id,
         type=IncomeType(data.type),
@@ -188,6 +203,17 @@ async def delete_income(
         asset = await db.get(Asset, income.target_asset_id)
         if asset:
             await _adjust_asset_principal(asset, -Decimal(str(income.amount)))
+
+        # 연관 거래내역 삭제
+        tx_stmt = select(Transaction).where(
+            Transaction.user_id == user_id,
+            Transaction.asset_id == income.target_asset_id,
+            Transaction.type == TransactionType.DEPOSIT,
+            Transaction.memo == f"[수입] {income.description}",
+        )
+        tx = (await db.execute(tx_stmt)).scalar_one_or_none()
+        if tx:
+            await db.delete(tx)
 
     await db.delete(income)
     await db.commit()
