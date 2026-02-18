@@ -5,11 +5,12 @@ import { AssetCard } from './AssetCard';
 interface Props {
   holdings: AssetHolding[];
   onAssetClick?: (id: string) => void;
+  onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   deletingId?: string | null;
 }
 
-function AssetListInner({ holdings, onAssetClick, onDelete, deletingId }: Props) {
+function AssetListInner({ holdings, onAssetClick, onEdit, onDelete, deletingId }: Props) {
   if (holdings.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-border p-8 text-center">
@@ -26,6 +27,7 @@ function AssetListInner({ holdings, onAssetClick, onDelete, deletingId }: Props)
           key={holding.id}
           holding={holding}
           onClick={() => onAssetClick?.(holding.id)}
+          onEdit={onEdit}
           onDelete={onDelete}
           isDeleting={deletingId === holding.id}
         />

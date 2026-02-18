@@ -55,6 +55,18 @@ class AssetCreate(BaseModel):
         return self
 
 
+class AssetUpdate(BaseModel):
+    name: str | None = Field(default=None, max_length=100)
+    interest_rate: Decimal | None = Field(default=None, gt=0, le=100)
+    interest_type: str | None = None
+    principal: Decimal | None = Field(default=None, ge=0)
+    monthly_amount: Decimal | None = Field(default=None, gt=0)
+    start_date: date | None = None
+    maturity_date: date | None = None
+    tax_rate: Decimal | None = Field(default=None, ge=0, le=100)
+    bank_name: str | None = Field(default=None, max_length=50)
+
+
 # --- Response ---
 
 

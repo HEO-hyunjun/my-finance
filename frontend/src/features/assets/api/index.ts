@@ -3,6 +3,7 @@ import { apiClient } from '@/shared/api/client';
 import type {
   Asset,
   AssetCreateRequest,
+  AssetUpdateRequest,
   AssetHolding,
   AssetSummary,
   Transaction,
@@ -102,6 +103,19 @@ export function useCreateAsset() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: assetKeys.list() });
+    },
+  });
+}
+
+export function useUpdateAsset() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: AssetUpdateRequest }) => {
+      const { data: result } = await apiClient.patch<Asset>(`/v1/assets/${id}`, data);
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: assetKeys.all });
     },
   });
 }

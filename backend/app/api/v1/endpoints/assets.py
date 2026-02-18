@@ -7,7 +7,7 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.models.user import User
-from app.schemas.asset import AssetCreate, AssetResponse, AssetHoldingResponse, AssetSummaryResponse
+from app.schemas.asset import AssetCreate, AssetUpdate, AssetResponse, AssetHoldingResponse, AssetSummaryResponse
 from app.services import asset_service
 from app.services.market_service import MarketService
 
@@ -50,6 +50,16 @@ async def get_asset_detail(
 ):
     market = MarketService(redis)
     return await asset_service.get_asset_detail(db, current_user.id, asset_id, market)
+
+
+@router.patch("/{asset_id}", response_model=AssetResponse)
+async def update_asset(
+    asset_id: uuid.UUID,
+    data: AssetUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await asset_service.update_asset(db, current_user.id, asset_id, data)
 
 
 @router.delete("/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)

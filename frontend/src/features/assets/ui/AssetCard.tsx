@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { formatKRW } from '@/shared/lib/format';
@@ -10,6 +10,7 @@ import type { AssetHolding } from '@/shared/types';
 interface Props {
   holding: AssetHolding;
   onClick?: () => void;
+  onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
   isDeleting?: boolean;
 }
@@ -53,7 +54,7 @@ const Row = memo(({
   );
 });
 
-function AssetCardInner({ holding, onClick, onDelete, isDeleting }: Props) {
+function AssetCardInner({ holding, onClick, onEdit, onDelete, isDeleting }: Props) {
   const isPositive = holding.profit_loss >= 0;
   const isInterestBased = INTEREST_BASED_TYPES.includes(holding.asset_type);
   const isParking = holding.asset_type === 'parking';
@@ -86,17 +87,29 @@ function AssetCardInner({ holding, onClick, onDelete, isDeleting }: Props) {
               {holding.interest_rate != null ? ` | ${holding.interest_rate.toFixed(2)}%` : ''}
             </p>
           </div>
-          {onDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 text-muted-foreground hover:text-destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          )}
+          <div className="flex shrink-0 gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={(e) => { e.stopPropagation(); onEdit(holding.id); }}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="space-y-1.5 text-sm">

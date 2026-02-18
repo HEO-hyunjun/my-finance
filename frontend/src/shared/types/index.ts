@@ -54,6 +54,18 @@ export interface AssetCreateRequest {
   bank_name?: string;
 }
 
+export interface AssetUpdateRequest {
+  name?: string;
+  interest_rate?: number;
+  interest_type?: InterestType;
+  principal?: number;
+  monthly_amount?: number;
+  start_date?: string;
+  maturity_date?: string;
+  tax_rate?: number;
+  bank_name?: string;
+}
+
 // 자산 보유 현황
 export interface AssetHolding {
   id: string;

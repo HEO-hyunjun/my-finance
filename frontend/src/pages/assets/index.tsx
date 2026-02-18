@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import {
+  useAssets,
   useAssetSummary,
   useTransactions,
   useCreateAsset,
+  useUpdateAsset,
   useDeleteAsset,
   useDeleteTransaction,
 } from '@/features/assets/api';
@@ -11,19 +13,29 @@ import { AssetSummaryCard } from '@/features/assets/ui/AssetSummaryCard';
 import { AssetList } from '@/features/assets/ui/AssetList';
 import { TransactionList } from '@/features/assets/ui/TransactionList';
 import { AddAssetModal } from '@/features/assets/ui/AddAssetModal';
+import { EditAssetModal } from '@/features/assets/ui/EditAssetModal';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
+import type { AssetUpdateRequest } from '@/shared/types';
 
 export function Component() {
   const [showAddAsset, setShowAddAsset] = useState(false);
+  const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [txPage, setTxPage] = useState(1);
 
+  const { data: assets = [] } = useAssets();
   const { data: summary, isLoading: summaryLoading } = useAssetSummary();
   const { data: txData } = useTransactions({ page: txPage, per_page: 10 });
 
   const createAsset = useCreateAsset();
+  const updateAsset = useUpdateAsset();
   const deleteAsset = useDeleteAsset();
   const deleteTx = useDeleteTransaction();
+
+  const editingAsset = useMemo(
+    () => (editingAssetId ? assets.find((a) => a.id === editingAssetId) ?? null : null),
+    [editingAssetId, assets],
+  );
 
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
   const handleDeleteAsset = useCallback((id: string) => {
@@ -40,6 +52,18 @@ export function Component() {
       createAsset.mutate(data, { onSuccess: () => setShowAddAsset(false) });
     },
     [createAsset],
+  );
+  const handleEditAsset = useCallback((id: string) => setEditingAssetId(id), []);
+  const handleCloseEdit = useCallback(() => setEditingAssetId(null), []);
+  const handleSubmitEdit = useCallback(
+    (data: AssetUpdateRequest) => {
+      if (!editingAssetId) return;
+      updateAsset.mutate(
+        { id: editingAssetId, data },
+        { onSuccess: () => setEditingAssetId(null) },
+      );
+    },
+    [editingAssetId, updateAsset],
   );
 
   return (
@@ -62,6 +86,7 @@ export function Component() {
         </div>
         <AssetList
           holdings={summary?.holdings || []}
+          onEdit={handleEditAsset}
           onDelete={handleDeleteAsset}
           deletingId={deletingAssetId}
         />
@@ -86,6 +111,14 @@ export function Component() {
         onClose={handleCloseAddAsset}
         onSubmit={handleSubmitAsset}
         isLoading={createAsset.isPending}
+      />
+
+      <EditAssetModal
+        isOpen={!!editingAssetId}
+        onClose={handleCloseEdit}
+        onSubmit={handleSubmitEdit}
+        asset={editingAsset}
+        isLoading={updateAsset.isPending}
       />
     </div>
   );

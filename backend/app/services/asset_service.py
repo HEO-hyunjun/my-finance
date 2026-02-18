@@ -10,6 +10,7 @@ from app.models.asset import Asset, AssetType, InterestType
 from app.models.transaction import Transaction, TransactionType
 from app.schemas.asset import (
     AssetCreate,
+    AssetUpdate,
     AssetResponse,
     AssetHoldingResponse,
     AssetSummaryResponse,
@@ -125,6 +126,25 @@ async def get_asset_summary(
         breakdown={k: round(v, 2) for k, v in breakdown.items()},
         holdings=holdings,
     )
+
+
+async def update_asset(
+    db: AsyncSession, user_id: uuid.UUID, asset_id: uuid.UUID, data: AssetUpdate
+) -> AssetResponse:
+    stmt = select(Asset).where(Asset.id == asset_id, Asset.user_id == user_id)
+    asset = (await db.execute(stmt)).scalar_one_or_none()
+    if not asset:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Asset not found")
+
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(asset, field, value)
+
+    await db.commit()
+    await db.refresh(asset)
+    return AssetResponse.model_validate(asset)
 
 
 async def delete_asset(

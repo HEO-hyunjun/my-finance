@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-16T19:23:02.815Z",
+  "lastUpdated": "2026-02-18T06:53:46.277Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -83,7 +83,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-16T17:51:32.753Z"
+        "lastUpdated": "2026-02-18T06:51:58.584Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
     },
@@ -187,9 +187,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-16T18:07:52.364Z"
+        "lastUpdated": "2026-02-18T06:53:46.277Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/AddAssetModal.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/assets/index.tsx"
     },
     "budget": {
       "phase": "do",
@@ -274,11 +274,11 @@
       },
       "timestamps": {
         "started": "2026-02-15T08:00:00.000Z",
-        "lastUpdated": "2026-02-16T10:17:31.131Z",
+        "lastUpdated": "2026-02-18T04:26:07.359Z",
         "doCompletedAt": "2026-02-15T07:50:00.000Z",
         "checkCompletedAt": "2026-02-15T08:10:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/settings/index.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/settings/ui/CarryoverSection.tsx"
     },
     "backend": {
       "phase": "do",
@@ -315,9 +315,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-16T17:51:18.649Z"
+        "lastUpdated": "2026-02-18T06:50:45.203Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/calendar.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/asset.py"
     },
     "__init__.py": {
       "phase": "do",
@@ -367,9 +367,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:44.088Z",
-        "lastUpdated": "2026-02-16T18:30:48.172Z"
+        "lastUpdated": "2026-02-18T06:51:34.921Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/api/v1/endpoints/chatbot.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/api/v1/endpoints/assets.py"
     },
     "alembic": {
       "phase": "do",
@@ -393,7 +393,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T14:08:31.804Z",
-        "lastUpdated": "2026-02-04T21:35:14.283Z"
+        "lastUpdated": "2026-02-18T06:51:16.011Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/asset_service.py"
     },
@@ -419,7 +419,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T14:09:14.760Z",
-        "lastUpdated": "2026-02-16T09:29:17.587Z"
+        "lastUpdated": "2026-02-18T04:09:22.179Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/market_service.py"
     },
@@ -445,7 +445,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T22:30:18.478Z",
-        "lastUpdated": "2026-02-16T17:35:01.199Z"
+        "lastUpdated": "2026-02-18T04:40:00.386Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/budget_service.py"
     },
@@ -705,9 +705,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-16T06:23:38.598Z",
-        "lastUpdated": "2026-02-16T17:35:49.858Z"
+        "lastUpdated": "2026-02-18T04:18:43.052Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/widgets/layout/Sidebar.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/widgets/layout/Header.tsx"
     },
     "ui": {
       "phase": "do",
@@ -744,7 +744,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-16T19:23:02.815Z"
+    "lastActivity": "2026-02-18T06:53:46.277Z"
   },
   "history": [
     {
@@ -5652,6 +5652,264 @@
     {
       "timestamp": "2026-02-16T19:23:02.815Z",
       "feature": "chatbot_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T01:48:14.851Z",
+      "feature": "market_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T01:49:36.117Z",
+      "feature": "market_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T01:49:54.117Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:09:07.234Z",
+      "feature": "market_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:09:22.179Z",
+      "feature": "market_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:08.098Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:16.185Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:21.210Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:26.345Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:33.267Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:41.398Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:47.278Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:17:54.681Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:18:08.258Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:18:13.914Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:18:21.141Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:18:26.446Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:18:32.948Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:18:43.052Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:25:18.762Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:25:38.105Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:25:47.992Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:25:54.487Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:26:07.359Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:39:02.218Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:39:34.703Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T04:40:00.386Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:50:45.203Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:51:03.651Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:51:16.011Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:51:29.230Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:51:34.921Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:51:58.584Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:52:06.246Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:52:12.609Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:52:38.927Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:52:45.112Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:52:51.537Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:52:57.555Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:53:05.836Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:53:17.469Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:53:23.564Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T06:53:46.277Z",
+      "feature": "assets",
       "phase": "do",
       "action": "updated"
     }
