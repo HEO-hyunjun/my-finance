@@ -42,13 +42,9 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
       source_asset_id: sourceAssetId,
     });
 
-    // 리셋
-    setCategoryId('');
+    // 금액·메모만 리셋 (카테고리·출금자산·날짜는 유지)
     setAmount('');
     setMemo('');
-    setSpentAt(new Date().toISOString().slice(0, 10));
-    setSourceAssetId('');
-    onClose();
   };
 
   return (

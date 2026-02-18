@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, AlertCircle } from 'lucide-react';
+import { Plus, Minus, AlertCircle } from 'lucide-react';
 import {
   useExpenses,
   useCategories,
@@ -84,7 +84,7 @@ export function Component() {
             수입 추가
           </Button>
           <Button onClick={() => setShowAddExpense(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+            <Minus className="mr-2 h-4 w-4" />
             지출 추가
           </Button>
         </div>

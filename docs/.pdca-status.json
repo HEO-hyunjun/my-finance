@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T10:09:50.568Z",
+  "lastUpdated": "2026-02-18T10:17:33.452Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -200,9 +200,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-18T10:05:27.568Z"
+        "lastUpdated": "2026-02-18T10:17:33.452Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/ExpenseFilter.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/AddExpenseModal.tsx"
     },
     "news": {
       "phase": "do",
@@ -731,7 +731,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-16T17:35:36.545Z",
-        "lastUpdated": "2026-02-18T09:51:02.316Z"
+        "lastUpdated": "2026-02-18T10:17:26.017Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/expenses/index.tsx"
     }
@@ -744,7 +744,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T10:09:50.568Z"
+    "lastActivity": "2026-02-18T10:17:33.452Z"
   },
   "history": [
     {
@@ -6924,6 +6924,90 @@
     {
       "timestamp": "2026-02-18T10:09:50.568Z",
       "feature": "versions",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:02.176Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:07.419Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:13.392Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:21.586Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:26.859Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:33.718Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:40.177Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:46.473Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:14:55.360Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:17:09.774Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:17:15.543Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:17:20.577Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:17:26.017Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T10:17:33.452Z",
+      "feature": "budget",
       "phase": "do",
       "action": "updated"
     }
