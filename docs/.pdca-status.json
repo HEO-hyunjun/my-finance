@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T09:29:33.495Z",
+  "lastUpdated": "2026-02-18T09:34:23.560Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -200,9 +200,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-18T09:29:33.495Z"
+        "lastUpdated": "2026-02-18T09:32:36.245Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/budget/index.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/AddInstallmentModal.tsx"
     },
     "news": {
       "phase": "do",
@@ -562,7 +562,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:00:09.719Z",
-        "lastUpdated": "2026-02-18T09:28:51.883Z"
+        "lastUpdated": "2026-02-18T09:34:23.560Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/income/ui/AddIncomeModal.tsx"
     },
@@ -744,7 +744,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T09:29:33.495Z"
+    "lastActivity": "2026-02-18T09:34:23.560Z"
   },
   "history": [
     {
@@ -6480,6 +6480,48 @@
     {
       "timestamp": "2026-02-18T09:29:33.495Z",
       "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T09:31:45.030Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T09:31:49.788Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T09:31:55.568Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T09:32:01.926Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T09:32:07.016Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T09:32:36.245Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T09:34:23.560Z",
+      "feature": "income",
       "phase": "do",
       "action": "updated"
     }

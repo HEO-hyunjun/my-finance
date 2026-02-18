@@ -51,7 +51,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
           <DialogTitle>고정비 추가</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="category">카테고리</Label>
             <select
               id="category"
@@ -69,7 +69,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
             </select>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">이름</Label>
             <Input
               id="name"
@@ -82,7 +82,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="amount">금액</Label>
             <Input
               id="amount"
@@ -95,7 +95,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="payment-day">결제일 (매월)</Label>
             <Input
               id="payment-day"
@@ -109,7 +109,7 @@ export function AddFixedExpenseModal({ categories, isOpen, onClose, onSubmit, is
             />
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label>결제수단</Label>
             <div className="flex gap-2">
               {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(

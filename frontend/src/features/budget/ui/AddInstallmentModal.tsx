@@ -63,7 +63,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
           <DialogTitle>할부금 추가</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="category">카테고리</Label>
             <select
               id="category"
@@ -81,7 +81,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
             </select>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label htmlFor="name">이름</Label>
             <Input
               id="name"
@@ -95,7 +95,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="total-amount">총 금액</Label>
               <Input
                 id="total-amount"
@@ -107,7 +107,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
                 min={1}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="monthly-amount">월 납부액</Label>
               <Input
                 id="monthly-amount"
@@ -122,7 +122,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="payment-day">결제일 (매월)</Label>
               <Input
                 id="payment-day"
@@ -135,7 +135,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
                 max={31}
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="total-installments">총 개월수</Label>
               <Input
                 id="total-installments"
@@ -151,7 +151,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="start-date">시작일</Label>
               <Input
                 id="start-date"
@@ -161,7 +161,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
                 required
               />
             </div>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="end-date">종료일</Label>
               <Input
                 id="end-date"
@@ -173,7 +173,7 @@ export function AddInstallmentModal({ categories, isOpen, onClose, onSubmit, isL
             </div>
           </div>
 
-          <div>
+          <div className="space-y-2">
             <Label>결제수단</Label>
             <div className="flex gap-2">
               {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(
