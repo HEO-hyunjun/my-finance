@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T22:41:46.334Z",
+  "lastUpdated": "2026-02-18T22:57:41.411Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -316,9 +316,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-18T22:39:17.394Z"
+        "lastUpdated": "2026-02-18T22:57:26.759Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/carryover.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/news.py"
     },
     "__init__.py": {
       "phase": "do",
@@ -342,9 +342,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:42.343Z",
-        "lastUpdated": "2026-02-18T16:01:18.018Z"
+        "lastUpdated": "2026-02-18T22:57:41.411Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/budget_tasks.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/news_tasks.py"
     },
     "v1": {
       "phase": "do",
@@ -758,7 +758,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T22:41:46.334Z"
+    "lastActivity": "2026-02-18T22:57:41.411Z"
   },
   "history": [
     {
@@ -8426,6 +8426,18 @@
     {
       "timestamp": "2026-02-18T22:41:46.334Z",
       "feature": "versions",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T22:57:26.759Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T22:57:41.411Z",
+      "feature": "tasks",
       "phase": "do",
       "action": "updated"
     }

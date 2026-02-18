@@ -27,8 +27,35 @@ CATEGORY_QUERY_MAP: dict[str, str] = {
     NewsCategory.ECONOMY: "한국 경제 OR 금리 OR 환율",
 }
 
-# 통합 배치 쿼리 (하루 2회, 1회 호출로 모든 카테고리 커버)
-COMBINED_NEWS_QUERY = "한국 증시 미국 증시 금 시세 경제 금리 환율"
+# 통합 배치 기본 쿼리 (OR 연산자로 카테고리별 고르게 수집)
+BASE_NEWS_QUERY = "(코스피 OR 코스닥) OR (나스닥 OR S&P500) OR (금값 OR 금시세) OR (금리 OR 환율)"
+
+# 하위 호환용 (기존 참조 유지)
+COMBINED_NEWS_QUERY = BASE_NEWS_QUERY
+
+
+def build_batch_query(asset_names: list[str] | None = None, max_assets: int = 10) -> str:
+    """보유 자산 키워드를 포함한 배치 쿼리 생성.
+
+    Args:
+        asset_names: 전체 유저의 보유 자산명 (중복 제거된 리스트)
+        max_assets: 쿼리에 포함할 최대 자산 수 (쿼리 길이 제한)
+    """
+    if not asset_names:
+        return BASE_NEWS_QUERY
+
+    # 일반적인 자산명(원화, 현금 등)은 뉴스 검색에 부적합하므로 제외
+    skip_keywords = {"원화", "현금", "KRW", "USD", "원화 자금", "달러 자금", "비상금"}
+    filtered = [
+        name for name in asset_names
+        if name not in skip_keywords and len(name) >= 2
+    ][:max_assets]
+
+    if not filtered:
+        return BASE_NEWS_QUERY
+
+    asset_query = " OR ".join(f"intitle:{name}" for name in filtered)
+    return f"({BASE_NEWS_QUERY}) OR ({asset_query})"
 
 # 카테고리 자동 분류 키워드
 CATEGORY_KEYWORDS: dict[str, list[str]] = {

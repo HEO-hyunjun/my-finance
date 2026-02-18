@@ -14,11 +14,13 @@ def collect_news_batch():
 
 async def _collect_news_batch_async():
     import redis.asyncio as aioredis
+    from sqlalchemy import select, distinct
     from app.core.config import settings
     from app.core.database import AsyncSessionLocal
+    from app.models.asset import Asset
     from app.services.news_service import NewsService
     from app.services.news_llm_service import save_articles_to_db
-    from app.schemas.news import COMBINED_NEWS_QUERY, classify_article_category
+    from app.schemas.news import build_batch_query, classify_article_category
 
     redis_client = aioredis.from_url(settings.REDIS_URL)
     news_service = NewsService(redis_client)
@@ -27,8 +29,17 @@ async def _collect_news_batch_async():
     total_saved = 0
 
     try:
-        # 1개 통합 쿼리로 모든 카테고리 뉴스 수집 (SerpAPI 1회 호출)
-        raw_articles = await news_service._fetch_news(COMBINED_NEWS_QUERY)
+        # 전체 유저의 보유 자산명 수집 (중복 제거)
+        async with AsyncSessionLocal() as db:
+            stmt = select(distinct(Asset.name))
+            result = await db.execute(stmt)
+            asset_names = [row[0] for row in result.all()]
+
+        # 보유 자산 키워드 포함된 통합 쿼리 생성 (SerpAPI 1회 호출)
+        query = build_batch_query(asset_names)
+        logger.info(f"Batch query: {query}")
+
+        raw_articles = await news_service._fetch_news(query)
         logger.info(f"Fetched {len(raw_articles)} articles with combined query")
 
         # 카테고리 자동 분류 후 매핑
