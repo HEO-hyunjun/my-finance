@@ -40,6 +40,9 @@ def _to_yf_ticker(symbol: str, asset_type: AssetType | None = None) -> str:
     """종목 코드를 yfinance 티커 형식으로 변환"""
     if asset_type == AssetType.GOLD:
         return "GC=F"
+    # Yahoo 검색 결과에 이미 거래소 접미사(.KS, .KQ 등)가 포함된 경우 그대로 사용
+    if "." in symbol:
+        return symbol
     suffix = YF_SUFFIX_MAP.get(asset_type, "") if asset_type else ""
     return f"{symbol}{suffix}"
 
