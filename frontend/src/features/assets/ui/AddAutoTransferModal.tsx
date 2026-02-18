@@ -18,6 +18,9 @@ interface Props {
   isLoading?: boolean;
 }
 
+const CASH_LIKE_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
+const AUTO_TRANSFER_TARGET_TYPES = new Set(['cash_krw', 'cash_usd', 'parking', 'deposit', 'savings']);
+
 export function AddAutoTransferModal({ isOpen, onClose, onSubmit, assets, isLoading }: Props) {
   const [name, setName] = useState('');
   const [sourceId, setSourceId] = useState('');
@@ -45,7 +48,10 @@ export function AddAutoTransferModal({ isOpen, onClose, onSubmit, assets, isLoad
     resetForm();
   };
 
-  const targetAssets = assets.filter((a) => a.id !== sourceId);
+  const sourceAssets = assets.filter((a) => CASH_LIKE_TYPES.has(a.asset_type));
+  const targetAssets = assets.filter(
+    (a) => AUTO_TRANSFER_TARGET_TYPES.has(a.asset_type) && a.id !== sourceId,
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -75,7 +81,7 @@ export function AddAutoTransferModal({ isOpen, onClose, onSubmit, assets, isLoad
               required
             >
               <option value="">계좌를 선택하세요</option>
-              {assets.map((a) => (
+              {sourceAssets.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name}
                 </option>

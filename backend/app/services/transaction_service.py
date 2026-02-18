@@ -57,8 +57,8 @@ async def create_transaction(
                 detail=f"Insufficient quantity. Available: {available}, Requested: {data.quantity}",
             )
 
-    # 매수 시 출처 계좌에서 자동 출금
-    if data.type == TransactionType.BUY and data.source_asset_id:
+    # 매수/입금 시 출처 계좌에서 자동 출금
+    if data.type in (TransactionType.BUY, TransactionType.DEPOSIT) and data.source_asset_id:
         source_asset = await _get_user_asset(db, user_id, data.source_asset_id)
         if source_asset.asset_type not in CASH_LIKE_TYPES:
             raise HTTPException(
@@ -67,10 +67,15 @@ async def create_transaction(
             )
         source_asset_name = source_asset.name
 
-        # 출금 금액 계산: 수량 × 단가 + 수수료
-        withdraw_amount = data.quantity * data.unit_price + data.fee
-        if data.exchange_rate:
-            withdraw_amount = withdraw_amount * data.exchange_rate
+        # 출금 금액 계산
+        if data.type == TransactionType.DEPOSIT:
+            # 입금(예금/적금): 입금 금액 그대로 출처에서 출금
+            withdraw_amount = data.quantity
+        else:
+            # 매수: 수량 × 단가 + 수수료
+            withdraw_amount = data.quantity * data.unit_price + data.fee
+            if data.exchange_rate:
+                withdraw_amount = withdraw_amount * data.exchange_rate
 
         available = await _get_available_quantity(db, user_id, data.source_asset_id)
         if withdraw_amount > available:
@@ -79,6 +84,7 @@ async def create_transaction(
                 detail=f"Insufficient balance in source account. Available: {available}, Required: {withdraw_amount}",
             )
 
+        memo_label = "매수" if data.type == TransactionType.BUY else "입금"
         # 출처 계좌에서 자동 출금 거래 생성
         withdraw_tx = Transaction(
             user_id=user_id,
@@ -87,7 +93,7 @@ async def create_transaction(
             quantity=withdraw_amount,
             unit_price=Decimal("1"),
             currency=data.currency if not data.exchange_rate else "KRW",
-            memo=f"{asset.name} 매수 출금",
+            memo=f"{asset.name} {memo_label} 출금",
             transacted_at=data.transacted_at,
         )
         db.add(withdraw_tx)

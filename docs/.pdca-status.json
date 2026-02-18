@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-18T13:59:37.667Z",
+  "lastUpdated": "2026-02-18T14:20:16.294Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -84,7 +84,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-18T13:54:08.190Z"
+        "lastUpdated": "2026-02-18T14:17:11.187Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
     },
@@ -188,9 +188,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-18T13:59:37.667Z"
+        "lastUpdated": "2026-02-18T14:20:16.294Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/AddTransactionModal.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/AddAssetModal.tsx"
     },
     "budget": {
       "phase": "do",
@@ -316,9 +316,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-18T11:50:56.250Z"
+        "lastUpdated": "2026-02-18T14:16:37.408Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/user.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/asset.py"
     },
     "__init__.py": {
       "phase": "do",
@@ -342,7 +342,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:42.343Z",
-        "lastUpdated": "2026-02-18T11:46:42.828Z"
+        "lastUpdated": "2026-02-18T14:13:04.026Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/auto_transfer_tasks.py"
     },
@@ -394,7 +394,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T14:08:31.804Z",
-        "lastUpdated": "2026-02-18T11:38:08.267Z"
+        "lastUpdated": "2026-02-18T14:16:54.844Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/asset_service.py"
     },
@@ -407,7 +407,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T14:08:54.900Z",
-        "lastUpdated": "2026-02-18T11:37:50.249Z"
+        "lastUpdated": "2026-02-18T14:10:30.965Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/transaction_service.py"
     },
@@ -745,7 +745,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-18T11:43:06.303Z",
-        "lastUpdated": "2026-02-18T13:49:25.711Z"
+        "lastUpdated": "2026-02-18T14:12:45.606Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/transfer_service.py"
     }
@@ -758,7 +758,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-18T13:59:37.667Z"
+    "lastActivity": "2026-02-18T14:20:16.294Z"
   },
   "history": [
     {
@@ -7651,6 +7651,138 @@
     },
     {
       "timestamp": "2026-02-18T13:59:37.667Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:09:26.611Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:09:37.044Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:09:56.230Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:10:02.159Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:10:30.965Z",
+      "feature": "transaction_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:12:12.012Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:12:18.571Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:12:25.497Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:12:38.425Z",
+      "feature": "transfer_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:12:45.606Z",
+      "feature": "transfer_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:13:04.026Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:16:37.408Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:16:54.844Z",
+      "feature": "asset_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:17:11.187Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:17:18.621Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:17:25.778Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:19:21.776Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:19:27.404Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:19:34.968Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:19:46.664Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:19:53.395Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-18T14:20:16.294Z",
       "feature": "assets",
       "phase": "do",
       "action": "updated"

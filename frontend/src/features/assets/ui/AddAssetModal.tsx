@@ -11,7 +11,7 @@ import { Label } from '@/shared/ui/label';
 import { Button } from '@/shared/ui/button';
 import { cn } from '@/shared/lib/utils';
 import { apiClient } from '@/shared/api/client';
-import type { AssetType, AssetCreateRequest, InterestType } from '@/shared/types';
+import type { Asset, AssetType, AssetCreateRequest, InterestType } from '@/shared/types';
 import { ASSET_TYPE_LABELS } from '@/shared/types';
 
 interface SearchResult {
@@ -50,10 +50,13 @@ function useSymbolSearch(query: string, enabled: boolean) {
   return { results, isSearching };
 }
 
+const CASH_LIKE_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: AssetCreateRequest) => void;
+  assets?: Asset[];
   isLoading?: boolean;
 }
 
@@ -62,7 +65,7 @@ const ASSET_TYPES: AssetType[] = [
   'deposit', 'savings', 'parking',
 ];
 
-export function AddAssetModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
+export function AddAssetModal({ isOpen, onClose, onSubmit, assets, isLoading }: Props) {
   const [assetType, setAssetType] = useState<AssetType>('stock_kr');
   const [symbol, setSymbol] = useState('');
   const [name, setName] = useState('');
@@ -76,6 +79,8 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
   const [startDate, setStartDate] = useState('');
   const [maturityDate, setMaturityDate] = useState('');
   const [taxRate, setTaxRate] = useState('15.4');
+  const [autoTransferSourceId, setAutoTransferSourceId] = useState('');
+  const [autoTransferDay, setAutoTransferDay] = useState('');
   const searchRef = useRef<HTMLDivElement>(null);
 
   const needsSymbol = ['stock_kr', 'stock_us', 'gold'].includes(assetType);
@@ -91,6 +96,7 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
     setBankName(''); setPrincipal('');
     setInterestRate(''); setInterestType('simple'); setMonthlyAmount('');
     setStartDate(''); setMaturityDate(''); setTaxRate('15.4');
+    setAutoTransferSourceId(''); setAutoTransferDay('');
   };
 
   const handleTypeChange = (type: AssetType) => {
@@ -136,6 +142,8 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
       data.interest_rate = interestRate ? Number(interestRate) : undefined;
       data.start_date = startDate || undefined;
       data.maturity_date = maturityDate || undefined;
+      data.auto_transfer_source_id = autoTransferSourceId || undefined;
+      data.auto_transfer_day = autoTransferDay ? Number(autoTransferDay) : undefined;
     }
     if (isParking) {
       data.principal = principal ? Number(principal) : undefined;
@@ -241,10 +249,43 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
               )}
 
               {isSavings && (
-                <div className="space-y-1.5">
-                  <Label>월 납입액 (원)</Label>
-                  <Input type="number" placeholder="300000" value={monthlyAmount} onChange={(e) => setMonthlyAmount(e.target.value)} min="1" required />
-                </div>
+                <>
+                  <div className="space-y-1.5">
+                    <Label>월 납입액 (원)</Label>
+                    <Input type="number" placeholder="300000" value={monthlyAmount} onChange={(e) => setMonthlyAmount(e.target.value)} min="1" required />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>자동이체 출금 계좌 (선택)</Label>
+                    <select
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      value={autoTransferSourceId}
+                      onChange={(e) => setAutoTransferSourceId(e.target.value)}
+                    >
+                      <option value="">자동이체 안함</option>
+                      {(assets ?? [])
+                        .filter((a) => CASH_LIKE_TYPES.has(a.asset_type))
+                        .map((a) => (
+                          <option key={a.id} value={a.id}>{a.name}</option>
+                        ))}
+                    </select>
+                  </div>
+                  {autoTransferSourceId && (
+                    <div className="space-y-1.5">
+                      <Label>이체일 (매월)</Label>
+                      <select
+                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        value={autoTransferDay}
+                        onChange={(e) => setAutoTransferDay(e.target.value)}
+                        required
+                      >
+                        <option value="">이체일 선택</option>
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                          <option key={d} value={d}>{d}일</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="space-y-1.5">

@@ -24,6 +24,7 @@ interface Props {
 }
 
 const CASH_LIKE_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
+const DEPOSIT_TYPES = new Set(['cash_krw', 'cash_usd', 'parking', 'deposit', 'savings']);
 
 const USD_TYPES = new Set(['cash_usd']);
 
@@ -34,6 +35,7 @@ function getCurrency(asset: Asset): 'USD' | 'KRW' {
 function getTxTypesForAsset(assetType?: string): TransactionType[] {
   if (!assetType) return ['buy', 'sell', 'exchange', 'deposit', 'withdraw', 'transfer'];
   if (CASH_LIKE_TYPES.has(assetType)) return ['deposit', 'withdraw', 'transfer'];
+  if (assetType === 'deposit' || assetType === 'savings') return ['deposit', 'withdraw'];
   return ['buy', 'sell', 'exchange'];
 }
 
@@ -67,7 +69,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, onTransfer, ass
   const selectedAsset = assets.find((a) => a.id === assetId);
   const isForeign = selectedAsset?.asset_type === 'stock_us' || selectedAsset?.asset_type === 'cash_usd';
   const hasSymbol = !!selectedAsset?.symbol;
-  const isCashLike = selectedAsset ? CASH_LIKE_TYPES.has(selectedAsset.asset_type) : false;
+  const isCashLike = selectedAsset ? DEPOSIT_TYPES.has(selectedAsset.asset_type) : false;
   const isTransfer = type === 'transfer';
   const txTypes = getTxTypesForAsset(selectedAsset?.asset_type);
 
@@ -162,7 +164,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, onTransfer, ass
       transacted_at: new Date(transactedAt).toISOString(),
     };
 
-    if (type === 'buy' && sourceAssetId) {
+    if ((type === 'buy' || type === 'deposit') && sourceAssetId) {
       data.source_asset_id = sourceAssetId;
     }
 
@@ -305,8 +307,8 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, onTransfer, ass
             </>
           )}
 
-          {/* 매수 시 출처 계좌 선택 */}
-          {type === 'buy' && sourceAssets.length > 0 && (
+          {/* 매수/입금 시 출처 계좌 선택 */}
+          {(type === 'buy' || type === 'deposit') && sourceAssets.length > 0 && (
             <div className="space-y-1.5">
               <Label>출처 계좌 (선택)</Label>
               <select
@@ -322,7 +324,7 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, onTransfer, ass
                 ))}
               </select>
               <p className="text-xs text-muted-foreground">
-                선택 시 해당 계좌에서 매수 금액이 자동 출금됩니다
+                선택 시 해당 계좌에서 출금 처리됩니다
               </p>
             </div>
           )}

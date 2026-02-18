@@ -162,6 +162,7 @@ export function Component() {
         isOpen={showAddAsset}
         onClose={handleCloseAddAsset}
         onSubmit={handleSubmitAsset}
+        assets={assets}
         isLoading={createAsset.isPending}
       />
 

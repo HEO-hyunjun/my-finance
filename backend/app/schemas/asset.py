@@ -23,6 +23,9 @@ class AssetCreate(BaseModel):
     maturity_date: date | None = None
     tax_rate: Decimal | None = Field(default=Decimal("15.4"), ge=0, le=100)
     bank_name: str | None = Field(default=None, max_length=50)
+    # 적금 자동이체 연동 (선택)
+    auto_transfer_source_id: uuid.UUID | None = None
+    auto_transfer_day: int | None = Field(default=None, ge=1, le=31)
 
     @model_validator(mode="after")
     def validate_by_asset_type(self):

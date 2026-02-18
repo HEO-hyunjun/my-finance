@@ -56,6 +56,27 @@ async def create_asset(
         bank_name=data.bank_name,
     )
     db.add(asset)
+    await db.flush()  # asset.id 확보
+
+    # 적금: 자동이체 연동
+    if (
+        data.asset_type == AssetType.SAVINGS
+        and data.auto_transfer_source_id
+        and data.auto_transfer_day
+        and data.monthly_amount
+    ):
+        from app.models.auto_transfer import AutoTransfer
+
+        auto_transfer = AutoTransfer(
+            user_id=user_id,
+            source_asset_id=data.auto_transfer_source_id,
+            target_asset_id=asset.id,
+            name=f"{data.name} 자동납입",
+            amount=data.monthly_amount,
+            transfer_day=data.auto_transfer_day,
+        )
+        db.add(auto_transfer)
+
     await db.commit()
     await db.refresh(asset)
     return AssetResponse.model_validate(asset)

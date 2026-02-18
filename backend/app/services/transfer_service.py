@@ -13,6 +13,7 @@ from app.models.transaction import Transaction, TransactionType
 
 
 _CASH_LIKE_TYPES = {"cash_krw", "cash_usd", "parking"}
+_AUTO_TRANSFER_TARGET_TYPES = {"cash_krw", "cash_usd", "parking", "deposit", "savings"}
 _USD_TYPES = {"cash_usd"}
 
 
@@ -129,12 +130,16 @@ async def create_auto_transfer(
     user_id: uuid.UUID,
     data: dict,
 ) -> dict:
-    # 자산 소유권 확인
-    await _get_user_asset(db, user_id, data["source_asset_id"])
-    await _get_user_asset(db, user_id, data["target_asset_id"])
+    # 자산 소유권 + 유형 검증
+    source = await _get_user_asset(db, user_id, data["source_asset_id"])
+    target = await _get_user_asset(db, user_id, data["target_asset_id"])
 
     if data["source_asset_id"] == data["target_asset_id"]:
         raise HTTPException(status_code=400, detail="Same source and target asset")
+    if source.asset_type.value not in _CASH_LIKE_TYPES:
+        raise HTTPException(status_code=400, detail="Source must be a cash-like asset")
+    if target.asset_type.value not in _AUTO_TRANSFER_TARGET_TYPES:
+        raise HTTPException(status_code=400, detail="Target must be a cash-like, deposit, or savings asset")
 
     item = AutoTransfer(
         user_id=user_id,

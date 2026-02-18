@@ -52,6 +52,9 @@ export interface AssetCreateRequest {
   maturity_date?: string;
   tax_rate?: number;
   bank_name?: string;
+  // 적금 자동이체 연동
+  auto_transfer_source_id?: string;
+  auto_transfer_day?: number;
 }
 
 export interface AssetUpdateRequest {
