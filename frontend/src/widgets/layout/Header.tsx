@@ -6,7 +6,7 @@ import { useTheme } from "@/app/providers/ThemeProvider";
 import { useCategories, useCreateExpense } from "@/features/budget/api";
 import { AddExpenseModal } from "@/features/budget/ui/AddExpenseModal";
 import { AddIncomeModal } from "@/features/income/ui/AddIncomeModal";
-import { useAssets, useCreateTransaction } from "@/features/assets/api";
+import { useAssets, useCreateTransaction, useTransfer } from "@/features/assets/api";
 import { AddTransactionModal } from "@/features/assets/ui/AddTransactionModal";
 
 const PAGE_TITLES: Record<string, string> = {
@@ -35,6 +35,7 @@ export function Header({ onMenuClick }: HeaderProps) {
   const createExpense = useCreateExpense();
   const { data: assets = [] } = useAssets();
   const createTx = useCreateTransaction();
+  const transfer = useTransfer();
 
   const title = PAGE_TITLES[location.pathname] || "";
 
@@ -117,8 +118,9 @@ export function Header({ onMenuClick }: HeaderProps) {
         isOpen={showTxModal}
         onClose={() => setShowTxModal(false)}
         onSubmit={(data) => createTx.mutate(data, { onSuccess: () => setShowTxModal(false) })}
+        onTransfer={(data) => transfer.mutate(data, { onSuccess: () => setShowTxModal(false) })}
         assets={assets}
-        isLoading={createTx.isPending}
+        isLoading={createTx.isPending || transfer.isPending}
       />
     </>
   );

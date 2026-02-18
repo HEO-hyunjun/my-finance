@@ -7,7 +7,7 @@ export type AssetType =
 export type InterestType = 'simple' | 'compound';
 
 // 거래 유형
-export type TransactionType = 'buy' | 'sell' | 'exchange' | 'deposit' | 'withdraw';
+export type TransactionType = 'buy' | 'sell' | 'exchange' | 'deposit' | 'withdraw' | 'transfer';
 
 // 통화
 export type CurrencyType = 'KRW' | 'USD';
@@ -388,6 +388,7 @@ export const TRANSACTION_TYPE_LABELS: Record<TransactionType, string> = {
   exchange: '환전',
   deposit: '입금',
   withdraw: '출금',
+  transfer: '이체',
 };
 
 // ========== Dashboard Types ==========

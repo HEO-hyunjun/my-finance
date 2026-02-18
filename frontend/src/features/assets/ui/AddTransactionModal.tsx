@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
-import type { Asset, TransactionType, CurrencyType, TransactionCreateRequest } from '@/shared/types';
+import type { Asset, TransactionType, CurrencyType, TransactionCreateRequest, TransferRequest } from '@/shared/types';
 import { TRANSACTION_TYPE_LABELS } from '@/shared/types';
 import {
   Dialog,
@@ -18,15 +18,22 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: TransactionCreateRequest) => void;
+  onTransfer?: (data: TransferRequest) => void;
   assets: Asset[];
   isLoading?: boolean;
 }
 
 const CASH_LIKE_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
 
+const USD_TYPES = new Set(['cash_usd']);
+
+function getCurrency(asset: Asset): 'USD' | 'KRW' {
+  return USD_TYPES.has(asset.asset_type) ? 'USD' : 'KRW';
+}
+
 function getTxTypesForAsset(assetType?: string): TransactionType[] {
   if (!assetType) return ['buy', 'sell', 'exchange', 'deposit', 'withdraw'];
-  if (CASH_LIKE_TYPES.has(assetType)) return ['deposit', 'withdraw'];
+  if (CASH_LIKE_TYPES.has(assetType)) return ['deposit', 'withdraw', 'transfer'];
   return ['buy', 'sell', 'exchange'];
 }
 
@@ -39,7 +46,7 @@ function getTxTypeColor(t: TransactionType, selected: boolean) {
   }
 }
 
-export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoading }: Props) {
+export function AddTransactionModal({ isOpen, onClose, onSubmit, onTransfer, assets, isLoading }: Props) {
   const [assetId, setAssetId] = useState('');
   const [type, setType] = useState<TransactionType>('buy');
   const [quantity, setQuantity] = useState('');
@@ -49,6 +56,8 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
   const [fee, setFee] = useState('');
   const [memo, setMemo] = useState('');
   const [sourceAssetId, setSourceAssetId] = useState('');
+  const [targetAssetId, setTargetAssetId] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
   const [transactedAt, setTransactedAt] = useState(
     new Date().toISOString().slice(0, 16),
   );
@@ -59,12 +68,25 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
   const isForeign = selectedAsset?.asset_type === 'stock_us' || selectedAsset?.asset_type === 'cash_usd';
   const hasSymbol = !!selectedAsset?.symbol;
   const isCashLike = selectedAsset ? CASH_LIKE_TYPES.has(selectedAsset.asset_type) : false;
+  const isTransfer = type === 'transfer';
   const txTypes = getTxTypesForAsset(selectedAsset?.asset_type);
 
   // 출처 계좌 후보: 현금성 자산 중 현재 선택된 자산 제외
   const sourceAssets = assets.filter(
     (a) => CASH_LIKE_TYPES.has(a.asset_type) && a.id !== assetId,
   );
+
+  // 이체 대상 계좌: 현금성 자산 중 출금 계좌 제외
+  const targetAssets = assets.filter(
+    (a) => CASH_LIKE_TYPES.has(a.asset_type) && a.id !== assetId,
+  );
+
+  const targetAsset = assets.find((a) => a.id === targetAssetId);
+  const isCrossCurrency = useMemo(() => {
+    if (!selectedAsset || !targetAsset) return false;
+    return getCurrency(selectedAsset) !== getCurrency(targetAsset);
+  }, [selectedAsset, targetAsset]);
+  const targetCurrency = targetAsset ? getCurrency(targetAsset) : null;
 
   const handleFetchPrice = useCallback(async () => {
     if (!selectedAsset?.symbol) return;
@@ -95,11 +117,38 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
     setFee('');
     setMemo('');
     setSourceAssetId('');
+    setTargetAssetId('');
+    setDepositAmount('');
     setTransactedAt(new Date().toISOString().slice(0, 16));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 이체 처리
+    if (isTransfer && onTransfer) {
+      const amt = parseFloat(quantity);
+      let txExchangeRate: number | undefined;
+      if (isCrossCurrency && depositAmount) {
+        const dep = parseFloat(depositAmount);
+        const sourceCur = selectedAsset ? getCurrency(selectedAsset) : 'KRW';
+        if (sourceCur === 'KRW') {
+          txExchangeRate = amt / dep;
+        } else {
+          txExchangeRate = dep / amt;
+        }
+      }
+      onTransfer({
+        source_asset_id: assetId,
+        target_asset_id: targetAssetId,
+        amount: amt,
+        exchange_rate: txExchangeRate,
+        memo: memo || undefined,
+        transacted_at: new Date(transactedAt).toISOString(),
+      });
+      resetForm();
+      return;
+    }
 
     const data: TransactionCreateRequest = {
       asset_id: assetId,
@@ -278,6 +327,42 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
             </div>
           )}
 
+          {/* 이체 시 입금 계좌 + 입금 금액 */}
+          {isTransfer && (
+            <>
+              <div className="space-y-1.5">
+                <Label>입금 계좌</Label>
+                <select
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  value={targetAssetId}
+                  onChange={(e) => setTargetAssetId(e.target.value)}
+                  required
+                >
+                  <option value="">계좌를 선택하세요</option>
+                  {targetAssets.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name} ({getCurrency(a)})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {isCrossCurrency && (
+                <div className="space-y-1.5">
+                  <Label>입금 금액 {targetCurrency && `(${targetCurrency})`}</Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder={targetCurrency === 'USD' ? '예: 100.00' : '예: 135000'}
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
+            </>
+          )}
+
           <div className="grid grid-cols-2 gap-3">
             {!isCashLike && (
               <div className="space-y-1.5">
@@ -317,8 +402,11 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
             <Button type="button" variant="outline" onClick={onClose}>
               취소
             </Button>
-            <Button type="submit" disabled={isLoading || !assetId}>
-              {isLoading ? '저장 중...' : '저장'}
+            <Button
+              type="submit"
+              disabled={isLoading || !assetId || (isTransfer && (!targetAssetId || (isCrossCurrency && !depositAmount)))}
+            >
+              {isLoading ? '저장 중...' : isTransfer ? '이체' : '저장'}
             </Button>
           </div>
         </form>
