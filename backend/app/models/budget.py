@@ -89,6 +89,12 @@ class Expense(Base):
         nullable=True,
         index=True,
     )
+    source_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     spent_at: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
@@ -100,6 +106,9 @@ class Expense(Base):
     )
     fixed_expense: Mapped["FixedExpense | None"] = relationship(
         "FixedExpense", foreign_keys=[fixed_expense_id]
+    )
+    source_asset: Mapped["Asset | None"] = relationship(
+        "Asset", foreign_keys=[source_asset_id]
     )
 
 

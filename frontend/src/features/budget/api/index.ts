@@ -164,6 +164,7 @@ export function useCreateExpense() {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
   });
 }
@@ -189,6 +190,7 @@ export function useUpdateExpense() {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
   });
 }
@@ -204,6 +206,7 @@ export function useDeleteExpense() {
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
   });
 }

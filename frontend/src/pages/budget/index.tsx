@@ -15,6 +15,7 @@ import {
   useCreateInstallment,
   useDeleteInstallment,
 } from '@/features/budget/api';
+import { AddIncomeModal } from '@/features/income/ui/AddIncomeModal';
 import { BudgetSummaryCard } from '@/features/budget/ui/BudgetSummaryCard';
 import { CategoryBudgetList } from '@/features/budget/ui/CategoryBudgetList';
 import { CategoryManager } from '@/features/budget/ui/CategoryManager';
@@ -42,6 +43,7 @@ export function Component() {
   const activeTab = (searchParams.get('tab') as Tab) || 'fixed';
   const [showAddFixed, setShowAddFixed] = useState(false);
   const [showAddInstallment, setShowAddInstallment] = useState(false);
+  const [showAddIncome, setShowAddIncome] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [confirmState, setConfirmState] = useState<{ action: () => void } | null>(null);
 
@@ -66,6 +68,8 @@ export function Component() {
   const handleCloseAddFixed = useCallback(() => setShowAddFixed(false), []);
   const handleOpenAddInstallment = useCallback(() => setShowAddInstallment(true), []);
   const handleCloseAddInstallment = useCallback(() => setShowAddInstallment(false), []);
+  const handleOpenAddIncome = useCallback(() => setShowAddIncome(true), []);
+  const handleCloseAddIncome = useCallback(() => setShowAddIncome(false), []);
   const handleOpenCategoryManager = useCallback(() => setShowCategoryManager(true), []);
   const handleCloseCategoryManager = useCallback(() => setShowCategoryManager(false), []);
 
@@ -121,7 +125,11 @@ export function Component() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
       {/* 헤더 */}
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <Button variant="outline" onClick={handleOpenAddIncome}>
+          <Plus className="mr-2 h-4 w-4" />
+          수입 추가
+        </Button>
         {addButtonConfig[activeTab] && (
           <Button onClick={addButtonConfig[activeTab].action}>
             <Plus className="mr-2 h-4 w-4" />
@@ -225,6 +233,11 @@ export function Component() {
         onClose={handleCloseAddInstallment}
         onSubmit={handleSubmitInstallment}
         isLoading={createInstallment.isPending}
+      />
+
+      <AddIncomeModal
+        isOpen={showAddIncome}
+        onClose={handleCloseAddIncome}
       />
 
       <CategoryManager

@@ -51,6 +51,7 @@ class ExpenseCreate(BaseModel):
     payment_method: str | None = None
     tags: str | None = Field(default=None, max_length=200)
     spent_at: date
+    source_asset_id: uuid.UUID | None = None
 
 
 class ExpenseUpdate(BaseModel):
@@ -60,6 +61,7 @@ class ExpenseUpdate(BaseModel):
     payment_method: str | None = None
     tags: str | None = None
     spent_at: date | None = None
+    source_asset_id: uuid.UUID | None = None
 
 
 # --- Expense Response ---
@@ -74,6 +76,8 @@ class ExpenseResponse(BaseModel):
     memo: str | None
     payment_method: str | None
     tags: str | None
+    source_asset_id: uuid.UUID | None = None
+    source_asset_name: str | None = None
     spent_at: date
     created_at: datetime
 

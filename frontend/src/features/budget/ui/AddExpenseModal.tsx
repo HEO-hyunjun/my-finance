@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import type { BudgetCategory, ExpenseCreateRequest, PaymentMethod } from '@/shared/types';
+import type { AssetHolding, BudgetCategory, ExpenseCreateRequest, PaymentMethod } from '@/shared/types';
 import { PAYMENT_METHOD_LABELS } from '@/shared/types';
+import { useAssetSummary } from '@/features/assets/api';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { Button } from '@/shared/ui/button';
 import { cn } from '@/shared/lib/utils';
+
+const ALLOWED_SOURCE_TYPES = new Set(['cash_krw', 'deposit', 'parking']);
 
 interface Props {
   categories: BudgetCategory[];
@@ -22,6 +25,12 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
   const [tags, setTags] = useState('');
   const [spentAt, setSpentAt] = useState(new Date().toISOString().slice(0, 10));
+  const [sourceAssetId, setSourceAssetId] = useState('');
+
+  const { data: assetSummary } = useAssetSummary();
+  const sourceAssets = (assetSummary?.holdings ?? []).filter(
+    (h: AssetHolding) => ALLOWED_SOURCE_TYPES.has(h.asset_type),
+  );
 
   const activeCategories = categories.filter((c) => c.is_active);
 
@@ -36,6 +45,7 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
       payment_method: paymentMethod || undefined,
       tags: tags || undefined,
       spent_at: spentAt,
+      source_asset_id: sourceAssetId || undefined,
     });
 
     // 리셋
@@ -45,6 +55,7 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
     setPaymentMethod('');
     setTags('');
     setSpentAt(new Date().toISOString().slice(0, 10));
+    setSourceAssetId('');
     onClose();
   };
 
@@ -123,6 +134,24 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
                 ),
               )}
             </div>
+          </div>
+
+          {/* 출금 자산 */}
+          <div className="space-y-2">
+            <Label htmlFor="source-asset">출금 자산 (선택)</Label>
+            <select
+              id="source-asset"
+              value={sourceAssetId}
+              onChange={(e) => setSourceAssetId(e.target.value)}
+              className="w-full rounded border border-border bg-background text-foreground px-3 py-2 text-sm"
+            >
+              <option value="">선택 안함</option>
+              {sourceAssets.map((a: AssetHolding) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({(a.principal ?? 0).toLocaleString()}원)
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* 태그 */}

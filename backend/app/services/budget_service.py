@@ -1,10 +1,12 @@
 import uuid
 from datetime import date
+from decimal import Decimal
 
 from fastapi import HTTPException
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.asset import Asset, AssetType
 from app.models.budget import BudgetCategory, Expense, FixedExpense, Installment
 from app.models.user import User
 from app.services.budget_period import get_budget_period
@@ -102,7 +104,37 @@ def _installment_to_response(
     )
 
 
-def _expense_to_response(exp: Expense, category: BudgetCategory) -> ExpenseResponse:
+ALLOWED_SOURCE_TYPES = {AssetType.CASH_KRW, AssetType.DEPOSIT, AssetType.PARKING}
+
+
+async def _validate_source_asset(
+    db: AsyncSession, user_id: uuid.UUID, asset_id: uuid.UUID
+) -> Asset:
+    asset = await db.get(Asset, asset_id)
+    if not asset or asset.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset.asset_type not in ALLOWED_SOURCE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Asset type '{asset.asset_type.value}' is not allowed for expense linking",
+        )
+    return asset
+
+
+async def _adjust_asset_principal(asset: Asset, delta: Decimal) -> None:
+    current = asset.principal or Decimal("0")
+    new_val = current + delta
+    if new_val < 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient balance: {asset.name} (current: {current}, required: {abs(delta)})",
+        )
+    asset.principal = new_val
+
+
+def _expense_to_response(
+    exp: Expense, category: BudgetCategory, source_asset_name: str | None = None
+) -> ExpenseResponse:
     return ExpenseResponse(
         id=exp.id,
         category_id=exp.category_id,
@@ -112,6 +144,8 @@ def _expense_to_response(exp: Expense, category: BudgetCategory) -> ExpenseRespo
         memo=exp.memo,
         payment_method=exp.payment_method.value if exp.payment_method else None,
         tags=exp.tags,
+        source_asset_id=exp.source_asset_id,
+        source_asset_name=source_asset_name,
         spent_at=exp.spent_at,
         created_at=exp.created_at,
     )
@@ -207,6 +241,12 @@ async def create_expense(
 ) -> ExpenseResponse:
     category = await _get_user_category(db, user_id, data.category_id)
 
+    source_asset_name: str | None = None
+    if data.source_asset_id:
+        asset = await _validate_source_asset(db, user_id, data.source_asset_id)
+        await _adjust_asset_principal(asset, -data.amount)
+        source_asset_name = asset.name
+
     exp = Expense(
         user_id=user_id,
         category_id=data.category_id,
@@ -215,11 +255,12 @@ async def create_expense(
         payment_method=data.payment_method,
         tags=data.tags,
         spent_at=data.spent_at,
+        source_asset_id=data.source_asset_id,
     )
     db.add(exp)
     await db.commit()
     await db.refresh(exp)
-    return _expense_to_response(exp, category)
+    return _expense_to_response(exp, category, source_asset_name)
 
 
 async def get_expenses(
@@ -261,11 +302,20 @@ async def get_expenses(
         cats = (await db.execute(cat_stmt)).scalars().all()
         category_cache = {cat.id: cat for cat in cats}
 
+    # 자산 이름 조회
+    asset_ids = {exp.source_asset_id for exp in expenses if exp.source_asset_id}
+    asset_cache: dict[uuid.UUID, str] = {}
+    if asset_ids:
+        asset_stmt = select(Asset.id, Asset.name).where(Asset.id.in_(asset_ids))
+        asset_rows = (await db.execute(asset_stmt)).all()
+        asset_cache = {row.id: row.name for row in asset_rows}
+
     responses = []
     for exp in expenses:
         cat = category_cache.get(exp.category_id)
         if cat:
-            responses.append(_expense_to_response(exp, cat))
+            asset_name = asset_cache.get(exp.source_asset_id) if exp.source_asset_id else None
+            responses.append(_expense_to_response(exp, cat, asset_name))
 
     return ExpenseListResponse(
         data=responses,
@@ -288,19 +338,47 @@ async def update_expense(
     if "category_id" in update_data:
         await _get_user_category(db, user_id, update_data["category_id"])
 
+    # 자산 연동 처리
+    old_asset_id = exp.source_asset_id
+    new_asset_id = update_data.get("source_asset_id", old_asset_id)
+    old_amount = exp.amount
+    new_amount = update_data.get("amount", old_amount)
+
+    # 기존 자산 복원
+    if old_asset_id:
+        old_asset = await db.get(Asset, old_asset_id)
+        if old_asset:
+            await _adjust_asset_principal(old_asset, Decimal(str(old_amount)))
+
+    # 새 자산 차감
+    if new_asset_id:
+        new_asset = await _validate_source_asset(db, user_id, new_asset_id)
+        await _adjust_asset_principal(new_asset, -Decimal(str(new_amount)))
+
     for field, value in update_data.items():
         setattr(exp, field, value)
 
     await db.commit()
     await db.refresh(exp)
     category = await db.get(BudgetCategory, exp.category_id)
-    return _expense_to_response(exp, category)
+    source_asset_name = None
+    if exp.source_asset_id:
+        sa = await db.get(Asset, exp.source_asset_id)
+        source_asset_name = sa.name if sa else None
+    return _expense_to_response(exp, category, source_asset_name)
 
 
 async def delete_expense(
     db: AsyncSession, user_id: uuid.UUID, expense_id: uuid.UUID
 ) -> None:
     exp = await _get_user_expense(db, user_id, expense_id)
+
+    # 자산 잔액 복원
+    if exp.source_asset_id:
+        asset = await db.get(Asset, exp.source_asset_id)
+        if asset:
+            await _adjust_asset_principal(asset, Decimal(str(exp.amount)))
+
     await db.delete(exp)
     await db.commit()
 

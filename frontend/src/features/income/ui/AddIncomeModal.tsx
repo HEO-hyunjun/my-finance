@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import type { IncomeCreateRequest, IncomeType } from '@/shared/types';
+import type { AssetHolding, IncomeCreateRequest, IncomeType } from '@/shared/types';
 import { INCOME_TYPE_LABELS } from '@/shared/types';
+import { useAssetSummary } from '@/features/assets/api';
 import { useCreateIncome } from '../api';
+
+const ALLOWED_TARGET_TYPES = new Set(['cash_krw', 'deposit', 'parking']);
 
 interface Props {
   isOpen: boolean;
@@ -17,8 +20,13 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
   const [receivedAt, setReceivedAt] = useState(
     new Date().toISOString().slice(0, 10),
   );
+  const [targetAssetId, setTargetAssetId] = useState('');
 
   const createIncome = useCreateIncome();
+  const { data: assetSummary } = useAssetSummary();
+  const targetAssets = (assetSummary?.holdings ?? []).filter(
+    (h: AssetHolding) => ALLOWED_TARGET_TYPES.has(h.asset_type),
+  );
 
   if (!isOpen) return null;
 
@@ -33,6 +41,7 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
       is_recurring: isRecurring,
       recurring_day: isRecurring && recurringDay ? Number(recurringDay) : undefined,
       received_at: receivedAt,
+      target_asset_id: targetAssetId || undefined,
     };
 
     createIncome.mutate(payload, {
@@ -44,6 +53,7 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
         setIsRecurring(false);
         setRecurringDay('');
         setReceivedAt(new Date().toISOString().slice(0, 10));
+        setTargetAssetId('');
         onClose();
       },
     });
@@ -154,6 +164,25 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
               required
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
             />
+          </div>
+
+          {/* 입금 자산 */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              입금 자산 (선택)
+            </label>
+            <select
+              value={targetAssetId}
+              onChange={(e) => setTargetAssetId(e.target.value)}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">선택 안함</option>
+              {targetAssets.map((a: AssetHolding) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({(a.principal ?? 0).toLocaleString()}원)
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* 버튼 */}

@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import String, DateTime, Date, ForeignKey, Enum, Numeric, Text, Boolean, Integer, Uuid
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -34,7 +34,18 @@ class Income(Base):
     description: Mapped[str] = mapped_column(String(200), nullable=False)
     is_recurring: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     recurring_day: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    target_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     received_at: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+    # Relationships
+    target_asset: Mapped["Asset | None"] = relationship(
+        "Asset", foreign_keys=[target_asset_id]
     )

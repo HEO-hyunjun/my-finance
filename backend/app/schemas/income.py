@@ -12,6 +12,7 @@ class IncomeCreate(BaseModel):
     is_recurring: bool = False
     recurring_day: int | None = Field(default=None, ge=1, le=31)
     received_at: date
+    target_asset_id: uuid.UUID | None = None
 
 
 class IncomeUpdate(BaseModel):
@@ -21,6 +22,7 @@ class IncomeUpdate(BaseModel):
     is_recurring: bool | None = None
     recurring_day: int | None = Field(default=None, ge=1, le=31)
     received_at: date | None = None
+    target_asset_id: uuid.UUID | None = None
 
 
 class IncomeResponse(BaseModel):
@@ -30,10 +32,10 @@ class IncomeResponse(BaseModel):
     description: str
     is_recurring: bool
     recurring_day: int | None
+    target_asset_id: uuid.UUID | None = None
+    target_asset_name: str | None = None
     received_at: date
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class IncomeListResponse(BaseModel):

@@ -2,14 +2,58 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
+from fastapi import HTTPException
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.asset import Asset, AssetType
 from app.models.income import Income, IncomeType
 from app.schemas.income import (
     IncomeCreate, IncomeUpdate, IncomeResponse,
     IncomeListResponse, IncomeSummaryResponse,
 )
+
+ALLOWED_TARGET_TYPES = {AssetType.CASH_KRW, AssetType.DEPOSIT, AssetType.PARKING}
+
+
+async def _validate_target_asset(
+    db: AsyncSession, user_id: uuid.UUID, asset_id: uuid.UUID
+) -> Asset:
+    asset = await db.get(Asset, asset_id)
+    if not asset or asset.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Asset not found")
+    if asset.asset_type not in ALLOWED_TARGET_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Asset type '{asset.asset_type.value}' is not allowed for income linking",
+        )
+    return asset
+
+
+async def _adjust_asset_principal(asset: Asset, delta: Decimal) -> None:
+    current = asset.principal or Decimal("0")
+    new_val = current + delta
+    if new_val < 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient balance: {asset.name} (current: {current}, required: {abs(delta)})",
+        )
+    asset.principal = new_val
+
+
+def _income_to_response(income: Income, target_asset_name: str | None = None) -> IncomeResponse:
+    return IncomeResponse(
+        id=income.id,
+        type=income.type.value,
+        amount=float(income.amount),
+        description=income.description,
+        is_recurring=income.is_recurring,
+        recurring_day=income.recurring_day,
+        target_asset_id=income.target_asset_id,
+        target_asset_name=target_asset_name,
+        received_at=income.received_at,
+        created_at=income.created_at,
+    )
 
 
 async def get_incomes(
@@ -40,8 +84,21 @@ async def get_incomes(
     result = await db.execute(query)
     incomes = result.scalars().all()
 
+    # 자산 이름 조회
+    asset_ids = {i.target_asset_id for i in incomes if i.target_asset_id}
+    asset_cache: dict[uuid.UUID, str] = {}
+    if asset_ids:
+        asset_stmt = select(Asset.id, Asset.name).where(Asset.id.in_(asset_ids))
+        asset_rows = (await db.execute(asset_stmt)).all()
+        asset_cache = {row.id: row.name for row in asset_rows}
+
     return IncomeListResponse(
-        data=[IncomeResponse.model_validate(i) for i in incomes],
+        data=[
+            _income_to_response(
+                i, asset_cache.get(i.target_asset_id) if i.target_asset_id else None
+            )
+            for i in incomes
+        ],
         total=total,
         page=page,
         per_page=per_page,
@@ -51,6 +108,12 @@ async def get_incomes(
 async def create_income(
     db: AsyncSession, user_id: uuid.UUID, data: IncomeCreate
 ) -> IncomeResponse:
+    target_asset_name: str | None = None
+    if data.target_asset_id:
+        asset = await _validate_target_asset(db, user_id, data.target_asset_id)
+        await _adjust_asset_principal(asset, data.amount)
+        target_asset_name = asset.name
+
     income = Income(
         user_id=user_id,
         type=IncomeType(data.type),
@@ -58,12 +121,13 @@ async def create_income(
         description=data.description,
         is_recurring=data.is_recurring,
         recurring_day=data.recurring_day,
+        target_asset_id=data.target_asset_id,
         received_at=data.received_at,
     )
     db.add(income)
     await db.commit()
     await db.refresh(income)
-    return IncomeResponse.model_validate(income)
+    return _income_to_response(income, target_asset_name)
 
 
 async def update_income(
@@ -74,17 +138,39 @@ async def update_income(
     )
     income = result.scalar_one_or_none()
     if not income:
-        raise ValueError("Income not found")
+        raise HTTPException(status_code=404, detail="Income not found")
 
     update_data = data.model_dump(exclude_unset=True)
     if "type" in update_data:
         update_data["type"] = IncomeType(update_data["type"])
+
+    # 자산 연동 처리
+    old_asset_id = income.target_asset_id
+    new_asset_id = update_data.get("target_asset_id", old_asset_id)
+    old_amount = income.amount
+    new_amount = update_data.get("amount", old_amount)
+
+    # 기존 자산 차감 (복원)
+    if old_asset_id:
+        old_asset = await db.get(Asset, old_asset_id)
+        if old_asset:
+            await _adjust_asset_principal(old_asset, -Decimal(str(old_amount)))
+
+    # 새 자산 증가
+    if new_asset_id:
+        new_asset = await _validate_target_asset(db, user_id, new_asset_id)
+        await _adjust_asset_principal(new_asset, Decimal(str(new_amount)))
+
     for key, value in update_data.items():
         setattr(income, key, value)
 
     await db.commit()
     await db.refresh(income)
-    return IncomeResponse.model_validate(income)
+    target_asset_name = None
+    if income.target_asset_id:
+        ta = await db.get(Asset, income.target_asset_id)
+        target_asset_name = ta.name if ta else None
+    return _income_to_response(income, target_asset_name)
 
 
 async def delete_income(
@@ -95,7 +181,14 @@ async def delete_income(
     )
     income = result.scalar_one_or_none()
     if not income:
-        raise ValueError("Income not found")
+        raise HTTPException(status_code=404, detail="Income not found")
+
+    # 자산 잔액 차감 (복원)
+    if income.target_asset_id:
+        asset = await db.get(Asset, income.target_asset_id)
+        if asset:
+            await _adjust_asset_principal(asset, -Decimal(str(income.amount)))
+
     await db.delete(income)
     await db.commit()
 

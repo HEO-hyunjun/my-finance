@@ -216,6 +216,8 @@ export interface Expense {
   memo?: string;
   payment_method?: PaymentMethod;
   tags?: string;
+  source_asset_id?: string;
+  source_asset_name?: string;
   spent_at: string;
   created_at: string;
 }
@@ -227,6 +229,7 @@ export interface ExpenseCreateRequest {
   payment_method?: PaymentMethod;
   tags?: string;
   spent_at: string;
+  source_asset_id?: string;
 }
 
 export interface ExpenseUpdateRequest {
@@ -236,6 +239,7 @@ export interface ExpenseUpdateRequest {
   payment_method?: PaymentMethod;
   tags?: string;
   spent_at?: string;
+  source_asset_id?: string;
 }
 
 // 예산 요약
@@ -645,6 +649,8 @@ export interface Income {
   description: string;
   is_recurring: boolean;
   recurring_day?: number;
+  target_asset_id?: string;
+  target_asset_name?: string;
   received_at: string;
   created_at: string;
 }
@@ -656,6 +662,7 @@ export interface IncomeCreateRequest {
   is_recurring?: boolean;
   recurring_day?: number;
   received_at: string;
+  target_asset_id?: string;
 }
 
 export interface IncomeUpdateRequest {
@@ -665,6 +672,7 @@ export interface IncomeUpdateRequest {
   is_recurring?: boolean;
   recurring_day?: number;
   received_at?: string;
+  target_asset_id?: string;
 }
 
 export interface IncomeSummary {
