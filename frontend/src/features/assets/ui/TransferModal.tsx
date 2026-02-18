@@ -10,7 +10,8 @@ import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
 
-const USD_TYPES = new Set(['stock_us', 'cash_usd']);
+const USD_TYPES = new Set(['cash_usd']);
+const CASH_LIKE_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
 
 function getCurrency(asset: Asset): 'USD' | 'KRW' {
   return USD_TYPES.has(asset.asset_type) ? 'USD' : 'KRW';
@@ -78,7 +79,8 @@ export function TransferModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
     resetForm();
   };
 
-  const targetAssets = assets.filter((a) => a.id !== sourceId);
+  const transferableAssets = assets.filter((a) => CASH_LIKE_TYPES.has(a.asset_type));
+  const targetAssets = transferableAssets.filter((a) => a.id !== sourceId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -96,7 +98,7 @@ export function TransferModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
               required
             >
               <option value="">계좌를 선택하세요</option>
-              {assets.map((a) => (
+              {transferableAssets.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name} ({getCurrency(a)})
                 </option>

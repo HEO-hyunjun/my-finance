@@ -12,8 +12,8 @@ from app.models.auto_transfer import AutoTransfer
 from app.models.transaction import Transaction, TransactionType
 
 
-_USD_TYPES = {"stock_us", "cash_usd"}
-_KRW_TYPES = {"stock_kr", "cash_krw", "gold", "deposit", "savings", "parking"}
+_CASH_LIKE_TYPES = {"cash_krw", "cash_usd", "parking"}
+_USD_TYPES = {"cash_usd"}
 
 
 def _asset_currency(asset: Asset) -> str:
@@ -37,6 +37,12 @@ async def execute_transfer(
     # 자산 소유권 확인
     source = await _get_user_asset(db, user_id, source_asset_id)
     target = await _get_user_asset(db, user_id, target_asset_id)
+
+    # 현금성 자산만 이체 가능
+    if source.asset_type.value not in _CASH_LIKE_TYPES:
+        raise HTTPException(status_code=400, detail="Source asset is not transferable (cash-like assets only)")
+    if target.asset_type.value not in _CASH_LIKE_TYPES:
+        raise HTTPException(status_code=400, detail="Target asset is not transferable (cash-like assets only)")
 
     source_currency = _asset_currency(source)
     target_currency = _asset_currency(target)
