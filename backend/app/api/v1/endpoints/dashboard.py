@@ -34,13 +34,6 @@ async def dashboard_insights(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """AI 기반 재무 인사이트 조회"""
-    redis = await get_redis()
-    market = MarketService(redis)
-    insights = await get_ai_insights(
-        db=db,
-        user_id=current_user.id,
-        market=market,
-        redis_client=redis,
-    )
+    """AI 기반 재무 인사이트 조회 (DB에서 오늘 날짜 데이터 반환)"""
+    insights = await get_ai_insights(db=db, user_id=current_user.id)
     return AIInsightsResponse(insights=insights)

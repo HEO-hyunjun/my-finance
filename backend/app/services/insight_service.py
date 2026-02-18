@@ -1,11 +1,14 @@
 import json
 import logging
 import uuid
+from datetime import date
 
 from litellm import acompletion
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.models.insight import AIInsightRecord
 from app.services.asset_service import get_asset_summary
 from app.services.budget_analysis_service import get_budget_analysis
 from app.services.budget_service import get_budget_summary
@@ -18,20 +21,45 @@ logger = logging.getLogger(__name__)
 async def get_ai_insights(
     db: AsyncSession,
     user_id: uuid.UUID,
-    market: MarketService,
-    redis_client=None,
 ) -> list[dict]:
-    """AI 기반 재무 인사이트 생성 (Redis 캐싱 1시간)"""
+    """DB에서 오늘 날짜의 AI 인사이트를 조회. 없으면 빈 리스트 반환."""
+    today = date.today()
+    result = await db.execute(
+        select(AIInsightRecord)
+        .where(
+            AIInsightRecord.user_id == user_id,
+            AIInsightRecord.generated_date == today,
+        )
+        .order_by(AIInsightRecord.created_at)
+    )
+    records = result.scalars().all()
+    return [
+        {
+            "type": r.type,
+            "title": r.title,
+            "description": r.description,
+            "severity": r.severity,
+            "generated_at": str(r.generated_date),
+        }
+        for r in records
+    ]
 
-    # Redis 캐시 확인
-    cache_key = f"insights:{user_id}"
-    if redis_client:
-        try:
-            cached = await redis_client.get(cache_key)
-            if cached:
-                return json.loads(cached)
-        except Exception:
-            pass
+
+async def generate_daily_insights(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    market: MarketService,
+) -> list[dict]:
+    """LLM을 호출하여 인사이트를 생성하고 DB에 저장. 이미 있으면 재생성."""
+    today = date.today()
+
+    # 기존 데이터 삭제 (upsert 패턴)
+    await db.execute(
+        delete(AIInsightRecord).where(
+            AIInsightRecord.user_id == user_id,
+            AIInsightRecord.generated_date == today,
+        )
+    )
 
     # 재무 데이터 수집
     context_parts: list[str] = []
@@ -120,7 +148,7 @@ async def get_ai_insights(
 
         insights = json.loads(content)
 
-        # 유효성 검사
+        # 유효성 검사 및 DB 저장
         valid_types = {"spending", "budget", "investment", "saving", "alert"}
         valid_severities = {"info", "warning", "success"}
         validated = []
@@ -132,20 +160,20 @@ async def get_ai_insights(
                 and item.get("title")
                 and item.get("description")
             ):
+                record = AIInsightRecord(
+                    user_id=user_id,
+                    type=item["type"],
+                    title=item["title"][:100],
+                    description=item["description"][:500],
+                    severity=item["severity"],
+                    generated_date=today,
+                )
+                db.add(record)
                 validated.append(item)
 
-        # Redis 캐시 저장 (1시간)
-        if redis_client and validated:
-            try:
-                await redis_client.set(
-                    cache_key,
-                    json.dumps(validated, ensure_ascii=False),
-                    ex=3600,
-                )
-            except Exception:
-                pass
-
+        await db.commit()
         return validated
     except Exception as e:
         logger.warning(f"AI insight generation failed: {e}")
+        await db.rollback()
         return []

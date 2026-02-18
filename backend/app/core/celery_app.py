@@ -11,6 +11,7 @@ celery_app = Celery(
         "app.tasks.snapshot_tasks",
         "app.tasks.news_tasks",
         "app.tasks.market_tasks",
+        "app.tasks.insight_tasks",
     ],
 )
 
@@ -58,5 +59,9 @@ celery_app.conf.beat_schedule = {
     "warm-market-cache-midnight": {
         "task": "app.tasks.market_tasks.warm_market_cache",
         "schedule": crontab(hour=0, minute=0),
+    },
+    "generate-daily-insights": {
+        "task": "app.tasks.insight_tasks.generate_all_user_insights",
+        "schedule": crontab(hour=6, minute=0),  # 매일 06:00
     },
 }

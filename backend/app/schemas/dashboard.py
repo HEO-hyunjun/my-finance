@@ -96,6 +96,7 @@ class AIInsight(BaseModel):
     title: str
     description: str
     severity: str  # info, warning, success
+    generated_at: date | None = None
 
 
 class AIInsightsResponse(BaseModel):

@@ -1,22 +1,22 @@
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { Sun, Moon, Menu, Plus, ArrowLeftRight } from 'lucide-react';
-import { Button } from '@/shared/ui/button';
-import { useTheme } from '@/app/providers/ThemeProvider';
-import { useCategories, useCreateExpense } from '@/features/budget/api';
-import { AddExpenseModal } from '@/features/budget/ui/AddExpenseModal';
-import { useAssets, useCreateTransaction } from '@/features/assets/api';
-import { AddTransactionModal } from '@/features/assets/ui/AddTransactionModal';
+import { useState } from "react";
+import { useLocation } from "react-router-dom";
+import { Sun, Moon, Menu, Plus, ArrowLeftRight } from "lucide-react";
+import { Button } from "@/shared/ui/button";
+import { useTheme } from "@/app/providers/ThemeProvider";
+import { useCategories, useCreateExpense } from "@/features/budget/api";
+import { AddExpenseModal } from "@/features/budget/ui/AddExpenseModal";
+import { useAssets, useCreateTransaction } from "@/features/assets/api";
+import { AddTransactionModal } from "@/features/assets/ui/AddTransactionModal";
 
 const PAGE_TITLES: Record<string, string> = {
-  '/': '대시보드',
-  '/assets': '자산 관리',
-  '/budget': '예산 관리',
-  '/calendar': '캘린더',
-  '/transactions': '거래 내역',
-  '/news': '뉴스',
-  '/chatbot': 'AI 챗봇',
-  '/settings': '설정',
+  "/": "대시보드",
+  "/assets": "자산 관리",
+  "/budget": "예산 관리",
+  "/calendar": "캘린더",
+  "/transactions": "거래 내역",
+  "/news": "뉴스",
+  "/chatbot": "AI 챗봇",
+  "/settings": "설정",
 };
 
 interface HeaderProps {
@@ -34,10 +34,10 @@ export function Header({ onMenuClick }: HeaderProps) {
   const { data: assets = [] } = useAssets();
   const createTx = useCreateTransaction();
 
-  const title = PAGE_TITLES[location.pathname] || '';
+  const title = PAGE_TITLES[location.pathname] || "";
 
   const toggleTheme = () => {
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   };
 
   return (
@@ -66,6 +66,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             <Plus className="h-4 w-4" />
             <span className="hidden sm:inline">지출 추가</span>
           </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -82,11 +83,7 @@ export function Header({ onMenuClick }: HeaderProps) {
             className="h-9 w-9"
             aria-label="테마 전환"
           >
-            {resolvedTheme === 'dark' ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
+            {resolvedTheme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
         </div>
       </header>
