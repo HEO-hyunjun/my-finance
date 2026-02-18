@@ -141,6 +141,9 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, isLoading }: Props) {
       data.principal = principal ? Number(principal) : undefined;
     }
     onSubmit(data);
+
+    setAssetType('stock_kr');
+    resetFields();
   };
 
   return (

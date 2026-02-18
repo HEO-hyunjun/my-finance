@@ -75,6 +75,16 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, assets, isLoadi
       memo: memo || undefined,
       transacted_at: new Date(transactedAt).toISOString(),
     });
+
+    setAssetId('');
+    setType('buy');
+    setQuantity('');
+    setUnitPrice('');
+    setCurrency('KRW');
+    setExchangeRate('');
+    setFee('');
+    setMemo('');
+    setTransactedAt(new Date().toISOString().slice(0, 16));
   };
 
   return (
