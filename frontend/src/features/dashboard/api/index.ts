@@ -15,8 +15,7 @@ export function useDashboardSummary() {
       const { data } = await apiClient.get('/v1/dashboard/summary');
       return data;
     },
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
     refetchOnWindowFocus: true,
   });
 }

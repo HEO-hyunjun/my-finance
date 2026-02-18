@@ -37,13 +37,7 @@ async def get_dashboard_summary(
     redis=None,
     salary_day: int = 1,
 ) -> DashboardSummaryResponse:
-    """대시보드 통합 데이터를 병렬로 조회하여 반환."""
-
-    # Redis 캐시 확인
-    if redis:
-        cached = await redis.get(f"dashboard:{user_id}")
-        if cached:
-            return DashboardSummaryResponse.model_validate_json(cached)
+    """대시보드 통합 데이터를 매번 계산하여 반환. 시세는 개별 Redis 캐시 사용."""
 
     today = date.today()
 
@@ -81,14 +75,6 @@ async def get_dashboard_summary(
         upcoming_payments=_map_payments(fixed_expenses_raw, installments_raw, today),
         maturity_alerts=maturity_alerts,
     )
-
-    # Redis 캐시 저장 (5분)
-    if redis:
-        await redis.set(
-            f"dashboard:{user_id}",
-            result.model_dump_json(),
-            ex=300,
-        )
 
     return result
 
