@@ -39,7 +39,7 @@ def upgrade() -> None:
         sa.Column("name", sa.String(100), nullable=False),
         sa.Column("amount", sa.Numeric(18, 0), nullable=False),
         sa.Column("transfer_day", sa.Integer(), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("1")),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
