@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Minus, Settings } from 'lucide-react';
+import { Plus, Settings } from 'lucide-react';
 import {
   useCategories,
   useCreateCategory,
@@ -14,10 +14,7 @@ import {
   useInstallments,
   useCreateInstallment,
   useDeleteInstallment,
-  useCreateExpense,
 } from '@/features/budget/api';
-import { AddExpenseModal } from '@/features/budget/ui/AddExpenseModal';
-import { AddIncomeModal } from '@/features/income/ui/AddIncomeModal';
 import { BudgetSummaryCard } from '@/features/budget/ui/BudgetSummaryCard';
 import { CategoryBudgetList } from '@/features/budget/ui/CategoryBudgetList';
 import { CategoryManager } from '@/features/budget/ui/CategoryManager';
@@ -43,10 +40,8 @@ const TAB_LABELS: Record<Tab, string> = {
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab = (searchParams.get('tab') as Tab) || 'fixed';
-  const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddFixed, setShowAddFixed] = useState(false);
   const [showAddInstallment, setShowAddInstallment] = useState(false);
-  const [showAddIncome, setShowAddIncome] = useState(false);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const [confirmState, setConfirmState] = useState<{ action: () => void } | null>(null);
 
@@ -61,21 +56,16 @@ export function Component() {
   const createFixedExpense = useCreateFixedExpense();
   const deleteFixedExpense = useDeleteFixedExpense();
   const toggleFixedExpense = useToggleFixedExpense();
-  const createExpense = useCreateExpense();
   const createInstallment = useCreateInstallment();
   const deleteInstallment = useDeleteInstallment();
 
   const isLoading = catLoading || summaryLoading || fixedLoading || instLoading;
 
   // Stable modal open/close callbacks
-  const handleOpenAddExpense = useCallback(() => setShowAddExpense(true), []);
-  const handleCloseAddExpense = useCallback(() => setShowAddExpense(false), []);
   const handleOpenAddFixed = useCallback(() => setShowAddFixed(true), []);
   const handleCloseAddFixed = useCallback(() => setShowAddFixed(false), []);
   const handleOpenAddInstallment = useCallback(() => setShowAddInstallment(true), []);
   const handleCloseAddInstallment = useCallback(() => setShowAddInstallment(false), []);
-  const handleOpenAddIncome = useCallback(() => setShowAddIncome(true), []);
-  const handleCloseAddIncome = useCallback(() => setShowAddIncome(false), []);
   const handleOpenCategoryManager = useCallback(() => setShowCategoryManager(true), []);
   const handleCloseCategoryManager = useCallback(() => setShowCategoryManager(false), []);
 
@@ -99,10 +89,6 @@ export function Component() {
   const handleSubmitFixed = useCallback(
     (data: Parameters<typeof createFixedExpense.mutate>[0]) => createFixedExpense.mutate(data),
     [createFixedExpense],
-  );
-  const handleSubmitExpense = useCallback(
-    (data: Parameters<typeof createExpense.mutate>[0]) => createExpense.mutate(data),
-    [createExpense],
   );
   const handleSubmitInstallment = useCallback(
     (data: Parameters<typeof createInstallment.mutate>[0]) => createInstallment.mutate(data),
@@ -138,16 +124,6 @@ export function Component() {
           {/* 헤더 */}
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">예산관리</h1>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleOpenAddIncome}>
-                <Plus className="mr-2 h-4 w-4" />
-                수입 추가
-              </Button>
-              <Button onClick={handleOpenAddExpense}>
-                <Minus className="mr-2 h-4 w-4" />
-                지출 추가
-              </Button>
-            </div>
           </div>
 
           {/* 예산 요약 */}
@@ -235,14 +211,6 @@ export function Component() {
       )}
 
       {/* 모달들 */}
-      <AddExpenseModal
-        categories={categories}
-        isOpen={showAddExpense}
-        onClose={handleCloseAddExpense}
-        onSubmit={handleSubmitExpense}
-        isLoading={createExpense.isPending}
-      />
-
       <AddFixedExpenseModal
         categories={categories}
         isOpen={showAddFixed}
@@ -257,11 +225,6 @@ export function Component() {
         onClose={handleCloseAddInstallment}
         onSubmit={handleSubmitInstallment}
         isLoading={createInstallment.isPending}
-      />
-
-      <AddIncomeModal
-        isOpen={showAddIncome}
-        onClose={handleCloseAddIncome}
       />
 
       <CategoryManager

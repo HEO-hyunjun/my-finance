@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
-import { Sun, Moon, Menu, Plus, ArrowLeftRight } from "lucide-react";
+import { Sun, Moon, Menu, Plus, Minus, ArrowLeftRight } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import { useCategories, useCreateExpense } from "@/features/budget/api";
 import { AddExpenseModal } from "@/features/budget/ui/AddExpenseModal";
+import { AddIncomeModal } from "@/features/income/ui/AddIncomeModal";
 import { useAssets, useCreateTransaction } from "@/features/assets/api";
 import { AddTransactionModal } from "@/features/assets/ui/AddTransactionModal";
 
@@ -26,6 +27,7 @@ interface HeaderProps {
 export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
   const { resolvedTheme, setTheme } = useTheme();
+  const [showIncomeModal, setShowIncomeModal] = useState(false);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [showTxModal, setShowTxModal] = useState(false);
 
@@ -58,12 +60,22 @@ export function Header({ onMenuClick }: HeaderProps) {
 
         <div className="ml-auto flex items-center gap-2">
           <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowIncomeModal(true)}
+            className="gap-1.5"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">수입 추가</span>
+          </Button>
+
+          <Button
             variant="default"
             size="sm"
             onClick={() => setShowExpenseModal(true)}
             className="gap-1.5"
           >
-            <Plus className="h-4 w-4" />
+            <Minus className="h-4 w-4" />
             <span className="hidden sm:inline">지출 추가</span>
           </Button>
 
@@ -87,6 +99,11 @@ export function Header({ onMenuClick }: HeaderProps) {
           </Button>
         </div>
       </header>
+
+      <AddIncomeModal
+        isOpen={showIncomeModal}
+        onClose={() => setShowIncomeModal(false)}
+      />
 
       <AddExpenseModal
         categories={categories}
