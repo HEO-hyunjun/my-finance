@@ -4,7 +4,6 @@ import { AlertCircle } from "lucide-react";
 import {
   useExpenses,
   useCategories,
-  useCreateExpense,
   useUpdateExpense,
   useDeleteExpense,
 } from "@/features/budget/api";
@@ -38,7 +37,6 @@ export function Component() {
     page,
     per_page: perPage,
   });
-  const createExpense = useCreateExpense();
   const updateExpense = useUpdateExpense();
   const deleteExpense = useDeleteExpense();
 
@@ -70,11 +68,6 @@ export function Component() {
       setConfirmState({ action: () => deleteExpense.mutate(id) });
     },
     [deleteExpense],
-  );
-
-  const handleSubmitExpense = useCallback(
-    (data: Parameters<typeof createExpense.mutate>[0]) => createExpense.mutate(data),
-    [createExpense],
   );
 
   return (

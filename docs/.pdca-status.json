@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T22:44:59.855Z",
+  "lastUpdated": "2026-02-19T23:16:30.649Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -71,10 +71,10 @@
       },
       "timestamps": {
         "started": "2026-02-13T00:00:00.000Z",
-        "lastUpdated": "2026-02-19T22:38:11.632Z",
+        "lastUpdated": "2026-02-19T23:16:30.648Z",
         "completedAt": "2026-02-13T23:59:59.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/dashboard/ui/TotalAssetWidget.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/dashboard/index.tsx"
     },
     "frontend": {
       "phase": "do",
@@ -189,9 +189,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-19T22:44:21.111Z"
+        "lastUpdated": "2026-02-19T23:16:21.892Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/EditTransactionModal.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/assets/index.tsx"
     },
     "budget": {
       "phase": "do",
@@ -238,7 +238,7 @@
       },
       "timestamps": {
         "started": "2026-02-13T13:00:00.000Z",
-        "lastUpdated": "2026-02-19T15:39:41.660Z",
+        "lastUpdated": "2026-02-19T23:16:29.621Z",
         "doCompletedAt": "2026-02-13T14:00:00.000Z",
         "checkCompletedAt": "2026-02-13T14:30:00.000Z"
       },
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-19T22:44:59.855Z"
+    "lastActivity": "2026-02-19T23:16:30.649Z"
   },
   "history": [
     {
@@ -9772,6 +9772,30 @@
     {
       "timestamp": "2026-02-19T22:44:59.855Z",
       "feature": "income",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:16:18.439Z",
+      "feature": "calendar",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:16:21.892Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:16:29.621Z",
+      "feature": "calendar",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:16:30.648Z",
+      "feature": "dashboard",
       "phase": "do",
       "action": "updated"
     }

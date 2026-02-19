@@ -52,7 +52,7 @@ export function Component() {
   const { data: appSettings } = useAppSettings();
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="space-y-6 p-6">
       {isLoading && <DashboardSkeleton />}
       {isError && <DashboardError onRetry={() => refetch()} />}
 
