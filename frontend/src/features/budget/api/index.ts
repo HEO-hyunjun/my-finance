@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { apiClient } from '@/shared/api/client';
+import type { AxiosError } from 'axios';
 import type {
   BudgetCategory,
   BudgetCategoryCreateRequest,
@@ -16,6 +18,11 @@ import type {
   InstallmentCreateRequest,
   InstallmentUpdateRequest,
 } from '@/shared/types';
+
+function getErrorMsg(error: unknown): string {
+  const e = error as AxiosError<{ detail?: string }>;
+  return e?.response?.data?.detail || '요청 처리 중 오류가 발생했습니다.';
+}
 
 // Query Keys
 
@@ -159,12 +166,14 @@ export function useCreateExpense() {
       return result;
     },
     onSuccess: () => {
+      toast.success('지출이 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -201,12 +210,14 @@ export function useDeleteExpense() {
       await apiClient.delete(`/v1/expenses/${id}`);
     },
     onSuccess: () => {
+      toast.success('지출이 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -235,11 +246,13 @@ export function useCreateFixedExpense() {
       return result;
     },
     onSuccess: () => {
+      toast.success('고정비가 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -275,11 +288,13 @@ export function useDeleteFixedExpense() {
       await apiClient.delete(`/v1/fixed-expenses/${id}`);
     },
     onSuccess: () => {
+      toast.success('고정비가 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -324,9 +339,11 @@ export function useCreateInstallment() {
       return result;
     },
     onSuccess: () => {
+      toast.success('할부금이 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: budgetKeys.installments() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -360,8 +377,10 @@ export function useDeleteInstallment() {
       await apiClient.delete(`/v1/installments/${id}`);
     },
     onSuccess: () => {
+      toast.success('할부금이 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: budgetKeys.installments() });
       queryClient.invalidateQueries({ queryKey: budgetKeys.all });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }

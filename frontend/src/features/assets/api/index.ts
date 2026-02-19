@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { apiClient } from '@/shared/api/client';
+import type { AxiosError } from 'axios';
 import type {
   Asset,
   AssetCreateRequest,
@@ -97,6 +99,11 @@ export function useTransactions(filters: TransactionFilters = {}) {
   });
 }
 
+function getErrorMsg(error: unknown): string {
+  const e = error as AxiosError<{ detail?: string }>;
+  return e?.response?.data?.detail || '요청 처리 중 오류가 발생했습니다.';
+}
+
 // --- Price Refresh ---
 
 export function useRefreshPrice() {
@@ -154,10 +161,12 @@ export function useCreateAsset() {
       return result;
     },
     onSuccess: () => {
+      toast.success('자산이 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -183,10 +192,12 @@ export function useDeleteAsset() {
       await apiClient.delete(`/v1/assets/${id}`);
     },
     onSuccess: () => {
+      toast.success('자산이 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -201,11 +212,13 @@ export function useCreateTransaction() {
       return result;
     },
     onSuccess: () => {
+      toast.success('거래가 기록되었습니다.');
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -241,11 +254,13 @@ export function useDeleteTransaction() {
       await apiClient.delete(`/v1/transactions/${id}`);
     },
     onSuccess: () => {
+      toast.success('거래가 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: transactionKeys.all });
       queryClient.invalidateQueries({ queryKey: assetKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['portfolio'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -292,8 +307,10 @@ export function useCreateAutoTransfer() {
       return result;
     },
     onSuccess: () => {
+      toast.success('자동이체가 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: transferKeys.autoList() });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -319,7 +336,9 @@ export function useDeleteAutoTransfer() {
       await apiClient.delete(`/v1/transfers/auto/${id}`);
     },
     onSuccess: () => {
+      toast.success('자동이체가 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: transferKeys.autoList() });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }

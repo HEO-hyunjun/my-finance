@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { apiClient } from '@/shared/api/client';
+import type { AxiosError } from 'axios';
 import type {
   Income,
   IncomeCreateRequest,
@@ -7,6 +9,11 @@ import type {
   IncomeSummary,
   PaginatedResponse,
 } from '@/shared/types';
+
+function getErrorMsg(error: unknown): string {
+  const e = error as AxiosError<{ detail?: string }>;
+  return e?.response?.data?.detail || '요청 처리 중 오류가 발생했습니다.';
+}
 
 // Query Keys
 
@@ -82,12 +89,14 @@ export function useCreateIncome() {
       return result;
     },
     onSuccess: () => {
+      toast.success('수입이 추가되었습니다.');
       queryClient.invalidateQueries({ queryKey: incomeKeys.list() });
       queryClient.invalidateQueries({ queryKey: incomeKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -110,12 +119,14 @@ export function useUpdateIncome() {
       return result;
     },
     onSuccess: () => {
+      toast.success('수입이 수정되었습니다.');
       queryClient.invalidateQueries({ queryKey: incomeKeys.list() });
       queryClient.invalidateQueries({ queryKey: incomeKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
 
@@ -128,11 +139,13 @@ export function useDeleteIncome() {
       await apiClient.delete(`/v1/incomes/${id}`);
     },
     onSuccess: () => {
+      toast.success('수입이 삭제되었습니다.');
       queryClient.invalidateQueries({ queryKey: incomeKeys.list() });
       queryClient.invalidateQueries({ queryKey: incomeKeys.all });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       queryClient.invalidateQueries({ queryKey: ['calendar'] });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
     },
+    onError: (error) => toast.error(getErrorMsg(error)),
   });
 }
