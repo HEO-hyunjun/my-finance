@@ -13,12 +13,14 @@ import { Skeleton } from '@/shared/ui/skeleton';
 const CARRYOVER_TYPES: CarryoverType[] = ['expire', 'next_month', 'savings', 'transfer', 'deposit'];
 
 const TRANSFER_TARGET_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
+const SOURCE_ASSET_TYPES = new Set(['cash_krw', 'cash_usd', 'parking', 'bank_account', 'securities']);
 
 interface CategoryRowProps {
   categoryId: string;
   categoryName: string;
   currentType: CarryoverType;
   currentLimit?: number;
+  currentSourceAssetId?: string;
   currentAssetId?: string;
   currentAnnualRate?: number;
   assets: Asset[];
@@ -31,6 +33,7 @@ function CategoryRow({
   categoryName,
   currentType,
   currentLimit,
+  currentSourceAssetId,
   currentAssetId,
   currentAnnualRate,
   assets,
@@ -39,6 +42,7 @@ function CategoryRow({
 }: CategoryRowProps) {
   const [type, setType] = useState<CarryoverType>(currentType);
   const [limit, setLimit] = useState(currentLimit?.toString() ?? '');
+  const [sourceAssetId, setSourceAssetId] = useState(currentSourceAssetId ?? '');
   const [assetId, setAssetId] = useState(currentAssetId ?? '');
   const [annualRate, setAnnualRate] = useState(currentAnnualRate?.toString() ?? '');
 
@@ -46,10 +50,13 @@ function CategoryRow({
   useEffect(() => {
     setType(currentType);
     setLimit(currentLimit?.toString() ?? '');
+    setSourceAssetId(currentSourceAssetId ?? '');
     setAssetId(currentAssetId ?? '');
     setAnnualRate(currentAnnualRate?.toString() ?? '');
-  }, [currentType, currentLimit, currentAssetId, currentAnnualRate]);
+  }, [currentType, currentLimit, currentSourceAssetId, currentAssetId, currentAnnualRate]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  const sourceAssets = assets.filter((a) => SOURCE_ASSET_TYPES.has(a.asset_type));
 
   const filteredAssets = assets.filter((a) => {
     if (type === 'savings') return a.asset_type === 'savings';
@@ -68,10 +75,12 @@ function CategoryRow({
     }
   };
 
+  const needsAssetTransfer = type === 'savings' || type === 'deposit' || type === 'transfer';
   const hasChanges =
     type !== currentType ||
     (type === 'next_month' && limit !== (currentLimit?.toString() ?? '')) ||
-    ((type === 'savings' || type === 'deposit' || type === 'transfer') && assetId !== (currentAssetId ?? '')) ||
+    (needsAssetTransfer && sourceAssetId !== (currentSourceAssetId ?? '')) ||
+    (needsAssetTransfer && assetId !== (currentAssetId ?? '')) ||
     (type === 'deposit' && annualRate !== (currentAnnualRate?.toString() ?? ''));
 
   const handleSave = () => {
@@ -83,6 +92,9 @@ function CategoryRow({
       data.carryover_limit = Number(limit);
     }
     if ((type === 'savings' || type === 'deposit' || type === 'transfer') && assetId) {
+      if (sourceAssetId) {
+        data.source_asset_id = sourceAssetId;
+      }
       data.target_asset_id = assetId;
       const selected = assets.find((a) => a.id === assetId);
       if (selected) {
@@ -135,9 +147,31 @@ function CategoryRow({
       )}
 
       {(type === 'savings' || type === 'deposit' || type === 'transfer') && (
+        <>
+        <div>
+          <Label className="text-xs">출처 자산 (어디서)</Label>
+          {sourceAssets.length > 0 ? (
+            <select
+              value={sourceAssetId}
+              onChange={(e) => setSourceAssetId(e.target.value)}
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="">선택하세요</option>
+              {sourceAssets.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}{a.bank_name ? ` (${a.bank_name})` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-xs text-muted-foreground py-1">
+              등록된 출금 가능 자산이 없습니다.
+            </p>
+          )}
+        </div>
         <div>
           <Label className="text-xs">
-            대상 {type === 'savings' ? '적금' : type === 'deposit' ? '예금' : '자산'}
+            대상 {type === 'savings' ? '적금' : type === 'deposit' ? '예금' : '자산'} (어디로)
           </Label>
           {filteredAssets.length > 0 ? (
             <select
@@ -158,6 +192,7 @@ function CategoryRow({
             </p>
           )}
         </div>
+        </>
       )}
 
       {type === 'deposit' && (
@@ -227,6 +262,7 @@ export function CarryoverSection() {
                   categoryName={category.name}
                   currentType={setting?.carryover_type ?? 'expire'}
                   currentLimit={setting?.carryover_limit}
+                  currentSourceAssetId={setting?.source_asset_id}
                   currentAssetId={setting?.target_asset_id}
                   currentAnnualRate={setting?.target_annual_rate}
                   assets={assets}

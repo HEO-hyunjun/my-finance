@@ -222,6 +222,11 @@ class BudgetCarryoverSetting(Base):
     carryover_limit: Mapped[Decimal | None] = mapped_column(
         Numeric(18, 0), nullable=True
     )
+    source_asset_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("assets.id", ondelete="SET NULL"),
+        nullable=True,
+    )
     target_asset_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
         ForeignKey("assets.id", ondelete="SET NULL"),

@@ -715,6 +715,8 @@ export interface CarryoverSetting {
   category_name: string;
   carryover_type: CarryoverType;
   carryover_limit?: number;
+  source_asset_id?: string;
+  source_asset_name?: string;
   target_asset_id?: string;
   target_savings_name?: string;
   target_annual_rate?: number;
@@ -726,6 +728,7 @@ export interface CarryoverSettingRequest {
   category_id: string;
   carryover_type: CarryoverType;
   carryover_limit?: number;
+  source_asset_id?: string;
   target_asset_id?: string;
   target_savings_name?: string;
   target_annual_rate?: number;

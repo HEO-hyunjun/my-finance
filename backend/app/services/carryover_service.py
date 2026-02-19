@@ -5,6 +5,7 @@ from decimal import Decimal
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.asset import Asset
 from app.models.budget import (
     BudgetCategory, Expense, BudgetCarryoverSetting, BudgetCarryoverLog, CarryoverType,
 )
@@ -24,6 +25,16 @@ async def get_carryover_settings(
         .order_by(BudgetCategory.sort_order)
     )
     rows = result.all()
+
+    # source_asset_id → name 매핑
+    source_ids = {s.source_asset_id for s, _ in rows if s.source_asset_id}
+    source_name_map: dict[uuid.UUID, str] = {}
+    if source_ids:
+        asset_rows = (await db.execute(
+            select(Asset.id, Asset.name).where(Asset.id.in_(source_ids))
+        )).all()
+        source_name_map = {r.id: r.name for r in asset_rows}
+
     return [
         CarryoverSettingResponse(
             id=setting.id,
@@ -31,6 +42,8 @@ async def get_carryover_settings(
             category_name=cat_name,
             carryover_type=setting.carryover_type.value,
             carryover_limit=float(setting.carryover_limit) if setting.carryover_limit else None,
+            source_asset_id=setting.source_asset_id,
+            source_asset_name=source_name_map.get(setting.source_asset_id) if setting.source_asset_id else None,
             target_asset_id=setting.target_asset_id,
             target_savings_name=setting.target_savings_name,
             target_annual_rate=float(setting.target_annual_rate) if setting.target_annual_rate else None,
@@ -55,6 +68,7 @@ async def upsert_carryover_setting(
     if setting:
         setting.carryover_type = CarryoverType(data.carryover_type)
         setting.carryover_limit = data.carryover_limit
+        setting.source_asset_id = data.source_asset_id
         setting.target_asset_id = data.target_asset_id
         setting.target_savings_name = data.target_savings_name
         setting.target_annual_rate = data.target_annual_rate
@@ -64,6 +78,7 @@ async def upsert_carryover_setting(
             category_id=data.category_id,
             carryover_type=CarryoverType(data.carryover_type),
             carryover_limit=data.carryover_limit,
+            source_asset_id=data.source_asset_id,
             target_asset_id=data.target_asset_id,
             target_savings_name=data.target_savings_name,
             target_annual_rate=data.target_annual_rate,
@@ -78,12 +93,21 @@ async def upsert_carryover_setting(
     )
     cat_name = cat_result.scalar_one()
 
+    source_asset_name = None
+    if setting.source_asset_id:
+        src_result = await db.execute(
+            select(Asset.name).where(Asset.id == setting.source_asset_id)
+        )
+        source_asset_name = src_result.scalar_one_or_none()
+
     return CarryoverSettingResponse(
         id=setting.id,
         category_id=setting.category_id,
         category_name=cat_name,
         carryover_type=setting.carryover_type.value,
         carryover_limit=float(setting.carryover_limit) if setting.carryover_limit else None,
+        source_asset_id=setting.source_asset_id,
+        source_asset_name=source_asset_name,
         target_asset_id=setting.target_asset_id,
         target_savings_name=setting.target_savings_name,
         target_annual_rate=float(setting.target_annual_rate) if setting.target_annual_rate else None,
