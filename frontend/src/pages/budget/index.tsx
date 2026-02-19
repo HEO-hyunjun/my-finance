@@ -112,7 +112,7 @@ export function Component() {
 
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-6xl space-y-6 p-6">
       {isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-40 w-full" />
@@ -121,11 +121,6 @@ export function Component() {
         </div>
       ) : (
         <>
-          {/* 헤더 */}
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">예산관리</h1>
-          </div>
-
           {/* 예산 요약 */}
           {summary && <BudgetSummaryCard summary={summary} />}
 

@@ -65,7 +65,7 @@ export function Component() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
+    <div className="mx-auto max-w-6xl space-y-6 p-6">
       <ProfileSection
         profile={profile}
         onSave={(data: ProfileUpdateRequest) => updateProfile.mutate(data)}

@@ -14,6 +14,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/": "대시보드",
   "/assets": "자산 관리",
   "/budget": "예산 관리",
+  "/expenses": "지출 내역",
+  "/income": "수입 내역",
   "/calendar": "캘린더",
   "/transactions": "거래 내역",
   "/news": "뉴스",

@@ -72,11 +72,6 @@ export function Component() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
-      {/* 헤더 */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">지출 내역</h1>
-      </div>
-
       {/* 필터 */}
       <ExpenseFilter categories={categories} onFilterChange={handleFilterChange} />
 

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T23:16:30.649Z",
+  "lastUpdated": "2026-02-19T23:30:57.234Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -202,9 +202,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-19T22:43:25.786Z"
+        "lastUpdated": "2026-02-19T23:30:04.759Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/ExpenseList.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/budget/index.tsx"
     },
     "news": {
       "phase": "do",
@@ -276,11 +276,11 @@
       },
       "timestamps": {
         "started": "2026-02-15T08:00:00.000Z",
-        "lastUpdated": "2026-02-19T15:52:49.870Z",
+        "lastUpdated": "2026-02-19T23:30:57.234Z",
         "doCompletedAt": "2026-02-15T07:50:00.000Z",
         "checkCompletedAt": "2026-02-15T08:10:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/settings/ui/CarryoverSection.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/settings/index.tsx"
     },
     "backend": {
       "phase": "do",
@@ -564,7 +564,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:00:09.719Z",
-        "lastUpdated": "2026-02-19T22:44:59.855Z"
+        "lastUpdated": "2026-02-19T23:30:07.694Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/income/index.tsx"
     },
@@ -707,9 +707,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-16T06:23:38.598Z",
-        "lastUpdated": "2026-02-19T16:19:39.888Z"
+        "lastUpdated": "2026-02-19T23:29:52.929Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/widgets/layout/Sidebar.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/widgets/layout/Header.tsx"
     },
     "ui": {
       "phase": "do",
@@ -733,7 +733,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-16T17:35:36.545Z",
-        "lastUpdated": "2026-02-18T21:30:39.858Z"
+        "lastUpdated": "2026-02-19T23:30:06.311Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/expenses/index.tsx"
     },
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-19T23:16:30.649Z"
+    "lastActivity": "2026-02-19T23:30:57.234Z"
   },
   "history": [
     {
@@ -9796,6 +9796,42 @@
     {
       "timestamp": "2026-02-19T23:16:30.648Z",
       "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:27:16.204Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:29:52.929Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:30:04.759Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:30:06.311Z",
+      "feature": "expenses",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:30:07.694Z",
+      "feature": "income",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T23:30:57.234Z",
+      "feature": "settings",
       "phase": "do",
       "action": "updated"
     }
