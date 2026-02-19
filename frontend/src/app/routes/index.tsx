@@ -40,6 +40,10 @@ export const router = createBrowserRouter([
         lazy: () => import('@/pages/chatbot'),
       },
       {
+        path: '/income',
+        lazy: () => import('@/pages/income'),
+      },
+      {
         path: '/expenses',
         lazy: () => import('@/pages/expenses'),
       },

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset, AssetType
+from app.models.portfolio import AssetSnapshot
 from app.schemas.dashboard import (
     DashboardAssetSummary,
     DashboardBudgetCategory,
@@ -65,9 +66,13 @@ async def get_dashboard_summary(
     # 만기 임박 예금/적금 조회
     maturity_alerts = await _get_maturity_alerts(db, user_id, today)
 
+    # 전일대비 등락 계산
+    yesterday = today - timedelta(days=1)
+    prev_snapshot = await _get_previous_snapshot(db, user_id, yesterday)
+
     # 응답 조합
     result = DashboardSummaryResponse(
-        asset_summary=_map_asset_summary(asset_summary_raw),
+        asset_summary=_map_asset_summary(asset_summary_raw, prev_snapshot),
         budget_summary=_map_budget_summary(budget_summary_raw, budget_analysis_raw),
         recent_transactions=_map_transactions(transactions_raw),
         market_info=_map_market_info(exchange_rate_raw, gold_price_raw),
@@ -133,12 +138,39 @@ async def _get_maturity_alerts(
     return alerts
 
 
-def _map_asset_summary(raw) -> DashboardAssetSummary:
+async def _get_previous_snapshot(
+    db: AsyncSession, user_id: uuid.UUID, target_date: date
+) -> AssetSnapshot | None:
+    """최근 스냅샷 조회 (target_date 이하에서 가장 최신)"""
+    stmt = (
+        select(AssetSnapshot)
+        .where(
+            AssetSnapshot.user_id == user_id,
+            AssetSnapshot.snapshot_date <= target_date,
+        )
+        .order_by(AssetSnapshot.snapshot_date.desc())
+        .limit(1)
+    )
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()
+
+
+def _map_asset_summary(raw, prev_snapshot: AssetSnapshot | None = None) -> DashboardAssetSummary:
+    daily_change = None
+    daily_change_rate = None
+    if prev_snapshot and prev_snapshot.total_krw:
+        prev_total = float(prev_snapshot.total_krw)
+        if prev_total > 0:
+            daily_change = round(raw.total_value_krw - prev_total)
+            daily_change_rate = round((daily_change / prev_total) * 100, 2)
+
     return DashboardAssetSummary(
         total_value_krw=raw.total_value_krw,
         total_invested_krw=raw.total_invested_krw,
         total_profit_loss=raw.total_profit_loss,
         total_profit_loss_rate=raw.total_profit_loss_rate,
+        daily_change=daily_change,
+        daily_change_rate=daily_change_rate,
         breakdown=raw.breakdown,
     )
 

@@ -3,14 +3,11 @@ import { INCOME_TYPE_LABELS } from '@/shared/types';
 import type { IncomeType } from '@/shared/types';
 import { useIncomes, useDeleteIncome } from '../api';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-
-function formatKRW(value: number): string {
-  return new Intl.NumberFormat('ko-KR', {
-    style: 'currency',
-    currency: 'KRW',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+import { Card, CardContent } from '@/shared/ui/card';
+import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { Skeleton } from '@/shared/ui/skeleton';
+import { formatKRW } from '@/shared/lib/format';
 
 interface Props {
   incomeType?: string;
@@ -37,24 +34,22 @@ export function IncomeList({ incomeType, startDate, endDate }: Props) {
     setConfirmState({ action: () => deleteIncome.mutate(id) });
   };
 
-  // 로딩 스켈레톤
   if (isLoading) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-6 w-16 animate-pulse rounded bg-gray-200" />
-              <div className="space-y-1">
-                <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
-                <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
+          <Card key={i}>
+            <CardContent className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-6 w-16 rounded-full" />
+                <div className="space-y-1">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
               </div>
-            </div>
-            <div className="h-5 w-20 animate-pulse rounded bg-gray-200" />
-          </div>
+              <Skeleton className="h-5 w-20" />
+            </CardContent>
+          </Card>
         ))}
       </div>
     );
@@ -64,76 +59,81 @@ export function IncomeList({ incomeType, startDate, endDate }: Props) {
   const total = data?.total ?? 0;
   const totalPages = Math.ceil(total / perPage);
 
-  // 빈 상태
   if (incomes.length === 0) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-white p-8 text-center text-gray-400">
-        수입 내역이 없습니다.
-      </div>
+      <Card>
+        <CardContent className="py-8 text-center text-muted-foreground">
+          수입 내역이 없습니다.
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-2">
       {incomes.map((income) => (
-        <div
-          key={income.id}
-          className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3"
-        >
-          <div className="flex items-center gap-3">
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600">
-              {INCOME_TYPE_LABELS[income.type as IncomeType] || income.type}
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{income.description}</span>
-                {income.is_recurring && (
-                  <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-500">
-                    정기
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-gray-400">
-                <span>{income.received_at}</span>
-                {income.is_recurring && income.recurring_day && (
-                  <span>매월 {income.recurring_day}일</span>
-                )}
+        <Card key={income.id}>
+          <CardContent className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
+                {INCOME_TYPE_LABELS[income.type as IncomeType] || income.type}
+              </Badge>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{income.description}</span>
+                  {income.is_recurring && (
+                    <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
+                      정기
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span>{income.received_at}</span>
+                  {income.is_recurring && income.recurring_day && (
+                    <span>매월 {income.recurring_day}일</span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="font-medium text-emerald-600">+{formatKRW(income.amount)}</span>
-            <button
-              onClick={() => handleDelete(income.id)}
-              disabled={deleteIncome.isPending}
-              className="rounded px-2 py-1 text-xs text-red-400 hover:bg-red-50"
-            >
-              삭제
-            </button>
-          </div>
-        </div>
+            <div className="flex items-center gap-3">
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                +{formatKRW(income.amount)}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDelete(income.id)}
+                disabled={deleteIncome.isPending}
+                className="text-xs text-destructive hover:text-destructive"
+              >
+                삭제
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ))}
 
-      {/* 페이지네이션 */}
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 pt-2">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setPage((p) => p - 1)}
             disabled={page <= 1}
-            className="rounded border px-3 py-1 text-sm disabled:opacity-30"
           >
             이전
-          </button>
-          <span className="px-3 py-1 text-sm text-gray-500">
+          </Button>
+          <span className="px-3 py-1 text-sm text-muted-foreground">
             {page} / {totalPages}
           </span>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setPage((p) => p + 1)}
             disabled={page >= totalPages}
-            className="rounded border px-3 py-1 text-sm disabled:opacity-30"
           >
             다음
-          </button>
+          </Button>
         </div>
       )}
 

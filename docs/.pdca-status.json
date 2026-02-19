@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T15:52:57.311Z",
+  "lastUpdated": "2026-02-19T16:20:05.063Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -71,10 +71,10 @@
       },
       "timestamps": {
         "started": "2026-02-13T00:00:00.000Z",
-        "lastUpdated": "2026-02-19T14:37:34.952Z",
+        "lastUpdated": "2026-02-19T16:04:02.275Z",
         "completedAt": "2026-02-13T23:59:59.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/dashboard/ui/AssetTimelineWidget.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/dashboard/ui/TotalAssetWidget.tsx"
     },
     "frontend": {
       "phase": "do",
@@ -85,7 +85,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-19T15:51:33.278Z"
+        "lastUpdated": "2026-02-19T16:03:51.720Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
     },
@@ -150,7 +150,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:00.797Z",
-        "lastUpdated": "2026-02-16T17:35:38.307Z"
+        "lastUpdated": "2026-02-19T16:19:31.553Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/app/routes/index.tsx"
     },
@@ -317,9 +317,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-19T15:46:39.607Z"
+        "lastUpdated": "2026-02-19T16:03:30.915Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/carryover.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/dashboard.py"
     },
     "__init__.py": {
       "phase": "do",
@@ -460,7 +460,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-12T21:28:12.783Z",
-        "lastUpdated": "2026-02-18T09:38:55.476Z"
+        "lastUpdated": "2026-02-19T16:03:45.547Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/dashboard_service.py"
     },
@@ -564,9 +564,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:00:09.719Z",
-        "lastUpdated": "2026-02-19T15:33:38.368Z"
+        "lastUpdated": "2026-02-19T16:20:05.063Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/income/api/index.ts"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/income/ui/IncomeList.tsx"
     },
     "portfolio": {
       "phase": "do",
@@ -707,9 +707,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-16T06:23:38.598Z",
-        "lastUpdated": "2026-02-19T10:57:24.925Z"
+        "lastUpdated": "2026-02-19T16:19:39.888Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/widgets/layout/Header.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/widgets/layout/Sidebar.tsx"
     },
     "ui": {
       "phase": "do",
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-19T15:52:57.311Z"
+    "lastActivity": "2026-02-19T16:20:05.063Z"
   },
   "history": [
     {
@@ -9622,6 +9622,78 @@
     {
       "timestamp": "2026-02-19T15:52:57.311Z",
       "feature": "versions",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:03:30.915Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:03:36.656Z",
+      "feature": "dashboard_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:03:39.488Z",
+      "feature": "dashboard_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:03:45.547Z",
+      "feature": "dashboard_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:03:51.720Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:03:54.625Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:04:02.275Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:19:21.288Z",
+      "feature": "income",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:19:31.553Z",
+      "feature": "routes",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:19:34.384Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:19:39.888Z",
+      "feature": "layout",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T16:20:05.063Z",
+      "feature": "income",
       "phase": "do",
       "action": "updated"
     }

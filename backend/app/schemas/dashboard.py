@@ -10,6 +10,8 @@ class DashboardAssetSummary(BaseModel):
     total_invested_krw: float
     total_profit_loss: float
     total_profit_loss_rate: float
+    daily_change: float | None = None
+    daily_change_rate: float | None = None
     breakdown: dict[str, float]
 
 

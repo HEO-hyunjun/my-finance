@@ -400,6 +400,8 @@ export interface DashboardAssetSummary {
   total_invested_krw: number;
   total_profit_loss: number;
   total_profit_loss_rate: number;
+  daily_change: number | null;
+  daily_change_rate: number | null;
   breakdown: Record<string, number>;
 }
 

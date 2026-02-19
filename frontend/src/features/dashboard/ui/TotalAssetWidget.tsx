@@ -11,8 +11,9 @@ interface Props {
 }
 
 function TotalAssetWidgetInner({ summary }: Props) {
-  const { total_value_krw, total_invested_krw, total_profit_loss, total_profit_loss_rate } = summary;
+  const { total_value_krw, total_invested_krw, total_profit_loss, total_profit_loss_rate, daily_change, daily_change_rate } = summary;
   const isPositive = total_profit_loss >= 0;
+  const isDailyPositive = (daily_change ?? 0) >= 0;
 
   if (total_value_krw === 0 && total_invested_krw === 0) {
     return (
@@ -42,7 +43,16 @@ function TotalAssetWidgetInner({ summary }: Props) {
             {isPositive ? '+' : ''}{formatKRW(Math.abs(total_profit_loss))}
           </span>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">
+        {daily_change != null && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <span>전일대비</span>
+            <span className={isDailyPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+              {isDailyPositive ? '+' : ''}{formatKRW(daily_change)}
+              {daily_change_rate != null && ` (${isDailyPositive ? '+' : ''}${formatPercent(daily_change_rate)})`}
+            </span>
+          </div>
+        )}
+        <p className="mt-2 text-xs text-muted-foreground">
           투자금 {formatKRW(total_invested_krw)}
         </p>
       </CardContent>
