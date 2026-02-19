@@ -7,7 +7,6 @@ Create Date: 2026-02-20
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID
 
 revision = "012_carryover_source"
 down_revision = "011_carryover_transfer"
@@ -18,7 +17,7 @@ depends_on = None
 def upgrade() -> None:
     op.add_column(
         "budget_carryover_settings",
-        sa.Column("source_asset_id", UUID(as_uuid=True), nullable=True),
+        sa.Column("source_asset_id", sa.Uuid(), nullable=True),
     )
     op.create_foreign_key(
         "fk_carryover_source_asset",
