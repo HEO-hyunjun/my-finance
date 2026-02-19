@@ -1,12 +1,11 @@
 import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, Banknote, Briefcase, PiggyBank } from 'lucide-react';
+import { Plus, TrendingUp, Banknote, Briefcase } from 'lucide-react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { IncomeList } from '@/features/income/ui/IncomeList';
 import { AddIncomeModal } from '@/features/income/ui/AddIncomeModal';
 import { useIncomeSummary } from '@/features/income/api';
 import { INCOME_TYPE_LABELS } from '@/shared/types';
-import type { IncomeType } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
 
 const TYPE_FILTERS: { value: string; label: string }[] = [
@@ -16,13 +15,6 @@ const TYPE_FILTERS: { value: string; label: string }[] = [
     label,
   })),
 ];
-
-const TYPE_ICONS: Record<string, typeof Banknote> = {
-  salary: Banknote,
-  side: Briefcase,
-  investment: TrendingUp,
-  other: PiggyBank,
-};
 
 function getMonthRange() {
   const now = new Date();
