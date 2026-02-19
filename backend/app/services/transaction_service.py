@@ -263,6 +263,6 @@ async def _get_available_quantity(
         Transaction.type.in_([TransactionType.SELL, TransactionType.WITHDRAW]),
     )
 
-    add_total = (await db.execute(add_stmt)).scalar() or Decimal("0")
-    sub_total = (await db.execute(sub_stmt)).scalar() or Decimal("0")
+    add_total = Decimal(str((await db.execute(add_stmt)).scalar() or 0))
+    sub_total = Decimal(str((await db.execute(sub_stmt)).scalar() or 0))
     return add_total - sub_total
