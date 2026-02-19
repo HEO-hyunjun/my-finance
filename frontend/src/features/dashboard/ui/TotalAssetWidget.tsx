@@ -48,7 +48,7 @@ function TotalAssetWidgetInner({ summary }: Props) {
             <span>전일대비</span>
             <span className={isDailyPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
               {isDailyPositive ? '+' : ''}{formatKRW(daily_change)}
-              {daily_change_rate != null && ` (${isDailyPositive ? '+' : ''}${formatPercent(daily_change_rate)})`}
+              {daily_change_rate != null && ` (${formatPercent(daily_change_rate)})`}
             </span>
           </div>
         )}
