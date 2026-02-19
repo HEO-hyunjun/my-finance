@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { Sun, Moon, Menu, Plus, Minus, ArrowLeftRight } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/shared/ui/button";
 import { useTheme } from "@/app/providers/ThemeProvider";
 import { useCategories, useCreateExpense } from "@/features/budget/api";
@@ -110,15 +111,15 @@ export function Header({ onMenuClick }: HeaderProps) {
         categories={categories}
         isOpen={showExpenseModal}
         onClose={() => setShowExpenseModal(false)}
-        onSubmit={(data) => createExpense.mutate(data)}
+        onSubmit={(data) => createExpense.mutate(data, { onSuccess: () => toast.success("지출이 저장되었습니다") })}
         isLoading={createExpense.isPending}
       />
 
       <AddTransactionModal
         isOpen={showTxModal}
         onClose={() => setShowTxModal(false)}
-        onSubmit={(data) => createTx.mutate(data, { onSuccess: () => setShowTxModal(false) })}
-        onTransfer={(data) => transfer.mutate(data, { onSuccess: () => setShowTxModal(false) })}
+        onSubmit={(data) => createTx.mutate(data, { onSuccess: () => { toast.success("거래가 저장되었습니다"); setShowTxModal(false); } })}
+        onTransfer={(data) => transfer.mutate(data, { onSuccess: () => { toast.success("이체가 완료되었습니다"); setShowTxModal(false); } })}
         assets={assets}
         isLoading={createTx.isPending || transfer.isPending}
       />

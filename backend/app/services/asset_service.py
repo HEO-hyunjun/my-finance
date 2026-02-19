@@ -108,7 +108,30 @@ async def get_asset_detail(
 
         raise HTTPException(status_code=404, detail="Asset not found")
 
-    holding = await _calculate_holding(asset, market)
+    # 지출/수입 합계 조회 (CASH_KRW 동적 잔액 계산용)
+    today = date.today()
+    expense_stmt = (
+        select(func.coalesce(func.sum(Expense.amount), 0))
+        .where(
+            Expense.user_id == user_id,
+            Expense.source_asset_id == asset_id,
+            Expense.spent_at <= today,
+        )
+    )
+    income_stmt = (
+        select(func.coalesce(func.sum(Income.amount), 0))
+        .where(
+            Income.user_id == user_id,
+            Income.target_asset_id == asset_id,
+            Income.received_at <= today,
+        )
+    )
+    expense_sum = float((await db.execute(expense_stmt)).scalar() or 0)
+    income_sum = float((await db.execute(income_stmt)).scalar() or 0)
+
+    holding = await _calculate_holding(
+        asset, market, expense_sum=expense_sum, income_sum=income_sum,
+    )
     return holding
 
 

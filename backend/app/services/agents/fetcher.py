@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class FetcherAgent(BaseAgent):
     """실시간 데이터 검색/수집 전문 에이전트.
 
-    SerpAPI를 통해 시세, 뉴스, 웹 검색 결과를 가져오고
+    Tavily를 통해 시세, 뉴스, 웹 검색 결과를 가져오고
     사용자 질문에 맞는 최신 데이터를 제공합니다.
     ResearcherAgent와 달리 분석 없이 데이터 수집에 집중합니다.
     """
@@ -131,7 +131,7 @@ class FetcherAgent(BaseAgent):
     async def _execute_tools(
         self, tool_calls: list, tools_context: dict
     ) -> list[dict]:
-        """Tool 실행: SerpAPI 기반 실시간 데이터 수집"""
+        """Tool 실행: Tavily + yfinance 기반 실시간 데이터 수집"""
         from app.services.market_service import MarketService
         from app.services.news_service import NewsService
 
@@ -174,8 +174,10 @@ class FetcherAgent(BaseAgent):
                         for a in news_response.articles
                     ]
 
-                elif fn_name == "web_search" and market:
-                    search_results = await market.web_search(args["query"])
+                elif fn_name == "web_search":
+                    from app.services.search import get_search_provider
+                    provider = get_search_provider()
+                    search_results = await provider.web_search(args["query"])
                     result_data = search_results or {"message": "검색 결과가 없습니다"}
 
                 elif fn_name == "get_exchange_rate" and market:

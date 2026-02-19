@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 # --- API Keys ---
 
 class ApiKeyCreate(BaseModel):
-    service: str = Field(pattern=r"^(serpapi|openai|anthropic|google|mistral|custom_llm)$")
+    service: str = Field(pattern=r"^(tavily|serpapi|openai|anthropic|google|mistral|custom_llm)$")
     api_key: str = Field(min_length=1, max_length=500)
 
 

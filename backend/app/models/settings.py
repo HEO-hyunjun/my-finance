@@ -9,6 +9,7 @@ from app.core.database import Base
 
 
 class ApiServiceType(str, PyEnum):
+    TAVILY = "tavily"
     SERPAPI = "serpapi"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"

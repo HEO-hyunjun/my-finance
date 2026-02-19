@@ -832,9 +832,10 @@ export interface RebalancingAlert {
 
 // ── Settings ──
 
-export type ApiServiceType = 'serpapi' | 'openai' | 'anthropic' | 'google' | 'mistral' | 'custom_llm';
+export type ApiServiceType = 'tavily' | 'serpapi' | 'openai' | 'anthropic' | 'google' | 'mistral' | 'custom_llm';
 
 export const API_SERVICE_LABELS: Record<ApiServiceType, string> = {
+  tavily: 'Tavily',
   serpapi: 'SerpAPI',
   openai: 'OpenAI',
   anthropic: 'Anthropic',

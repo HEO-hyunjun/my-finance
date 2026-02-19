@@ -128,7 +128,7 @@ class ResearcherAgent(BaseAgent):
     async def _execute_tools(
         self, tool_calls: list, tools_context: dict
     ) -> list[dict]:
-        """2-Layer tool 실행: DB캐시(Layer1) + SerpAPI(Layer2)"""
+        """2-Layer tool 실행: DB캐시(Layer1) + Tavily(Layer2)"""
         from app.services.market_service import MarketService
         from app.services.news_service import NewsService
 

@@ -401,126 +401,23 @@ class MarketService:
         await self._set_cached(cache_key, response.model_dump(), KRX_GOLD_CACHE_TTL)
         return response
 
-    # ─── 웹 검색 (SerpAPI / Firecrawl 분기) + 쿼터 관리 ─────
-
-    async def _check_serpapi_quota(self) -> bool:
-        """SerpAPI 쿼터 확인 (news_service와 동일한 Redis 카운터 공유)"""
-        from datetime import date as date_type
-
-        today = date_type.today().isoformat()
-        month = date_type.today().strftime("%Y-%m")
-
-        try:
-            daily = await self._redis.get(f"serpapi:quota:daily:{today}")
-            monthly = await self._redis.get(f"serpapi:quota:monthly:{month}")
-
-            daily_count = int(daily) if daily else 0
-            monthly_count = int(monthly) if monthly else 0
-
-            return (
-                daily_count < settings.SERPAPI_DAILY_LIMIT
-                and monthly_count < settings.SERPAPI_MONTHLY_LIMIT
-            )
-        except Exception:
-            return False
-
-    async def _increment_serpapi_quota(self):
-        """SerpAPI 호출 카운터 증가"""
-        from datetime import date as date_type
-
-        today = date_type.today().isoformat()
-        month = date_type.today().strftime("%Y-%m")
-
-        try:
-            pipe = self._redis.pipeline()
-            pipe.incr(f"serpapi:quota:daily:{today}")
-            pipe.expire(f"serpapi:quota:daily:{today}", 172800)
-            pipe.incr(f"serpapi:quota:monthly:{month}")
-            pipe.expire(f"serpapi:quota:monthly:{month}", 3024000)
-            await pipe.execute()
-        except Exception as e:
-            logger.warning(f"Quota increment failed: {e}")
+    # ─── 웹 검색 (SearchProvider) ───────────────────
 
     async def web_search(self, query: str, num_results: int = 5) -> list[dict]:
-        """웹 검색 - 쿼터 확인 후 SerpAPI 또는 Firecrawl 사용 (캐시 2시간)"""
+        """웹 검색 - SearchProvider 인터페이스 사용 (캐시 2시간)"""
         cache_key = f"web_search:{hashlib.md5(query.encode()).hexdigest()}"
         cached = await self._get_cached(cache_key)
         if cached:
             return cached
 
-        # 쿼터 확인 (SerpAPI 프로바이더일 경우)
-        if settings.SEARCH_PROVIDER != "firecrawl":
-            if not await self._check_serpapi_quota():
-                logger.info(f"SerpAPI quota exceeded for web_search: '{query}'")
-                return []
+        from app.services.search import get_search_provider
 
-        if settings.SEARCH_PROVIDER == "firecrawl":
-            results = await self._web_search_firecrawl(query, num_results)
-        else:
-            results = await self._web_search_serpapi(query, num_results)
-            if results:
-                await self._increment_serpapi_quota()
+        provider = get_search_provider()
+        results = await provider.web_search(query, max_results=num_results)
 
         if results:
             await self._set_cached(cache_key, results, settings.WEB_SEARCH_CACHE_TTL)
         return results
-
-    async def _web_search_serpapi(self, query: str, num_results: int) -> list[dict]:
-        if not settings.SERPAPI_KEY:
-            return []
-
-        params = {
-            "engine": "google",
-            "q": query,
-            "num": num_results,
-            "hl": "ko",
-            "api_key": settings.SERPAPI_KEY,
-        }
-
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get("https://serpapi.com/search", params=params)
-                resp.raise_for_status()
-                result = resp.json()
-
-            return [
-                {
-                    "title": r.get("title", ""),
-                    "link": r.get("link", ""),
-                    "snippet": r.get("snippet", ""),
-                }
-                for r in result.get("organic_results", [])[:num_results]
-            ]
-        except Exception:
-            logger.warning(f"SerpAPI web search failed for: {query}")
-            return []
-
-    async def _web_search_firecrawl(self, query: str, num_results: int) -> list[dict]:
-        if not settings.FIRECRAWL_API_KEY:
-            logger.warning("FIRECRAWL_API_KEY not set")
-            return []
-
-        try:
-            from firecrawl import FirecrawlApp
-            fc_kwargs = {"api_key": settings.FIRECRAWL_API_KEY}
-            if settings.FIRECRAWL_BASE_URL:
-                fc_kwargs["api_url"] = settings.FIRECRAWL_BASE_URL
-            app = FirecrawlApp(**fc_kwargs)
-            results = await asyncio.to_thread(
-                app.search, query, {"limit": num_results}
-            )
-
-            return [
-                {
-                    "title": r.get("title", ""),
-                    "link": r.get("url", ""),
-                    "snippet": r.get("description", "") or r.get("markdown", "")[:200],
-                }
-                for r in (results.get("data", []) if isinstance(results, dict) else results)
-            ]
-        except Exception as e:
-            logger.warning(f"Firecrawl web search failed: {e}")
-            return []
 
     # ─── 유틸 ───────────────────────────────────
 

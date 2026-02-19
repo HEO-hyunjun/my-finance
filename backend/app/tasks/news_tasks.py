@@ -35,7 +35,7 @@ async def _collect_news_batch_async():
             result = await db.execute(stmt)
             asset_names = [row[0] for row in result.all()]
 
-        # 보유 자산 키워드 포함된 통합 쿼리 생성 (SerpAPI 1회 호출)
+        # 보유 자산 키워드 포함된 통합 쿼리 생성 (Tavily 1회 호출)
         query = build_batch_query(asset_names)
         logger.info(f"Batch query: {query}")
 
@@ -77,9 +77,6 @@ async def _collect_news_batch_async():
             async with AsyncSessionLocal() as db:
                 total_saved = await save_articles_to_db(db, articles)
                 logger.info(f"Saved {total_saved} new articles to DB")
-
-        # 쿼터 증가 (SerpAPI 1회 호출했으므로)
-        await news_service._increment_quota()
 
     except Exception as e:
         logger.warning(f"News batch collection failed: {e}")

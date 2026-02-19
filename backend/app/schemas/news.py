@@ -18,7 +18,7 @@ class NewsCategory:
     VALID = {ALL, MY_ASSETS, STOCK_KR, STOCK_US, GOLD, ECONOMY}
 
 
-# 카테고리 → SerpAPI 쿼리 매핑
+# 카테고리 → 검색 쿼리 매핑
 CATEGORY_QUERY_MAP: dict[str, str] = {
     NewsCategory.ALL: "금융 OR 증시 OR 경제",
     NewsCategory.STOCK_KR: "한국 증시 OR 코스피 OR 코스닥",

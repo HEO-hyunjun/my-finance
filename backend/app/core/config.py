@@ -21,18 +21,16 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 
     # External APIs
-    SERPAPI_KEY: str = ""
     ENCRYPTION_KEY: str = ""
 
-    # 검색 프로바이더: "serpapi" | "firecrawl"
-    # 뉴스/웹 검색에 사용할 프로바이더 선택 (금융 시세는 항상 yfinance 사용)
-    SEARCH_PROVIDER: str = "serpapi"
+    # 검색 프로바이더: "tavily" | "serpapi" | "firecrawl"
+    SEARCH_PROVIDER: str = "tavily"
+    TAVILY_API_KEY: str = ""
+    SERPAPI_KEY: str = ""
     FIRECRAWL_API_KEY: str = ""
-    FIRECRAWL_BASE_URL: str = ""  # self-hosted Firecrawl (예: http://firecrawl:3002)
+    FIRECRAWL_BASE_URL: str = ""
 
-    # SerpAPI 무료 플랜 최적화
-    SERPAPI_DAILY_LIMIT: int = 5
-    SERPAPI_MONTHLY_LIMIT: int = 95
+    # 검색 캐시
     NEWS_CACHE_TTL: int = 43200       # 뉴스 캐시 12시간
     WEB_SEARCH_CACHE_TTL: int = 7200  # 웹 검색 캐시 2시간
 

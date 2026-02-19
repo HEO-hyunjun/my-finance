@@ -7,9 +7,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ libmariadb-dev python3-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
 # Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml .
+RUN uv pip install --system --no-cache .
 
 # Application code
 COPY . .
