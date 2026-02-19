@@ -1,5 +1,5 @@
 import { memo, useMemo, useCallback } from 'react';
-import { Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Transaction } from '@/shared/types';
 import { TRANSACTION_TYPE_LABELS } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
@@ -12,6 +12,7 @@ interface Props {
   page: number;
   perPage: number;
   onPageChange?: (page: number) => void;
+  onEdit?: (tx: Transaction) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -21,6 +22,7 @@ function TransactionListInner({
   page,
   perPage,
   onPageChange,
+  onEdit,
   onDelete,
 }: Props) {
   const totalPages = useMemo(() => Math.ceil(total / perPage), [total, perPage]);
@@ -84,15 +86,26 @@ function TransactionListInner({
                 </td>
                 <td className="px-4 py-3 max-w-[120px] truncate text-muted-foreground">{tx.memo}</td>
                 <td className="px-4 py-3">
-                  {onDelete && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onDelete(tx.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <div className="flex gap-1">
+                    {onEdit && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onEdit(tx)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {onDelete && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(tx.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

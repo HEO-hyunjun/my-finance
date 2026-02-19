@@ -4,8 +4,10 @@ import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { IncomeList } from '@/features/income/ui/IncomeList';
 import { AddIncomeModal } from '@/features/income/ui/AddIncomeModal';
+import { EditIncomeModal } from '@/features/income/ui/EditIncomeModal';
 import { useIncomeSummary } from '@/features/income/api';
 import { INCOME_TYPE_LABELS } from '@/shared/types';
+import type { Income } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
 
 const TYPE_FILTERS: { value: string; label: string }[] = [
@@ -26,6 +28,7 @@ function getMonthRange() {
 
 export function Component() {
   const [showAddIncome, setShowAddIncome] = useState(false);
+  const [editingIncome, setEditingIncome] = useState<Income | null>(null);
   const [selectedType, setSelectedType] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -157,6 +160,7 @@ export function Component() {
         incomeType={selectedType || undefined}
         startDate={startDate || undefined}
         endDate={endDate || undefined}
+        onEdit={(income) => setEditingIncome(income)}
       />
 
       {/* 수입 추가 모달 */}
@@ -164,6 +168,15 @@ export function Component() {
         isOpen={showAddIncome}
         onClose={() => setShowAddIncome(false)}
       />
+
+      {/* 수입 수정 모달 */}
+      {editingIncome && (
+        <EditIncomeModal
+          income={editingIncome}
+          isOpen={!!editingIncome}
+          onClose={() => setEditingIncome(null)}
+        />
+      )}
     </div>
   );
 }

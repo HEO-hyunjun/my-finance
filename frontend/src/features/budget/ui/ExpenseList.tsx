@@ -1,8 +1,9 @@
 import { memo, useMemo, useCallback } from 'react';
+import { Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Expense } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
-import { Button } from '@/shared/ui/button';
 import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
 
 interface Props {
   expenses: Expense[];
@@ -35,81 +36,94 @@ function ExpenseListInner({
 
   if (expenses.length === 0) {
     return (
-      <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground">
-        지출 내역이 없습니다.
+      <div className="rounded-lg border border-dashed border-border p-8 text-center">
+        <p className="text-muted-foreground">지출 내역이 없습니다.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2" style={{ contentVisibility: 'auto' }}>
-      {expenses.map((exp) => (
-        <div
-          key={exp.id}
-          className="flex items-center justify-between rounded-lg border border-border bg-card p-3"
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: exp.category_color || '#B2BEC3' }}
-            />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{exp.memo || exp.category_name}</span>
-                <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                  {exp.category_name}
-                </Badge>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{exp.spent_at}</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="font-medium text-red-600">-{formatKRW(exp.amount)}</span>
-            <div className="flex gap-1">
-              <Button
-                onClick={() => onEdit(exp)}
-                variant="ghost"
-                size="sm"
-                className="h-auto px-2 py-1 text-xs"
-              >
-                수정
-              </Button>
-              <Button
-                onClick={() => onDelete(exp.id)}
-                variant="ghost"
-                size="sm"
-                className="h-auto px-2 py-1 text-xs text-destructive hover:text-destructive"
-              >
-                삭제
-              </Button>
-            </div>
-          </div>
-        </div>
-      ))}
+    <div>
+      <div className="overflow-x-auto" style={{ contentVisibility: 'auto' }}>
+        <table className="w-full text-left text-sm">
+          <thead className="border-b bg-muted text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">일시</th>
+              <th className="px-4 py-3">카테고리</th>
+              <th className="px-4 py-3">메모</th>
+              <th className="px-4 py-3 text-right">금액</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {expenses.map((exp) => (
+              <tr key={exp.id} className="hover:bg-muted/50">
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {exp.spent_at}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-2 w-2 rounded-full shrink-0"
+                      style={{ backgroundColor: exp.category_color || '#B2BEC3' }}
+                    />
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      {exp.category_name}
+                    </Badge>
+                  </div>
+                </td>
+                <td className="px-4 py-3 max-w-[200px] truncate text-muted-foreground">
+                  {exp.memo || '-'}
+                </td>
+                <td className="px-4 py-3 text-right font-medium text-red-600">
+                  -{formatKRW(exp.amount)}
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onEdit(exp)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDelete(exp.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {/* 페이지네이션 */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 pt-2">
+        <div className="mt-4 flex items-center justify-center gap-2">
           <Button
-            onClick={handlePrevPage}
-            disabled={page <= 1}
-            variant="outline"
+            variant="ghost"
             size="sm"
+            disabled={page <= 1}
+            onClick={handlePrevPage}
           >
+            <ChevronLeft className="h-4 w-4" />
             이전
           </Button>
-          <span className="px-3 py-1 text-sm text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {page} / {totalPages}
           </span>
           <Button
-            onClick={handleNextPage}
-            disabled={page >= totalPages}
-            variant="outline"
+            variant="ghost"
             size="sm"
+            disabled={page >= totalPages}
+            onClick={handleNextPage}
           >
             다음
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       )}

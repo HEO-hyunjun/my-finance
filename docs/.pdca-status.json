@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T22:38:11.632Z",
+  "lastUpdated": "2026-02-19T22:44:59.855Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -189,9 +189,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-19T15:31:33.851Z"
+        "lastUpdated": "2026-02-19T22:44:21.111Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/api/index.ts"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/EditTransactionModal.tsx"
     },
     "budget": {
       "phase": "do",
@@ -202,9 +202,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-19T15:31:02.184Z"
+        "lastUpdated": "2026-02-19T22:43:25.786Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/api/index.ts"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/ExpenseList.tsx"
     },
     "news": {
       "phase": "do",
@@ -564,7 +564,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:00:09.719Z",
-        "lastUpdated": "2026-02-19T22:30:30.471Z"
+        "lastUpdated": "2026-02-19T22:44:59.855Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/income/index.tsx"
     },
@@ -629,7 +629,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:42:49.965Z",
-        "lastUpdated": "2026-02-16T07:06:24.618Z"
+        "lastUpdated": "2026-02-19T22:44:40.245Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/transactions/index.tsx"
     },
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-19T22:38:11.632Z"
+    "lastActivity": "2026-02-19T22:44:59.855Z"
   },
   "history": [
     {
@@ -9718,6 +9718,60 @@
     {
       "timestamp": "2026-02-19T22:38:11.632Z",
       "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:43:03.694Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:43:04.820Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:43:07.769Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:43:25.786Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:43:43.548Z",
+      "feature": "income",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:44:09.161Z",
+      "feature": "income",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:44:21.111Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:44:40.245Z",
+      "feature": "transactions",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T22:44:59.855Z",
+      "feature": "income",
       "phase": "do",
       "action": "updated"
     }

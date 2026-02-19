@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { TransactionFilter } from '@/features/transaction/ui/TransactionFilter';
 import { useFilteredTransactions } from '@/features/transaction/api';
 import { TransactionList } from '@/features/assets/ui/TransactionList';
-import { useDeleteTransaction } from '@/features/assets/api';
+import { EditTransactionModal } from '@/features/assets/ui/EditTransactionModal';
+import { useDeleteTransaction, useUpdateTransaction } from '@/features/assets/api';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
+import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
+import type { Transaction } from '@/shared/types';
 
 interface Filters {
   asset_type?: string;
@@ -19,6 +22,8 @@ interface Filters {
 export function Component() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<Filters>({});
+  const [editingTx, setEditingTx] = useState<Transaction | null>(null);
+  const [confirmState, setConfirmState] = useState<{ action: () => void } | null>(null);
   const page = Number(searchParams.get('page')) || 1;
   const perPage = 20;
 
@@ -28,11 +33,21 @@ export function Component() {
     per_page: perPage,
   });
   const deleteTx = useDeleteTransaction();
+  const updateTx = useUpdateTransaction();
 
   const handleFilterChange = (newFilters: Filters) => {
     setFilters(newFilters);
     setSearchParams((prev) => { prev.delete('page'); return prev; });
   };
+
+  const handleEdit = useCallback((tx: Transaction) => setEditingTx(tx), []);
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      setConfirmState({ action: () => deleteTx.mutate(id) });
+    },
+    [deleteTx],
+  );
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 p-6">
@@ -75,10 +90,35 @@ export function Component() {
             page={page}
             perPage={perPage}
             onPageChange={(p) => setSearchParams((prev) => { prev.set('page', String(p)); return prev; })}
-            onDelete={(id) => deleteTx.mutate(id)}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
           />
         </>
       )}
+
+      {/* 수정 모달 */}
+      {editingTx && (
+        <EditTransactionModal
+          transaction={editingTx}
+          isOpen={!!editingTx}
+          onClose={() => setEditingTx(null)}
+          onSubmit={(data) => updateTx.mutate(data)}
+          isLoading={updateTx.isPending}
+        />
+      )}
+
+      {/* 삭제 확인 */}
+      <ConfirmDialog
+        open={confirmState !== null}
+        onOpenChange={(open) => {
+          if (!open) setConfirmState(null);
+        }}
+        title="삭제하시겠습니까?"
+        description="이 작업은 되돌릴 수 없습니다."
+        confirmLabel="삭제"
+        onConfirm={() => confirmState?.action()}
+        variant="destructive"
+      />
     </div>
   );
 }
