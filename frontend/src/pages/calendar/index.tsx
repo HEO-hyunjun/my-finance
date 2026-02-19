@@ -10,7 +10,13 @@ export function Component() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(() => {
+    const t = new Date();
+    const yyyy = t.getFullYear();
+    const mm = String(t.getMonth() + 1).padStart(2, '0');
+    const dd = String(t.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
 
   const { data, isLoading } = useCalendarEvents(year, month);
 

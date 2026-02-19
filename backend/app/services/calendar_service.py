@@ -278,6 +278,7 @@ async def _get_expenses(
             Expense.user_id == user_id,
             Expense.spent_at >= month_start,
             Expense.spent_at <= month_end,
+            Expense.fixed_expense_id.is_(None),
         )
     )
     result = await db.execute(stmt)
@@ -301,6 +302,7 @@ async def _get_daily_expense_totals(
             Expense.user_id == user_id,
             Expense.spent_at >= month_start,
             Expense.spent_at <= month_end,
+            Expense.fixed_expense_id.is_(None),
         )
         .group_by(Expense.spent_at)
     )

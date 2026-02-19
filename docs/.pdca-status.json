@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T15:33:38.368Z",
+  "lastUpdated": "2026-02-19T15:39:47.466Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -238,11 +238,11 @@
       },
       "timestamps": {
         "started": "2026-02-13T13:00:00.000Z",
-        "lastUpdated": "2026-02-18T16:02:34.457Z",
+        "lastUpdated": "2026-02-19T15:39:41.660Z",
         "doCompletedAt": "2026-02-13T14:00:00.000Z",
         "checkCompletedAt": "2026-02-13T14:30:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/calendar/ui/EventList.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/calendar/index.tsx"
     },
     "chatbot": {
       "phase": "do",
@@ -486,7 +486,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-12T23:08:54.896Z",
-        "lastUpdated": "2026-02-18T16:01:58.129Z"
+        "lastUpdated": "2026-02-19T15:39:47.465Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/calendar_service.py"
     },
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-19T15:33:38.368Z"
+    "lastActivity": "2026-02-19T15:39:47.466Z"
   },
   "history": [
     {
@@ -9514,6 +9514,24 @@
     {
       "timestamp": "2026-02-19T15:33:38.368Z",
       "feature": "income",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T15:39:41.660Z",
+      "feature": "calendar",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T15:39:44.325Z",
+      "feature": "calendar_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T15:39:47.465Z",
+      "feature": "calendar_service.py",
       "phase": "do",
       "action": "updated"
     }
