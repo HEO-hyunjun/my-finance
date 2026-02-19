@@ -129,7 +129,7 @@ async def _adjust_asset_principal(asset: Asset, delta: Decimal) -> None:
         # cash_krw: 잔액은 거래+지출+수입에서 동적 계산 → principal 조정 불필요
         return
 
-    current = asset.principal or Decimal("0")
+    current = Decimal(str(asset.principal)) if asset.principal else Decimal("0")
     new_val = current + delta
     if new_val < 0:
         raise HTTPException(

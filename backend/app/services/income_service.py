@@ -32,7 +32,7 @@ async def _validate_target_asset(
 
 
 async def _adjust_asset_principal(asset: Asset, delta: Decimal) -> None:
-    current = asset.principal or Decimal("0")
+    current = Decimal(str(asset.principal)) if asset.principal else Decimal("0")
     new_val = current + delta
     if new_val < 0:
         raise HTTPException(
