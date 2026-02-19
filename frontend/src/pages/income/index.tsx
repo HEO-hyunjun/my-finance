@@ -1,17 +1,16 @@
-import { useState, useMemo } from 'react';
-import { Plus, TrendingUp, Banknote, Briefcase } from 'lucide-react';
-import { Card, CardContent } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { IncomeList } from '@/features/income/ui/IncomeList';
-import { AddIncomeModal } from '@/features/income/ui/AddIncomeModal';
-import { EditIncomeModal } from '@/features/income/ui/EditIncomeModal';
-import { useIncomeSummary } from '@/features/income/api';
-import { INCOME_TYPE_LABELS } from '@/shared/types';
-import type { Income } from '@/shared/types';
-import { formatKRW } from '@/shared/lib/format';
+import { useState, useMemo } from "react";
+import { TrendingUp, Banknote, Briefcase } from "lucide-react";
+import { Card, CardContent } from "@/shared/ui/card";
+import { Button } from "@/shared/ui/button";
+import { IncomeList } from "@/features/income/ui/IncomeList";
+import { EditIncomeModal } from "@/features/income/ui/EditIncomeModal";
+import { useIncomeSummary } from "@/features/income/api";
+import { INCOME_TYPE_LABELS } from "@/shared/types";
+import type { Income } from "@/shared/types";
+import { formatKRW } from "@/shared/lib/format";
 
 const TYPE_FILTERS: { value: string; label: string }[] = [
-  { value: '', label: '전체' },
+  { value: "", label: "전체" },
   ...Object.entries(INCOME_TYPE_LABELS).map(([value, label]) => ({
     value,
     label,
@@ -27,11 +26,10 @@ function getMonthRange() {
 }
 
 export function Component() {
-  const [showAddIncome, setShowAddIncome] = useState(false);
   const [editingIncome, setEditingIncome] = useState<Income | null>(null);
-  const [selectedType, setSelectedType] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [selectedType, setSelectedType] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const monthRange = useMemo(getMonthRange, []);
   const { data: summary } = useIncomeSummary({
@@ -41,36 +39,36 @@ export function Component() {
 
   const summaryCards = [
     {
-      key: 'total',
-      label: '이번 달 총 수입',
+      key: "total",
+      label: "이번 달 총 수입",
       value: summary?.total_monthly_income ?? 0,
       icon: TrendingUp,
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-50 dark:bg-emerald-950',
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-50 dark:bg-emerald-950",
     },
     {
-      key: 'salary',
-      label: '급여',
+      key: "salary",
+      label: "급여",
       value: summary?.salary_income ?? 0,
       icon: Banknote,
-      color: 'text-blue-600 dark:text-blue-400',
-      bg: 'bg-blue-50 dark:bg-blue-950',
+      color: "text-blue-600 dark:text-blue-400",
+      bg: "bg-blue-50 dark:bg-blue-950",
     },
     {
-      key: 'side',
-      label: '부수입',
+      key: "side",
+      label: "부수입",
       value: summary?.side_income ?? 0,
       icon: Briefcase,
-      color: 'text-purple-600 dark:text-purple-400',
-      bg: 'bg-purple-50 dark:bg-purple-950',
+      color: "text-purple-600 dark:text-purple-400",
+      bg: "bg-purple-50 dark:bg-purple-950",
     },
     {
-      key: 'investment',
-      label: '투자수익',
+      key: "investment",
+      label: "투자수익",
       value: summary?.investment_income ?? 0,
       icon: TrendingUp,
-      color: 'text-amber-600 dark:text-amber-400',
-      bg: 'bg-amber-50 dark:bg-amber-950',
+      color: "text-amber-600 dark:text-amber-400",
+      bg: "bg-amber-50 dark:bg-amber-950",
     },
   ];
 
@@ -79,10 +77,6 @@ export function Component() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">수입 내역</h1>
-        <Button onClick={() => setShowAddIncome(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          수입 추가
-        </Button>
       </div>
 
       {/* 요약 카드 */}
@@ -95,9 +89,7 @@ export function Component() {
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs text-muted-foreground">{label}</p>
-                <p className={`text-lg font-bold ${color}`}>
-                  {formatKRW(value)}
-                </p>
+                <p className={`text-lg font-bold ${color}`}>{formatKRW(value)}</p>
               </div>
             </CardContent>
           </Card>
@@ -144,9 +136,9 @@ export function Component() {
               variant="ghost"
               size="sm"
               onClick={() => {
-                setSelectedType('');
-                setStartDate('');
-                setEndDate('');
+                setSelectedType("");
+                setStartDate("");
+                setEndDate("");
               }}
             >
               초기화
@@ -161,12 +153,6 @@ export function Component() {
         startDate={startDate || undefined}
         endDate={endDate || undefined}
         onEdit={(income) => setEditingIncome(income)}
-      />
-
-      {/* 수입 추가 모달 */}
-      <AddIncomeModal
-        isOpen={showAddIncome}
-        onClose={() => setShowAddIncome(false)}
       />
 
       {/* 수입 수정 모달 */}
