@@ -34,7 +34,7 @@ async def create_snapshot(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = get_redis()
+    redis = await get_redis()
     market = MarketService(redis)
     summary = await asset_service.get_asset_summary(db, user.id, market)
     from decimal import Decimal
@@ -53,7 +53,7 @@ async def get_goal(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = get_redis()
+    redis = await get_redis()
     market = MarketService(redis)
     summary = await asset_service.get_asset_summary(db, user.id, market)
     return await portfolio_service.get_goal(db, user.id, summary.total_value_krw)
@@ -75,7 +75,7 @@ async def get_targets(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = get_redis()
+    redis = await get_redis()
     market = MarketService(redis)
     summary = await asset_service.get_asset_summary(db, user.id, market)
     return await portfolio_service.get_portfolio_targets(db, user.id, summary.breakdown)
@@ -101,7 +101,7 @@ async def get_rebalancing(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = get_redis()
+    redis = await get_redis()
     market = MarketService(redis)
     summary = await asset_service.get_asset_summary(db, user.id, market)
     return await portfolio_service.get_rebalancing_analysis(
