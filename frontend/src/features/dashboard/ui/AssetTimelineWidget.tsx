@@ -1,5 +1,4 @@
 import { useState, memo, useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAssetTimeline } from '../api/portfolio';
 import { ASSET_TYPE_LABELS } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
@@ -11,6 +10,11 @@ import {
   ChartTooltipContent,
   ChartLegend,
   ChartLegendContent,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   type ChartConfig,
 } from '@/shared/ui/chart';
 import { Skeleton } from '@/shared/ui/skeleton';

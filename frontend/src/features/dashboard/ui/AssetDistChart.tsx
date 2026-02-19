@@ -1,5 +1,4 @@
 import { memo, useMemo } from 'react';
-import { PieChart, Pie, Cell, Label } from 'recharts';
 import { ASSET_TYPE_LABELS } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
 import { getAssetTypeColors } from '@/shared/lib/asset-colors';
@@ -8,6 +7,10 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  PieChart,
+  Pie,
+  Cell,
+  Label,
   type ChartConfig,
 } from '@/shared/ui/chart';
 

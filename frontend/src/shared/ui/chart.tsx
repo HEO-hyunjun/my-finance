@@ -345,6 +345,17 @@ function getPayloadConfigFromPayload(
     : config[key as keyof typeof config]
 }
 
+// Re-export recharts primitives used in the project
+const LineChart = RechartsPrimitive.LineChart
+const Line = RechartsPrimitive.Line
+const PieChart = RechartsPrimitive.PieChart
+const Pie = RechartsPrimitive.Pie
+const Cell = RechartsPrimitive.Cell
+const Label = RechartsPrimitive.Label
+const XAxis = RechartsPrimitive.XAxis
+const YAxis = RechartsPrimitive.YAxis
+const CartesianGrid = RechartsPrimitive.CartesianGrid
+
 export {
   ChartContainer,
   ChartTooltip,
@@ -352,4 +363,13 @@ export {
   ChartLegend,
   ChartLegendContent,
   ChartStyle,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Label,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 }
