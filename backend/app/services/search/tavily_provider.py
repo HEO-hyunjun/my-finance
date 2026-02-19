@@ -28,15 +28,17 @@ class TavilyProvider(SearchProvider):
                 topic="general",
                 max_results=max_results,
                 include_answer=False,
+                include_images=True,
+                include_favicon=True,
             )
 
             return [
                 {
                     "title": r.get("title", ""),
                     "link": r.get("url", ""),
-                    "source": {"name": self._extract_domain(r.get("url", "")), "icon": None},
+                    "source": {"name": self._extract_domain(r.get("url", "")), "icon": r.get("favicon")},
                     "snippet": (r.get("content", "") or "")[:300],
-                    "thumbnail": None,
+                    "thumbnail": (r.get("images") or [None])[0] if r.get("images") else None,
                     "date": r.get("published_date", ""),
                 }
                 for r in response.get("results", [])

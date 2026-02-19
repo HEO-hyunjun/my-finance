@@ -133,44 +133,43 @@ class NewsService:
         except Exception as e:
             logger.warning(f"DB asset news search failed: {e}")
 
-        # 2. DB 결과 부족 시 API 폴백
+        # 2. DB 결과 부족 시 API 폴백 (자산별 개별 쿼리)
         if len(all_articles) < 3:
-            try:
-                query = " OR ".join(queries) + " 주가 뉴스"
-                raw = await self._fetch_news(query)
+            for asset_query in queries:
+                try:
+                    raw = await self._fetch_news(f"{asset_query} 주가 뉴스")
 
-                # DB에도 저장
-                await self._save_raw_to_db(raw, NewsCategory.MY_ASSETS)
+                    # DB에도 저장
+                    await self._save_raw_to_db(raw, NewsCategory.MY_ASSETS, related_asset=asset_query)
 
-                for item in raw:
-                    title = item.get("title", "")
-                    link = item.get("link", "")
-                    if not title or not link:
-                        continue
-                    art_id = NewsArticle.generate_id(title, link)
-                    if art_id in seen_ids:
-                        continue
-                    seen_ids.add(art_id)
+                    for item in raw[:max_per_asset]:
+                        title = item.get("title", "")
+                        link = item.get("link", "")
+                        if not title or not link:
+                            continue
+                        art_id = NewsArticle.generate_id(title, link)
+                        if art_id in seen_ids:
+                            continue
+                        seen_ids.add(art_id)
 
-                    matched_asset = self._match_asset(item, queries)
-                    all_articles.append(
-                        NewsArticle(
-                            id=art_id,
-                            title=title,
-                            link=link,
-                            source=NewsSource(
-                                name=item.get("source", {}).get("name", "") if isinstance(item.get("source"), dict) else str(item.get("source", "")),
-                                icon=None,
-                            ),
-                            snippet=(item.get("snippet") or "")[:300],
-                            thumbnail=item.get("thumbnail"),
-                            published_at=item.get("date", ""),
-                            category=NewsCategory.MY_ASSETS,
-                            related_asset=matched_asset,
+                        all_articles.append(
+                            NewsArticle(
+                                id=art_id,
+                                title=title,
+                                link=link,
+                                source=NewsSource(
+                                    name=item.get("source", {}).get("name", "") if isinstance(item.get("source"), dict) else str(item.get("source", "")),
+                                    icon=item.get("source", {}).get("icon") if isinstance(item.get("source"), dict) else None,
+                                ),
+                                snippet=(item.get("snippet") or "")[:300],
+                                thumbnail=item.get("thumbnail"),
+                                published_at=item.get("date", ""),
+                                category=NewsCategory.MY_ASSETS,
+                                related_asset=asset_query,
+                            )
                         )
-                    )
-            except Exception as e:
-                logger.warning(f"API asset news fallback failed: {e}")
+                except Exception as e:
+                    logger.warning(f"API asset news fallback failed for {asset_query}: {e}")
 
         result = MyAssetNewsResponse(articles=all_articles, asset_queries=queries)
         await self._set_cached(cache_key, result.model_dump())
@@ -343,9 +342,9 @@ class NewsService:
 
         return articles
 
-    async def _save_raw_to_db(self, raw: list[dict], category: str) -> None:
+    async def _save_raw_to_db(self, raw: list[dict], category: str, related_asset: str | None = None) -> None:
         """원시 검색 결과를 DB에 저장"""
-        articles = self._map_raw_articles(raw, category)
+        articles = self._map_raw_articles(raw, category, related_asset=related_asset)
         if articles:
             try:
                 from app.core.database import async_session as AsyncSessionLocal
