@@ -18,12 +18,14 @@ export function LlmSection() {
   const [defaultModel, setDefaultModel] = useState('gpt-4o');
   const [inferenceModel, setInferenceModel] = useState('gpt-4o');
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (settings) {
       setDefaultModel(settings.default_model);
       setInferenceModel(settings.inference_model);
     }
   }, [settings]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSave = () => {
     update.mutate({ default_model: defaultModel, inference_model: inferenceModel });

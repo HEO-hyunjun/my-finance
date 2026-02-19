@@ -97,7 +97,7 @@ class Expense(Base):
     fixed_expense: Mapped["FixedExpense | None"] = relationship(
         "FixedExpense", foreign_keys=[fixed_expense_id]
     )
-    source_asset: Mapped["Asset | None"] = relationship(
+    source_asset: Mapped["Asset | None"] = relationship(  # noqa: F821
         "Asset", foreign_keys=[source_asset_id]
     )
 
@@ -141,7 +141,7 @@ class FixedExpense(Base):
     category: Mapped["BudgetCategory"] = relationship(
         "BudgetCategory", foreign_keys=[category_id]
     )
-    source_asset: Mapped["Asset | None"] = relationship(
+    source_asset: Mapped["Asset | None"] = relationship(  # noqa: F821
         "Asset", foreign_keys=[source_asset_id]
     )
 
@@ -190,7 +190,7 @@ class Installment(Base):
     category: Mapped["BudgetCategory"] = relationship(
         "BudgetCategory", foreign_keys=[category_id]
     )
-    source_asset: Mapped["Asset | None"] = relationship(
+    source_asset: Mapped["Asset | None"] = relationship(  # noqa: F821
         "Asset", foreign_keys=[source_asset_id]
     )
 

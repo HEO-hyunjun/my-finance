@@ -69,6 +69,6 @@ class Transaction(Base):
     )
 
     # Relationships
-    asset: Mapped["Asset"] = relationship(
+    asset: Mapped["Asset"] = relationship(  # noqa: F821
         "Asset", foreign_keys=[asset_id], back_populates="transactions"
     )

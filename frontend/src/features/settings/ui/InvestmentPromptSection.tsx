@@ -13,11 +13,13 @@ export function InvestmentPromptSection() {
   const remove = useDeleteInvestmentPrompt();
   const [prompt, setPrompt] = useState('');
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (data?.investment_prompt) {
       setPrompt(data.investment_prompt);
     }
   }, [data]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSave = () => {
     if (prompt.trim()) {

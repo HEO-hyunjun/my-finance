@@ -56,7 +56,7 @@ async def _record_parking_interest_async():
                             Income.target_asset_id == asset.id,
                             Income.received_at == today,
                             Income.type == IncomeType.INVESTMENT,
-                            Income.description.like(f"%일일이자%"),
+                            Income.description.like("%일일이자%"),
                         )
                     )
                 )
@@ -99,7 +99,7 @@ async def _record_parking_interest_async():
 
 
 async def _record_deposit_interest_async():
-    from sqlalchemy import select, and_, func
+    from sqlalchemy import select, and_
     from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
     from sqlalchemy.orm import sessionmaker
 
@@ -139,7 +139,7 @@ async def _record_deposit_interest_async():
                             Income.target_asset_id == asset.id,
                             Income.received_at >= month_start,
                             Income.type == IncomeType.INVESTMENT,
-                            Income.description.like(f"%월별이자%"),
+                            Income.description.like("%월별이자%"),
                         )
                     )
                 )

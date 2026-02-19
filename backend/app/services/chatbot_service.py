@@ -6,8 +6,6 @@ from collections import Counter
 from collections.abc import AsyncGenerator
 from datetime import datetime, timezone
 
-logger = logging.getLogger(__name__)
-
 from litellm import acompletion
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,6 +27,8 @@ from app.services.budget_analysis_service import get_budget_analysis
 from app.services.budget_service import get_budget_summary
 from app.services.market_service import MarketService
 from app.services.transaction_service import get_transactions
+
+logger = logging.getLogger(__name__)
 
 
 # =====================================================

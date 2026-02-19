@@ -35,6 +35,7 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
   );
 
   // 급여 유형 선택 시 설정값 자동 적용
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (type === 'salary' && profile) {
       if (profile.salary_amount) setAmount(profile.salary_amount.toString());
@@ -44,6 +45,7 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
       if (profile.salary_day) setRecurringDay(profile.salary_day.toString());
     }
   }, [type, profile]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

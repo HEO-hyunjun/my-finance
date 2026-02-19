@@ -66,7 +66,7 @@ class Asset(Base):
     bank_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Relationships
-    transactions: Mapped[list["Transaction"]] = relationship(
+    transactions: Mapped[list["Transaction"]] = relationship(  # noqa: F821
         "Transaction",
         foreign_keys="[Transaction.asset_id]",
         back_populates="asset",

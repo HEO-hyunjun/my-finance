@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.models.asset import Asset, AssetType, InterestType
 from app.models.budget import Expense
 from app.models.income import Income
-from app.models.transaction import Transaction, TransactionType
+from app.models.transaction import TransactionType
 from app.schemas.asset import (
     AssetCreate,
     AssetUpdate,

@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import React from 'react';
 import { Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
@@ -61,7 +62,7 @@ function AssetCardInner({ holding, onClick, onEdit, onDelete, onRefresh, isDelet
   const isInterestBased = INTEREST_BASED_TYPES.includes(holding.asset_type);
   const isParking = holding.asset_type === 'parking';
   const isSavings = holding.asset_type === 'savings';
-  const Icon = getAssetIcon(holding.asset_type);
+  const assetIcon = getAssetIcon(holding.asset_type);
 
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -78,7 +79,7 @@ function AssetCardInner({ holding, onClick, onEdit, onDelete, onRefresh, isDelet
       <CardContent className="pt-4 pb-4">
         <div className="mb-3 flex items-center gap-2.5">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-            <Icon className="h-4 w-4 text-muted-foreground" />
+            {React.createElement(assetIcon, { className: "h-4 w-4 text-muted-foreground" })}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{holding.name}</p>

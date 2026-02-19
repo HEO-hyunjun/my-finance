@@ -33,7 +33,7 @@ def warm_market_cache():
 
 async def _warm_market_cache_async():
     from sqlalchemy import select, distinct
-    from app.models.asset import Asset, AssetType
+    from app.models.asset import Asset
     from app.services.market_service import MarketService
 
     async_session, engine = _get_async_session()

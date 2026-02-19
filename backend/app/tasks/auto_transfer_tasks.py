@@ -38,7 +38,7 @@ async def _execute_auto_transfers_async():
         result = await db.execute(
             select(AutoTransfer)
             .where(
-                AutoTransfer.is_active == True,
+                AutoTransfer.is_active.is_(True),
                 AutoTransfer.transfer_day == today.day,
             )
             .options(

@@ -30,6 +30,7 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
   const [startDate, setStartDate] = useState('');
   const [maturityDate, setMaturityDate] = useState('');
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (asset) {
       setName(asset.name ?? '');
@@ -42,6 +43,7 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
       setMaturityDate(asset.maturity_date ?? '');
     }
   }, [asset]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (!asset) return null;
 

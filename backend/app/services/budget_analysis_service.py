@@ -35,7 +35,7 @@ async def get_budget_analysis(
     # Fetch categories
     cat_stmt = (
         select(BudgetCategory)
-        .where(BudgetCategory.user_id == user_id, BudgetCategory.is_active == True)
+        .where(BudgetCategory.user_id == user_id, BudgetCategory.is_active.is_(True))
         .order_by(BudgetCategory.sort_order)
     )
     categories = (await db.execute(cat_stmt)).scalars().all()
@@ -95,12 +95,12 @@ async def get_budget_analysis(
 
     # Fixed expenses & installments
     fe_stmt = select(FixedExpense).where(
-        FixedExpense.user_id == user_id, FixedExpense.is_active == True
+        FixedExpense.user_id == user_id, FixedExpense.is_active.is_(True)
     )
     fixed_expenses = (await db.execute(fe_stmt)).scalars().all()
 
     inst_stmt = select(Installment).where(
-        Installment.user_id == user_id, Installment.is_active == True
+        Installment.user_id == user_id, Installment.is_active.is_(True)
     )
     installments = (await db.execute(inst_stmt)).scalars().all()
 
@@ -196,7 +196,7 @@ async def get_budget_analysis(
     # Weekly average budget from income
     income_stmt = select(func.coalesce(func.sum(Income.amount), 0)).where(
         Income.user_id == user_id,
-        Income.is_recurring == True,
+        Income.is_recurring.is_(True),
     )
     monthly_income = float((await db.execute(income_stmt)).scalar() or 0)
     if monthly_income == 0:

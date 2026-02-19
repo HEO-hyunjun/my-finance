@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T12:26:45.871Z",
+  "lastUpdated": "2026-02-19T12:32:53.083Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -137,7 +137,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:58.190Z",
-        "lastUpdated": "2026-02-16T06:23:21.652Z"
+        "lastUpdated": "2026-02-19T12:30:44.188Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/app/providers/ThemeProvider.tsx"
     },
@@ -189,9 +189,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-18T14:20:16.294Z"
+        "lastUpdated": "2026-02-19T12:32:38.162Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/AddAssetModal.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/EditAssetModal.tsx"
     },
     "budget": {
       "phase": "do",
@@ -202,7 +202,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:17.851Z",
-        "lastUpdated": "2026-02-18T21:30:09.065Z"
+        "lastUpdated": "2026-02-19T12:32:40.671Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/budget/ui/EditExpenseModal.tsx"
     },
@@ -276,11 +276,11 @@
       },
       "timestamps": {
         "started": "2026-02-15T08:00:00.000Z",
-        "lastUpdated": "2026-02-18T22:39:50.749Z",
+        "lastUpdated": "2026-02-19T12:32:53.083Z",
         "doCompletedAt": "2026-02-15T07:50:00.000Z",
         "checkCompletedAt": "2026-02-15T08:10:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/settings/ui/CarryoverSection.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/settings/ui/SalarySettingSection.tsx"
     },
     "backend": {
       "phase": "do",
@@ -291,9 +291,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:25.124Z",
-        "lastUpdated": "2026-02-19T12:21:24.007Z"
+        "lastUpdated": "2026-02-19T12:30:56.865Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/main.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/models/transaction.py"
     },
     "core": {
       "phase": "do",
@@ -343,9 +343,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:42.343Z",
-        "lastUpdated": "2026-02-19T12:23:18.777Z"
+        "lastUpdated": "2026-02-19T12:31:57.324Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/news_tasks.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/budget_tasks.py"
     },
     "v1": {
       "phase": "do",
@@ -447,7 +447,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T22:30:18.478Z",
-        "lastUpdated": "2026-02-18T21:44:22.545Z"
+        "lastUpdated": "2026-02-19T12:31:29.896Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/budget_service.py"
     },
@@ -499,7 +499,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T06:28:55.481Z",
-        "lastUpdated": "2026-02-16T19:23:02.815Z"
+        "lastUpdated": "2026-02-19T12:32:22.744Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/chatbot_service.py"
     },
@@ -538,7 +538,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T07:32:51.360Z",
-        "lastUpdated": "2026-02-18T22:39:19.766Z"
+        "lastUpdated": "2026-02-19T12:31:41.715Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/carryover_service.py"
     },
@@ -551,7 +551,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T07:33:22.787Z",
-        "lastUpdated": "2026-02-15T07:33:22.787Z"
+        "lastUpdated": "2026-02-19T12:31:43.121Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/portfolio_service.py"
     },
@@ -564,7 +564,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:00:09.719Z",
-        "lastUpdated": "2026-02-18T22:07:33.979Z"
+        "lastUpdated": "2026-02-19T12:32:44.882Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/income/ui/AddIncomeModal.tsx"
     },
@@ -603,7 +603,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:31:12.712Z",
-        "lastUpdated": "2026-02-18T22:13:33.825Z"
+        "lastUpdated": "2026-02-19T12:31:14.415Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/budget_analysis_service.py"
     },
@@ -720,9 +720,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-16T06:48:20.699Z",
-        "lastUpdated": "2026-02-16T07:07:40.719Z"
+        "lastUpdated": "2026-02-19T12:30:49.182Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/ui/dialog.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/ui/tabs.tsx"
     },
     "expenses": {
       "phase": "do",
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-19T12:26:45.871Z"
+    "lastActivity": "2026-02-19T12:32:53.083Z"
   },
   "history": [
     {
@@ -8704,6 +8704,216 @@
     {
       "timestamp": "2026-02-19T12:26:45.871Z",
       "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:24.980Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:26.766Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:28.254Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:42.337Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:44.188Z",
+      "feature": "providers",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:46.389Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:48.328Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:49.182Z",
+      "feature": "ui",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:51.380Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:53.703Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:55.680Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:56.865Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:30:57.407Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:00.331Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:00.680Z",
+      "feature": "budget_analysis_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:10.498Z",
+      "feature": "budget_analysis_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:14.415Z",
+      "feature": "budget_analysis_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:18.087Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:24.669Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:28.209Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:29.896Z",
+      "feature": "budget_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:41.715Z",
+      "feature": "carryover_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:43.121Z",
+      "feature": "portfolio_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:44.579Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:53.990Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:31:57.324Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:21.635Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:22.744Z",
+      "feature": "chatbot_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:38.162Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:40.671Z",
+      "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:44.882Z",
+      "feature": "income",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:47.219Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:49.243Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:50.786Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T12:32:53.083Z",
+      "feature": "settings",
       "phase": "do",
       "action": "updated"
     }

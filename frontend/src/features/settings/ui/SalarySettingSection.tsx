@@ -31,11 +31,13 @@ export function SalarySettingSection({
   const [assetId, setAssetId] = useState(currentAssetId || '');
   const [amount, setAmount] = useState(currentAmount?.toString() || '');
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setDay(currentDay);
     setAssetId(currentAssetId || '');
     setAmount(currentAmount?.toString() || '');
   }, [currentDay, currentAssetId, currentAmount]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const hasChanges =
     day !== currentDay ||

@@ -45,7 +45,7 @@ async def _initialize_period_fixed_expenses_async():
             # 해당 유저의 활성 고정비 전체 조회
             fe_stmt = select(FixedExpense).where(
                 FixedExpense.user_id == user.id,
-                FixedExpense.is_active == True,
+                FixedExpense.is_active.is_(True),
             )
             fixed_expenses = (await db.execute(fe_stmt)).scalars().all()
 
@@ -95,7 +95,7 @@ async def _deduct_installments_async():
 
     async with async_session() as db:
         stmt = select(Installment).where(
-            Installment.is_active == True,
+            Installment.is_active.is_(True),
             Installment.payment_day == today.day,
         )
         result = await db.execute(stmt)

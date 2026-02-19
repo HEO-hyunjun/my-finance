@@ -2,16 +2,15 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
 
 from app.models.budget import (
     BudgetCategory, Expense, BudgetCarryoverSetting, BudgetCarryoverLog, CarryoverType,
 )
 from app.schemas.carryover import (
-    CarryoverSettingCreate, CarryoverSettingUpdate, CarryoverSettingResponse,
-    CarryoverLogResponse, CarryoverPreviewResponse, CarryoverExecuteRequest,
+    CarryoverSettingCreate, CarryoverSettingResponse,
+    CarryoverLogResponse, CarryoverPreviewResponse,
 )
 
 
@@ -100,7 +99,7 @@ async def get_carryover_preview(
     cat_result = await db.execute(
         select(BudgetCategory).where(
             BudgetCategory.user_id == user_id,
-            BudgetCategory.is_active == True,
+            BudgetCategory.is_active.is_(True),
         )
     )
     categories = cat_result.scalars().all()

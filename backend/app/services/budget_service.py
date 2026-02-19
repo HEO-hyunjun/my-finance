@@ -4,7 +4,7 @@ from datetime import date
 from decimal import Decimal
 
 from fastapi import HTTPException
-from sqlalchemy import select, func, and_, extract
+from sqlalchemy import select, func, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset, AssetType
@@ -417,7 +417,7 @@ async def get_budget_summary(
     # 카테고리 목록 (기본 카테고리는 get_categories에서 자동 생성)
     stmt = (
         select(BudgetCategory)
-        .where(BudgetCategory.user_id == user_id, BudgetCategory.is_active == True)
+        .where(BudgetCategory.user_id == user_id, BudgetCategory.is_active.is_(True))
         .order_by(BudgetCategory.sort_order)
     )
     result = await db.execute(stmt)
@@ -472,12 +472,12 @@ async def get_budget_summary(
 
     # Phase 2: 고정비 + 할부금 합계
     fe_stmt = select(func.coalesce(func.sum(FixedExpense.amount), 0)).where(
-        FixedExpense.user_id == user_id, FixedExpense.is_active == True
+        FixedExpense.user_id == user_id, FixedExpense.is_active.is_(True)
     )
     total_fixed = float((await db.execute(fe_stmt)).scalar() or 0)
 
     inst_stmt = select(func.coalesce(func.sum(Installment.monthly_amount), 0)).where(
-        Installment.user_id == user_id, Installment.is_active == True
+        Installment.user_id == user_id, Installment.is_active.is_(True)
     )
     total_inst = float((await db.execute(inst_stmt)).scalar() or 0)
 
@@ -534,7 +534,7 @@ async def _ensure_auto_expenses_for_range(
     """기간 내 활성 고정비에 대한 자동 Expense를 누락 시 생성한다."""
     stmt = select(FixedExpense).where(
         FixedExpense.user_id == user_id,
-        FixedExpense.is_active == True,
+        FixedExpense.is_active.is_(True),
     )
     fixed_expenses = (await db.execute(stmt)).scalars().all()
     if not fixed_expenses:

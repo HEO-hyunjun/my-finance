@@ -3,7 +3,7 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, DateTime, Date, ForeignKey, Enum, Numeric, Text, Boolean, Integer, Uuid
+from sqlalchemy import String, DateTime, Date, ForeignKey, Enum, Numeric, Boolean, Integer, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -46,6 +46,6 @@ class Income(Base):
     )
 
     # Relationships
-    target_asset: Mapped["Asset | None"] = relationship(
+    target_asset: Mapped["Asset | None"] = relationship(  # noqa: F821
         "Asset", foreign_keys=[target_asset_id]
     )

@@ -31,6 +31,7 @@ export function EditExpenseModal({ expense, categories, isOpen, onClose, onSubmi
 
   const activeCategories = categories.filter((c) => c.is_active);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setCategoryId(expense.category_id);
     setAmount(String(expense.amount));
@@ -38,6 +39,7 @@ export function EditExpenseModal({ expense, categories, isOpen, onClose, onSubmi
     setSpentAt(expense.spent_at);
     setSourceAssetId(expense.source_asset_id ?? '');
   }, [expense]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

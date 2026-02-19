@@ -2,15 +2,14 @@ import uuid
 from datetime import date, timedelta
 from decimal import Decimal
 
-from sqlalchemy import select, func, and_, desc
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.portfolio import AssetSnapshot, PortfolioTarget, RebalancingAlert, GoalAsset
-from app.models.asset import Asset
 from app.schemas.portfolio import (
     AssetSnapshotResponse, AssetTimelineResponse,
-    GoalAssetCreate, GoalAssetUpdate, GoalAssetResponse,
-    PortfolioTargetCreate, PortfolioTargetBulkCreate, PortfolioTargetResponse,
+    GoalAssetCreate, GoalAssetResponse,
+    PortfolioTargetBulkCreate, PortfolioTargetResponse,
     RebalancingAnalysisResponse, RebalancingAlertResponse,
 )
 
@@ -281,7 +280,7 @@ async def get_rebalancing_alerts(
 ) -> list[RebalancingAlertResponse]:
     query = select(RebalancingAlert).where(RebalancingAlert.user_id == user_id)
     if unread_only:
-        query = query.where(RebalancingAlert.is_read == False)
+        query = query.where(RebalancingAlert.is_read.is_(False))
     query = query.order_by(RebalancingAlert.created_at.desc()).limit(20)
 
     result = await db.execute(query)

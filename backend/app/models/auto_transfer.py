@@ -38,9 +38,9 @@ class AutoTransfer(Base):
     )
 
     # Relationships
-    source_asset: Mapped["Asset"] = relationship(
+    source_asset: Mapped["Asset"] = relationship(  # noqa: F821
         "Asset", foreign_keys=[source_asset_id]
     )
-    target_asset: Mapped["Asset"] = relationship(
+    target_asset: Mapped["Asset"] = relationship(  # noqa: F821
         "Asset", foreign_keys=[target_asset_id]
     )

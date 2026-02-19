@@ -1,15 +1,13 @@
 import uuid
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from enum import Enum as PyEnum
 
 from sqlalchemy import (
-    String, DateTime, Date, ForeignKey, Enum, Numeric, Boolean, Integer, UniqueConstraint, JSON, Uuid
+    String, DateTime, Date, ForeignKey, Numeric, Boolean, UniqueConstraint, JSON, Uuid
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.models.asset import AssetType
 
 
 class AssetSnapshot(Base):

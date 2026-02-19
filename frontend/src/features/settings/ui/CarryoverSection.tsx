@@ -42,12 +42,14 @@ function CategoryRow({
   const [assetId, setAssetId] = useState(currentAssetId ?? '');
   const [annualRate, setAnnualRate] = useState(currentAnnualRate?.toString() ?? '');
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setType(currentType);
     setLimit(currentLimit?.toString() ?? '');
     setAssetId(currentAssetId ?? '');
     setAnnualRate(currentAnnualRate?.toString() ?? '');
   }, [currentType, currentLimit, currentAssetId, currentAnnualRate]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const filteredAssets = assets.filter((a) => {
     if (type === 'savings') return a.asset_type === 'savings';
