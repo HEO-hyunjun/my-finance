@@ -8,10 +8,10 @@ interface Props {
   budget: DashboardBudgetSummary;
 }
 
-function usageColor(rate: number): string {
-  if (rate > 90) return 'bg-red-500';
-  if (rate > 70) return 'bg-yellow-500';
-  return 'bg-green-500';
+function getBarColor(rate: number, color?: string): string {
+  if (rate > 100) return '#EF4444';
+  if (rate > 80) return '#F59E0B';
+  return color || '#22C55E';
 }
 
 function BudgetStatusWidgetInner({ budget }: Props) {
@@ -46,8 +46,8 @@ function BudgetStatusWidgetInner({ budget }: Props) {
           </div>
           <div className="mt-1.5 h-2.5 w-full rounded-full bg-muted">
             <div
-              className={`h-2.5 rounded-full ${usageColor(total_usage_rate)}`}
-              style={{ width: `${Math.min(total_usage_rate, 100)}%` }}
+              className="h-2.5 rounded-full"
+              style={{ width: `${Math.min(total_usage_rate, 100)}%`, backgroundColor: getBarColor(total_usage_rate) }}
             />
           </div>
           <p className="mt-1 text-right text-xs text-muted-foreground">{total_usage_rate.toFixed(1)}%</p>
@@ -67,10 +67,10 @@ function BudgetStatusWidgetInner({ budget }: Props) {
               </div>
               <div className="mt-0.5 h-1.5 w-full rounded-full bg-muted">
                 <div
-                  className={`h-1.5 rounded-full ${usageColor(cat.usage_rate)}`}
+                  className="h-1.5 rounded-full"
                   style={{
                     width: `${Math.min(cat.usage_rate, 100)}%`,
-                    backgroundColor: cat.color ?? undefined,
+                    backgroundColor: getBarColor(cat.usage_rate, cat.color ?? undefined),
                   }}
                 />
               </div>

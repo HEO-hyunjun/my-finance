@@ -57,6 +57,7 @@ class AppSettingsResponse(BaseModel):
     investment_prompt: str | None = None
     salary_asset_id: uuid.UUID | None = None
     salary_asset_name: str | None = None
+    asset_type_colors: dict[str, str] | None = None
 
 
 class AppSettingsUpdate(BaseModel):
@@ -64,3 +65,4 @@ class AppSettingsUpdate(BaseModel):
     default_currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
     news_refresh_interval: int | None = Field(default=None, ge=5, le=1440)
     salary_asset_id: uuid.UUID | None = None
+    asset_type_colors: dict[str, str] | None = None

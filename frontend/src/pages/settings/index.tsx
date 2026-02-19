@@ -16,6 +16,7 @@ import { PasswordSection } from '@/features/settings/ui/PasswordSection';
 import { NotificationSection } from '@/features/settings/ui/NotificationSection';
 import { CarryoverSection } from '@/features/settings/ui/CarryoverSection';
 import { ThemeSection } from '@/features/settings/ui/ThemeSection';
+import { AssetTypeColorSection } from '@/features/settings/ui/AssetTypeColorSection';
 import { InvestmentPromptSection } from '@/features/settings/ui/InvestmentPromptSection';
 import { DangerZone } from '@/features/settings/ui/DangerZone';
 import { DeleteAccountModal } from '@/features/settings/ui/DeleteAccountModal';
@@ -118,6 +119,10 @@ export function Component() {
       <Separator />
 
       <ThemeSection />
+
+      <Separator />
+
+      <AssetTypeColorSection />
 
       <Separator />
 

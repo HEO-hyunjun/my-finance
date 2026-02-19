@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T13:55:11.556Z",
+  "lastUpdated": "2026-02-19T14:25:08.569Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -71,10 +71,10 @@
       },
       "timestamps": {
         "started": "2026-02-13T00:00:00.000Z",
-        "lastUpdated": "2026-02-19T13:42:23.303Z",
+        "lastUpdated": "2026-02-19T14:23:00.104Z",
         "completedAt": "2026-02-13T23:59:59.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/dashboard/ui/AssetTimelineWidget.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/dashboard/ui/BudgetStatusWidget.tsx"
     },
     "frontend": {
       "phase": "do",
@@ -85,9 +85,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-19T13:54:14.429Z"
+        "lastUpdated": "2026-02-19T14:17:29.985Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/lib/asset-colors.ts"
     },
     "api": {
       "phase": "do",
@@ -189,7 +189,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-19T13:55:07.283Z"
+        "lastUpdated": "2026-02-19T14:15:50.571Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/AssetCard.tsx"
     },
@@ -276,11 +276,11 @@
       },
       "timestamps": {
         "started": "2026-02-15T08:00:00.000Z",
-        "lastUpdated": "2026-02-19T12:32:53.083Z",
+        "lastUpdated": "2026-02-19T14:22:47.877Z",
         "doCompletedAt": "2026-02-15T07:50:00.000Z",
         "checkCompletedAt": "2026-02-15T08:10:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/settings/ui/SalarySettingSection.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/settings/index.tsx"
     },
     "backend": {
       "phase": "do",
@@ -291,7 +291,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:25.124Z",
-        "lastUpdated": "2026-02-19T13:53:51.864Z"
+        "lastUpdated": "2026-02-19T14:14:49.868Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/models/asset.py"
     },
@@ -317,9 +317,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-19T13:54:00.944Z"
+        "lastUpdated": "2026-02-19T14:17:11.413Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/asset.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/settings.py"
     },
     "__init__.py": {
       "phase": "do",
@@ -590,7 +590,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:30:45.180Z",
-        "lastUpdated": "2026-02-18T11:47:34.753Z"
+        "lastUpdated": "2026-02-19T14:17:17.339Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/settings_service.py"
     },
@@ -681,9 +681,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T13:06:49.621Z",
-        "lastUpdated": "2026-02-18T22:41:46.334Z"
+        "lastUpdated": "2026-02-19T14:25:08.569Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/alembic/versions/011_rename_carryover_investment_to_transfer.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/alembic/versions/013_drop_asset_color.py"
     },
     "insight_service.py": {
       "phase": "do",
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-19T13:55:11.556Z"
+    "lastActivity": "2026-02-19T14:25:08.569Z"
   },
   "history": [
     {
@@ -9100,6 +9100,264 @@
     {
       "timestamp": "2026-02-19T13:55:11.556Z",
       "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:14:49.868Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:14:51.868Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:14:53.487Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:14:59.942Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:07.768Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:09.487Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:10.762Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:12.346Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:18.562Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:20.129Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:21.992Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:31.447Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:40.353Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:41.574Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:43.696Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:46.617Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:47.189Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:15:50.571Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:11.413Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:14.370Z",
+      "feature": "settings_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:17.339Z",
+      "feature": "settings_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:26.837Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:29.985Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:43.208Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:49.059Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:50.409Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:17:56.205Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:18:06.433Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:18:14.847Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:18:16.814Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:18:19.805Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:18:21.385Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:18:23.047Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:36.270Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:37.918Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:39.095Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:40.437Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:46.596Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:47.877Z",
+      "feature": "settings",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:50.194Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:22:57.335Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:23:00.104Z",
+      "feature": "dashboard",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-19T14:25:08.569Z",
+      "feature": "versions",
       "phase": "do",
       "action": "updated"
     }

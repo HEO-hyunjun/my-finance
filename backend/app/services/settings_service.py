@@ -270,6 +270,7 @@ async def get_app_settings(
         investment_prompt=user.investment_prompt,
         salary_asset_id=user.salary_asset_id,
         salary_asset_name=salary_asset_name,
+        asset_type_colors=prefs.get("asset_type_colors"),
     )
 
 
@@ -286,6 +287,8 @@ async def update_app_settings(
         prefs["news_refresh_interval"] = data.news_refresh_interval
     if "salary_asset_id" in data.model_fields_set:
         user.salary_asset_id = data.salary_asset_id
+    if data.asset_type_colors is not None:
+        prefs["asset_type_colors"] = data.asset_type_colors
 
     user.notification_preferences = prefs
     await db.commit()

@@ -1,4 +1,5 @@
 import { useDashboardSummary } from '@/features/dashboard/api';
+import { useAppSettings } from '@/features/settings/api/settings-api';
 import { TotalAssetWidget } from '@/features/dashboard/ui/TotalAssetWidget';
 import { AssetDistChart } from '@/features/dashboard/ui/AssetDistChart';
 import { BudgetStatusWidget } from '@/features/dashboard/ui/BudgetStatusWidget';
@@ -48,6 +49,7 @@ function DashboardError({ onRetry }: { onRetry: () => void }) {
 
 export function Component() {
   const { data, isLoading, isError, refetch } = useDashboardSummary();
+  const { data: appSettings } = useAppSettings();
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -62,11 +64,11 @@ export function Component() {
           </div>
 
           <AIInsightWidget />
-          <AssetTimelineWidget />
+          <AssetTimelineWidget assetTypeColors={appSettings?.asset_type_colors} />
 
           <DailyBudgetWidget budget={data.budget_summary} />
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <AssetDistChart breakdown={data.asset_summary.breakdown} />
+            <AssetDistChart breakdown={data.asset_summary.breakdown} assetTypeColors={appSettings?.asset_type_colors} />
             <BudgetStatusWidget budget={data.budget_summary} />
           </div>
 

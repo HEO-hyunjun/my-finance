@@ -2,6 +2,7 @@ import { memo, useMemo } from 'react';
 import { PieChart, Pie, Cell, Label } from 'recharts';
 import { ASSET_TYPE_LABELS } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
+import { getAssetTypeColors } from '@/shared/lib/asset-colors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import {
   ChartContainer,
@@ -10,23 +11,14 @@ import {
   type ChartConfig,
 } from '@/shared/ui/chart';
 
-const ASSET_COLORS: Record<string, string> = {
-  stock_kr: '#3B82F6',
-  stock_us: '#8B5CF6',
-  gold: '#F59E0B',
-  cash_krw: '#10B981',
-  cash_usd: '#06B6D4',
-  deposit: '#6366F1',
-  savings: '#EC4899',
-  parking: '#84CC16',
-};
-
 interface Props {
   breakdown: Record<string, number>;
+  assetTypeColors?: Record<string, string>;
 }
 
-function AssetDistChartInner({ breakdown }: Props) {
+function AssetDistChartInner({ breakdown, assetTypeColors }: Props) {
   const { total, mainEntries, chartConfig } = useMemo(() => {
+    const colors = getAssetTypeColors(assetTypeColors);
     const total = Object.values(breakdown).reduce((s, v) => s + v, 0);
 
     if (total === 0) {
@@ -45,7 +37,7 @@ function AssetDistChartInner({ breakdown }: Props) {
           key,
           name: ASSET_TYPE_LABELS[key as keyof typeof ASSET_TYPE_LABELS] ?? key,
           value,
-          fill: ASSET_COLORS[key] ?? '#9CA3AF',
+          fill: colors[key] ?? '#9CA3AF',
         });
       }
     });
@@ -64,7 +56,7 @@ function AssetDistChartInner({ breakdown }: Props) {
     });
 
     return { total, mainEntries, chartConfig };
-  }, [breakdown]);
+  }, [breakdown, assetTypeColors]);
 
   if (total === 0) {
     return (

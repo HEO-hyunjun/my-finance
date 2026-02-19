@@ -81,7 +81,6 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
   const [taxRate, setTaxRate] = useState('15.4');
   const [autoTransferSourceId, setAutoTransferSourceId] = useState('');
   const [autoTransferDay, setAutoTransferDay] = useState('');
-  const [color, setColor] = useState('#3B82F6');
   const searchRef = useRef<HTMLDivElement>(null);
 
   const needsSymbol = ['stock_kr', 'stock_us', 'gold'].includes(assetType);
@@ -98,7 +97,6 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
     setInterestRate(''); setInterestType('simple'); setMonthlyAmount('');
     setStartDate(''); setMaturityDate(''); setTaxRate('15.4');
     setAutoTransferSourceId(''); setAutoTransferDay('');
-    setColor('#3B82F6');
   };
 
   const handleTypeChange = (type: AssetType) => {
@@ -127,7 +125,6 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const data: AssetCreateRequest = { asset_type: assetType, name };
-    if (color) data.color = color;
     if (needsSymbol) data.symbol = symbol;
     if (isInterestBased) {
       data.bank_name = bankName || undefined;
@@ -229,22 +226,12 @@ export function AddAssetModal({ isOpen, onClose, onSubmit, assets, isLoading }: 
 
           <div className="space-y-1.5">
             <Label>{isInterestBased ? '상품명' : needsSymbol ? '자산명 (자동입력)' : '자산명'}</Label>
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder={isDeposit ? '신한 정기예금 1년' : isSavings ? '카카오뱅크 26주적금' : isParking ? '토스 파킹통장' : '삼성전자'}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                className="flex-1"
-              />
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-9 w-9 cursor-pointer rounded border border-input"
-                title="자산 색상"
-              />
-            </div>
+            <Input
+              placeholder={isDeposit ? '신한 정기예금 1년' : isSavings ? '카카오뱅크 26주적금' : isParking ? '토스 파킹통장' : '삼성전자'}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
           </div>
 
           {isInterestBased && (

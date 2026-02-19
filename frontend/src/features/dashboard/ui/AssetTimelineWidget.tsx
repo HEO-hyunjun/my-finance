@@ -1,7 +1,9 @@
 import { useState, memo, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAssetTimeline } from '../api/portfolio';
+import { ASSET_TYPE_LABELS } from '@/shared/types';
 import { formatKRW } from '@/shared/lib/format';
+import { getAssetTypeColors } from '@/shared/lib/asset-colors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import {
   ChartContainer,
@@ -24,16 +26,16 @@ const PERIODS = [
   { value: 'ALL', label: 'ALL' },
 ] as const;
 
-const CHART_CONFIG: ChartConfig = {
-  total: { label: '총 자산', color: '#1F2937' },
-  stock_kr: { label: '국내주식', color: '#3B82F6' },
-  stock_us: { label: '해외주식', color: '#8B5CF6' },
-  gold: { label: '금', color: '#F59E0B' },
-  cash_krw: { label: '원화', color: '#10B981' },
-  cash_usd: { label: '달러', color: '#06B6D4' },
-  deposit: { label: '예금', color: '#6366F1' },
-  savings: { label: '적금', color: '#EC4899' },
-  parking: { label: '파킹', color: '#84CC16' },
+const ASSET_TYPE_CHART_LABELS: Record<string, string> = {
+  total: '총 자산',
+  stock_kr: '국내주식',
+  stock_us: '해외주식',
+  gold: '금',
+  cash_krw: '원화',
+  cash_usd: '달러',
+  deposit: '예금',
+  savings: '적금',
+  parking: '파킹',
 };
 
 function formatAxisDate(dateStr: string): string {
@@ -41,13 +43,18 @@ function formatAxisDate(dateStr: string): string {
   return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function AssetTimelineWidgetInner() {
+interface Props {
+  assetTypeColors?: Record<string, string>;
+}
+
+function AssetTimelineWidgetInner({ assetTypeColors }: Props) {
   const [period, setPeriod] = useState('1M');
   const { data: timeline, isLoading } = useAssetTimeline(period);
 
-  const { assetTypes, chartData } = useMemo(() => {
+  const { assetTypes, chartData, chartConfig } = useMemo(() => {
+    const colors = getAssetTypeColors(assetTypeColors);
     if (!timeline || timeline.snapshots.length === 0) {
-      return { assetTypes: [] as string[], chartData: [] as Record<string, unknown>[] };
+      return { assetTypes: [] as string[], chartData: [] as Record<string, unknown>[], chartConfig: {} as ChartConfig };
     }
 
     const assetTypeSet = new Set<string>();
@@ -62,8 +69,18 @@ function AssetTimelineWidgetInner() {
       ...snap.breakdown,
     }));
 
-    return { assetTypes, chartData };
-  }, [timeline]);
+    const chartConfig: ChartConfig = {
+      total: { label: '총 자산', color: '#1F2937' },
+    };
+    assetTypes.forEach((type) => {
+      chartConfig[type] = {
+        label: ASSET_TYPE_CHART_LABELS[type] ?? ASSET_TYPE_LABELS[type as keyof typeof ASSET_TYPE_LABELS] ?? type,
+        color: colors[type] ?? '#9CA3AF',
+      };
+    });
+
+    return { assetTypes, chartData, chartConfig };
+  }, [timeline, assetTypeColors]);
 
   if (isLoading) {
     return <Skeleton className="h-80 rounded-xl" />;
@@ -114,7 +131,7 @@ function AssetTimelineWidgetInner() {
         </div>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={CHART_CONFIG} className="h-56 w-full">
+        <ChartContainer config={chartConfig} className="h-56 w-full">
           <LineChart data={chartData}>
             <CartesianGrid vertical={false} />
             <XAxis
@@ -137,7 +154,7 @@ function AssetTimelineWidgetInner() {
                   formatter={(value, name) => (
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-muted-foreground">
-                        {CHART_CONFIG[name as string]?.label ?? name}
+                        {chartConfig[name as string]?.label ?? name}
                       </span>
                       <span className="font-mono font-medium">
                         {formatKRW(Number(value), true)}

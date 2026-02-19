@@ -23,7 +23,6 @@ class AssetCreate(BaseModel):
     maturity_date: date | None = None
     tax_rate: Decimal | None = Field(default=Decimal("15.4"), ge=0, le=100)
     bank_name: str | None = Field(default=None, max_length=50)
-    color: str | None = Field(default=None, max_length=7)
     # 적금 자동이체 연동 (선택)
     auto_transfer_source_id: uuid.UUID | None = None
     auto_transfer_day: int | None = Field(default=None, ge=1, le=31)
@@ -61,7 +60,6 @@ class AssetCreate(BaseModel):
 
 class AssetUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=100)
-    color: str | None = Field(default=None, max_length=7)
     interest_rate: Decimal | None = Field(default=None, gt=0, le=100)
     interest_type: str | None = None
     principal: Decimal | None = Field(default=None, ge=0)
@@ -80,7 +78,6 @@ class AssetResponse(BaseModel):
     asset_type: AssetType
     symbol: str | None
     name: str
-    color: str | None = None
     created_at: datetime
     # 예금/적금/파킹통장 전용
     interest_rate: float | None = None
@@ -102,7 +99,6 @@ class AssetHoldingResponse(BaseModel):
     asset_type: AssetType
     symbol: str | None
     name: str
-    color: str | None = None
     quantity: float
     avg_price: float
     current_price: float
