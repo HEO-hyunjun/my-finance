@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     FIRECRAWL_BASE_URL: str = ""
 
     # 검색 캐시
-    NEWS_CACHE_TTL: int = 43200       # 뉴스 캐시 12시간
+    NEWS_CACHE_TTL: int = 25200       # 뉴스 캐시 7시간
     WEB_SEARCH_CACHE_TTL: int = 7200  # 웹 검색 캐시 2시간
 
     # LLM API Keys

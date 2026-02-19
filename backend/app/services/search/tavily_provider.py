@@ -1,4 +1,8 @@
-"""Tavily 검색 프로바이더 (무료 월 1,000 크레딧)."""
+"""Tavily 검색 프로바이더 (무료 월 1,000 크레딧).
+
+NOTE: topic="general"을 사용해야 한국어 기사가 정상 반환됨.
+      topic="news"는 영문 기사만 반환하는 Tavily 특성 때문에 사용하지 않음.
+"""
 
 import logging
 
@@ -21,10 +25,9 @@ class TavilyProvider(SearchProvider):
             client = AsyncTavilyClient(api_key=settings.TAVILY_API_KEY)
             response = await client.search(
                 query=query,
-                topic="news",
+                topic="general",
                 max_results=max_results,
                 include_answer=False,
-                time_range="week",
             )
 
             return [

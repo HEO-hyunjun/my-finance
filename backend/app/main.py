@@ -15,6 +15,21 @@ from app.api.v1.endpoints import settings as settings_endpoints
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # 서버 시작 시 뉴스 캐시 워밍 (DB → Redis)
+    try:
+        from app.core.redis import get_redis
+        from app.services.news_service import NewsService
+
+        redis_client = await get_redis()
+        news_service = NewsService(redis_client)
+        warmed = await news_service.warm_cache_from_db()
+        if warmed:
+            import logging
+            logging.getLogger(__name__).info(f"News cache warmed with {warmed} articles")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"News cache warming failed: {e}")
+
     yield
     await close_redis()
 

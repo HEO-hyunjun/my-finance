@@ -18,20 +18,31 @@ class NewsCategory:
     VALID = {ALL, MY_ASSETS, STOCK_KR, STOCK_US, GOLD, ECONOMY}
 
 
-# 카테고리 → 검색 쿼리 매핑
+# 카테고리 → 검색 쿼리 매핑 (topic="general"에 최적화된 한국어 쿼리)
 CATEGORY_QUERY_MAP: dict[str, str] = {
-    NewsCategory.ALL: "금융 OR 증시 OR 경제",
-    NewsCategory.STOCK_KR: "한국 증시 OR 코스피 OR 코스닥",
-    NewsCategory.STOCK_US: "미국 증시 OR 나스닥 OR S&P500",
-    NewsCategory.GOLD: "금 시세 OR 금값 OR 금투자",
-    NewsCategory.ECONOMY: "한국 경제 OR 금리 OR 환율",
+    NewsCategory.ALL: "코스피 나스닥 금값 환율 최신 뉴스",
+    NewsCategory.STOCK_KR: "코스피 코스닥 한국 증시 오늘 뉴스",
+    NewsCategory.STOCK_US: "나스닥 미국증시 뉴스 최신",
+    NewsCategory.GOLD: "금값 금시세 투자 뉴스",
+    NewsCategory.ECONOMY: "금리 환율 경제 뉴스 최신",
 }
 
-# 통합 배치 기본 쿼리 (OR 연산자로 카테고리별 고르게 수집)
-BASE_NEWS_QUERY = "(코스피 OR 코스닥) OR (나스닥 OR S&P500) OR (금값 OR 금시세) OR (금리 OR 환율)"
+# 통합 배치 기본 쿼리 (topic="general"에 최적화)
+BASE_NEWS_QUERY = "코스피 나스닥 금값 환율 최신 뉴스"
 
 # 하위 호환용 (기존 참조 유지)
 COMBINED_NEWS_QUERY = BASE_NEWS_QUERY
+
+# 뉴스 검색에 부적합한 일반 자산명
+_SKIP_KEYWORDS = {"원화", "현금", "KRW", "USD", "원화 자금", "달러 자금", "비상금", "파킹통장", "비상예비자금"}
+
+
+def filter_asset_names(asset_names: list[str], max_assets: int = 10) -> list[str]:
+    """뉴스 검색에 적합한 자산명만 필터링"""
+    return [
+        name for name in asset_names
+        if name not in _SKIP_KEYWORDS and len(name) >= 2
+    ][:max_assets]
 
 
 def build_batch_query(asset_names: list[str] | None = None, max_assets: int = 10) -> str:
@@ -41,28 +52,30 @@ def build_batch_query(asset_names: list[str] | None = None, max_assets: int = 10
         asset_names: 전체 유저의 보유 자산명 (중복 제거된 리스트)
         max_assets: 쿼리에 포함할 최대 자산 수 (쿼리 길이 제한)
     """
-    if not asset_names:
-        return BASE_NEWS_QUERY
-
-    # 일반적인 자산명(원화, 현금 등)은 뉴스 검색에 부적합하므로 제외
-    skip_keywords = {"원화", "현금", "KRW", "USD", "원화 자금", "달러 자금", "비상금"}
-    filtered = [
-        name for name in asset_names
-        if name not in skip_keywords and len(name) >= 2
-    ][:max_assets]
+    filtered = filter_asset_names(asset_names, max_assets) if asset_names else []
 
     if not filtered:
         return BASE_NEWS_QUERY
 
-    asset_query = " OR ".join(f"intitle:{name}" for name in filtered)
-    return f"({BASE_NEWS_QUERY}) OR ({asset_query})"
+    asset_query = " OR ".join(filtered)
+    return f"{asset_query} 주가 뉴스"
 
-# 카테고리 자동 분류 키워드
+
+def build_category_queries(asset_names: list[str] | None = None) -> list[str]:
+    """카테고리별 + 자산별 개별 쿼리 목록 생성 (배치 수집용)"""
+    queries = list(CATEGORY_QUERY_MAP.values())
+    if asset_names:
+        filtered = filter_asset_names(asset_names)
+        for name in filtered[:5]:
+            queries.append(f"{name} 주가 뉴스")
+    return queries
+
+# 카테고리 자동 분류 키워드 (시장/지수 키워드만, 개별 종목은 제외)
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
-    NewsCategory.STOCK_KR: ["코스피", "코스닥", "한국 증시", "삼성전자", "SK하이닉스", "국내 증시", "한국 주식"],
-    NewsCategory.STOCK_US: ["나스닥", "S&P", "다우", "미국 증시", "월가", "뉴욕증시", "애플", "엔비디아", "테슬라"],
-    NewsCategory.GOLD: ["금값", "금 시세", "금투자", "골드", "금 가격", "귀금속"],
-    NewsCategory.ECONOMY: ["금리", "환율", "경제", "물가", "인플레", "GDP", "한국은행", "연준", "Fed"],
+    NewsCategory.STOCK_KR: ["코스피", "코스닥", "한국 증시", "국내 증시", "한국 주식", "유가증권"],
+    NewsCategory.STOCK_US: ["나스닥", "S&P", "다우", "미국 증시", "월가", "뉴욕증시", "러셀"],
+    NewsCategory.GOLD: ["금값", "금 시세", "금투자", "골드", "금 가격", "귀금속", "은값"],
+    NewsCategory.ECONOMY: ["금리", "환율", "경제", "물가", "인플레", "GDP", "한국은행", "연준", "Fed", "기준금리"],
 }
 
 
