@@ -2,7 +2,7 @@
 name = "myfinance-backend"
 version = "0.1.0"
 description = "MyFinance 통합 자산 관리 백엔드"
-readme = "README.md"
+
 requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.115.0",
