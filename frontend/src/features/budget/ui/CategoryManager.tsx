@@ -87,10 +87,19 @@ export function CategoryManager({
                 )}
               >
                 <div className="flex items-center gap-2">
-                  <div
-                    className="h-3 w-3 rounded-full"
-                    style={{ backgroundColor: cat.color || '#B2BEC3' }}
-                  />
+                  <label className="relative cursor-pointer">
+                    <div
+                      className="h-3 w-3 rounded-full transition-shadow hover:ring-2 hover:ring-primary/50"
+                      style={{ backgroundColor: cat.color || '#B2BEC3' }}
+                    />
+                    <input
+                      type="color"
+                      value={cat.color || '#B2BEC3'}
+                      onChange={(e) => onUpdate(cat.id, { color: e.target.value })}
+                      className="absolute inset-0 h-0 w-0 cursor-pointer opacity-0"
+                      title="색상 변경"
+                    />
+                  </label>
                   <span>{cat.icon}</span>
                   <span className="font-medium">{cat.name}</span>
                 </div>

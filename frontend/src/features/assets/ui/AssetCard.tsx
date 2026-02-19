@@ -3,6 +3,7 @@ import React from 'react';
 import { Pencil, Trash2, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';
+import { cn } from '@/shared/lib/utils';
 import { formatKRW } from '@/shared/lib/format';
 import { getAssetIcon } from '@/shared/lib/icons';
 import { ASSET_TYPE_LABELS } from '@/shared/types';
@@ -78,8 +79,17 @@ function AssetCardInner({ holding, onClick, onEdit, onDelete, onRefresh, isDelet
     >
       <CardContent className="pt-4 pb-4">
         <div className="mb-3 flex items-center gap-2.5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-            {React.createElement(assetIcon, { className: "h-4 w-4 text-muted-foreground" })}
+          <div
+            className={cn(
+              'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg',
+              !holding.color && 'bg-muted',
+            )}
+            style={holding.color ? { backgroundColor: `${holding.color}20` } : undefined}
+          >
+            {React.createElement(assetIcon, {
+              className: cn('h-4 w-4', !holding.color && 'text-muted-foreground'),
+              style: holding.color ? { color: holding.color } : undefined,
+            })}
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{holding.name}</p>

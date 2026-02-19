@@ -22,6 +22,7 @@ const INTEREST_BASED_TYPES = ['deposit', 'savings', 'parking'];
 
 export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: Props) {
   const [name, setName] = useState('');
+  const [color, setColor] = useState('');
   const [principal, setPrincipal] = useState('');
   const [interestRate, setInterestRate] = useState('');
   const [monthlyAmount, setMonthlyAmount] = useState('');
@@ -34,6 +35,7 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
   useEffect(() => {
     if (asset) {
       setName(asset.name ?? '');
+      setColor(asset.color ?? '#3B82F6');
       setPrincipal(asset.principal?.toString() ?? '');
       setInterestRate(asset.interest_rate?.toString() ?? '');
       setMonthlyAmount(asset.monthly_amount?.toString() ?? '');
@@ -56,6 +58,7 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
     e.preventDefault();
     const data: AssetUpdateRequest = {};
     if (name !== asset.name) data.name = name;
+    if (color !== (asset.color ?? '#3B82F6')) data.color = color;
     if (principal && Number(principal) !== asset.principal) data.principal = Number(principal);
     if (interestRate && Number(interestRate) !== asset.interest_rate) data.interest_rate = Number(interestRate);
     if (isSavings && monthlyAmount && Number(monthlyAmount) !== asset.monthly_amount) data.monthly_amount = Number(monthlyAmount);
@@ -78,7 +81,16 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label>자산명</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required />
+            <div className="flex items-center gap-2">
+              <Input value={name} onChange={(e) => setName(e.target.value)} required className="flex-1" />
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-9 w-9 cursor-pointer rounded border border-input"
+                title="자산 색상"
+              />
+            </div>
           </div>
 
           {isInterestBased && (

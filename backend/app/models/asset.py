@@ -64,6 +64,7 @@ class Asset(Base):
         Numeric(5, 3), nullable=True, default=Decimal("15.400")
     )
     bank_name: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    color: Mapped[str | None] = mapped_column(String(7), nullable=True)
 
     # Relationships
     transactions: Mapped[list["Transaction"]] = relationship(  # noqa: F821

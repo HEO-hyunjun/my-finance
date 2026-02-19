@@ -1,18 +1,16 @@
 import { useState, memo, useMemo } from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-  Legend,
-} from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { useAssetTimeline } from '../api/portfolio';
 import { formatKRW } from '@/shared/lib/format';
-import { ASSET_TYPE_LABELS } from '@/shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig,
+} from '@/shared/ui/chart';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/utils';
 import { BarChart3 } from 'lucide-react';
@@ -26,16 +24,16 @@ const PERIODS = [
   { value: 'ALL', label: 'ALL' },
 ] as const;
 
-const LINE_COLORS: Record<string, string> = {
-  stock_kr: '#3B82F6',
-  stock_us: '#8B5CF6',
-  gold: '#F59E0B',
-  cash_krw: '#10B981',
-  cash_usd: '#06B6D4',
-  deposit: '#6366F1',
-  savings: '#EC4899',
-  parking: '#84CC16',
-  total: '#1F2937',
+const CHART_CONFIG: ChartConfig = {
+  total: { label: '총 자산', color: '#1F2937' },
+  stock_kr: { label: '국내주식', color: '#3B82F6' },
+  stock_us: { label: '해외주식', color: '#8B5CF6' },
+  gold: { label: '금', color: '#F59E0B' },
+  cash_krw: { label: '원화', color: '#10B981' },
+  cash_usd: { label: '달러', color: '#06B6D4' },
+  deposit: { label: '예금', color: '#6366F1' },
+  savings: { label: '적금', color: '#EC4899' },
+  parking: { label: '파킹', color: '#84CC16' },
 };
 
 function formatAxisDate(dateStr: string): string {
@@ -47,7 +45,6 @@ function AssetTimelineWidgetInner() {
   const [period, setPeriod] = useState('1M');
   const { data: timeline, isLoading } = useAssetTimeline(period);
 
-  // hooks는 항상 동일한 순서로 호출되어야 하므로 early return 전에 선언
   const { assetTypes, chartData } = useMemo(() => {
     if (!timeline || timeline.snapshots.length === 0) {
       return { assetTypes: [] as string[], chartData: [] as Record<string, unknown>[] };
@@ -117,64 +114,63 @@ function AssetTimelineWidgetInner() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="date"
-                tickFormatter={formatAxisDate}
-                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={(v: number) => formatKRW(v, true)}
-                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-                width={70}
-              />
-              <Tooltip
-                labelFormatter={(label: unknown) => String(label)}
-                formatter={(value: number | undefined, name: string | undefined) => [
-                  formatKRW(value ?? 0, true),
-                  name === 'total'
-                    ? '총 자산'
-                    : (ASSET_TYPE_LABELS[name as keyof typeof ASSET_TYPE_LABELS] ?? name),
-                ]}
-              />
-              <Legend
-                formatter={(value: string) =>
-                  value === 'total'
-                    ? '총 자산'
-                    : (ASSET_TYPE_LABELS[value as keyof typeof ASSET_TYPE_LABELS] ?? value)
-                }
-              />
-              {/* Total line - bold */}
-              <Line
-                type="monotone"
-                dataKey="total"
-                stroke={LINE_COLORS.total}
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-              {/* Per-asset-type lines */}
-              {assetTypes.map((assetType) => (
-                <Line
-                  key={assetType}
-                  type="monotone"
-                  dataKey={assetType}
-                  stroke={LINE_COLORS[assetType] ?? '#9CA3AF'}
-                  strokeWidth={1}
-                  dot={false}
-                  activeDot={{ r: 3 }}
+        <ChartContainer config={CHART_CONFIG} className="h-56 w-full">
+          <LineChart data={chartData}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatAxisDate}
+              tickLine={false}
+              axisLine={false}
+              tickMargin={8}
+            />
+            <YAxis
+              tickFormatter={(v: number) => formatKRW(v, true)}
+              tickLine={false}
+              axisLine={false}
+              width={70}
+            />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  labelFormatter={(label) => String(label)}
+                  formatter={(value, name) => (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-muted-foreground">
+                        {CHART_CONFIG[name as string]?.label ?? name}
+                      </span>
+                      <span className="font-mono font-medium">
+                        {formatKRW(Number(value), true)}
+                      </span>
+                    </div>
+                  )}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+              }
+            />
+            <ChartLegend content={<ChartLegendContent />} />
+            {/* Total line - bold */}
+            <Line
+              type="monotone"
+              dataKey="total"
+              stroke="var(--color-total)"
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 4 }}
+            />
+            {/* Per-asset-type lines */}
+            {assetTypes.map((assetType) => (
+              <Line
+                key={assetType}
+                type="monotone"
+                dataKey={assetType}
+                stroke={`var(--color-${assetType})`}
+                strokeWidth={1}
+                dot={false}
+                activeDot={{ r: 3 }}
+              />
+            ))}
+          </LineChart>
+        </ChartContainer>
       </CardContent>
     </Card>
   );

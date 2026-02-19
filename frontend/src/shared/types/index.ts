@@ -26,6 +26,7 @@ export interface Asset {
   asset_type: AssetType;
   symbol?: string;
   name: string;
+  color?: string;
   created_at: string;
   // 예금/적금/파킹통장 전용
   interest_rate?: number;
@@ -43,6 +44,7 @@ export interface AssetCreateRequest {
   asset_type: AssetType;
   symbol?: string;
   name: string;
+  color?: string;
   // 예금/적금/파킹통장 전용
   interest_rate?: number;
   interest_type?: InterestType;
@@ -59,6 +61,7 @@ export interface AssetCreateRequest {
 
 export interface AssetUpdateRequest {
   name?: string;
+  color?: string;
   interest_rate?: number;
   interest_type?: InterestType;
   principal?: number;
@@ -75,6 +78,7 @@ export interface AssetHolding {
   asset_type: AssetType;
   symbol?: string;
   name: string;
+  color?: string;
   quantity: number;
   avg_price: number;
   current_price: number;
