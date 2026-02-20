@@ -359,16 +359,20 @@ async def _calculate_holding(
 
     is_foreign = asset.asset_type in (AssetType.STOCK_US, AssetType.CASH_USD)
 
-    if buy_qty > 0:
+    # 원가 계산: BUY + DEPOSIT 거래 모두 포함 (입금도 매입 원가에 반영)
+    cost_txns = buy_txns + deposit_txns
+    cost_qty = buy_qty + deposit_qty
+
+    if cost_qty > 0:
         if is_foreign:
             avg_price_krw = sum(
                 float(t.quantity) * float(t.unit_price) * float(t.exchange_rate or Decimal("1"))
-                for t in buy_txns
-            ) / buy_qty
+                for t in cost_txns
+            ) / cost_qty
         else:
             avg_price_krw = sum(
-                float(t.quantity) * float(t.unit_price) for t in buy_txns
-            ) / buy_qty
+                float(t.quantity) * float(t.unit_price) for t in cost_txns
+            ) / cost_qty
     else:
         avg_price_krw = 0.0
 
