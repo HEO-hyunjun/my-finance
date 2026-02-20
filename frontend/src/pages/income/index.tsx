@@ -73,18 +73,18 @@ export function Component() {
   ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 p-6">
+    <div className="mx-auto max-w-6xl space-y-4 p-4 sm:space-y-6 sm:p-6">
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {summaryCards.map(({ key, label, value, icon: Icon, color, bg }) => (
           <Card key={key}>
             <CardContent className="flex items-center gap-3 pt-6">
-              <div className={`rounded-lg p-2.5 ${bg}`}>
+              <div className={`shrink-0 rounded-lg p-2.5 ${bg}`}>
                 <Icon className={`h-5 w-5 ${color}`} />
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs text-muted-foreground">{label}</p>
-                <p className={`text-lg font-bold ${color}`}>{formatKRW(value)}</p>
+                <p className={`truncate text-base font-bold sm:text-lg ${color}`}>{formatKRW(value)}</p>
               </div>
             </CardContent>
           </Card>
@@ -93,52 +93,54 @@ export function Component() {
 
       {/* 필터 */}
       <Card>
-        <CardContent className="flex flex-wrap items-end gap-4 pt-6">
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">유형</label>
-            <select
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            >
-              {TYPE_FILTERS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">유형</label>
+              <select
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:w-[140px]"
+              >
+                {TYPE_FILTERS.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">시작일</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">종료일</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              />
+            </div>
+            {(selectedType || startDate || endDate) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSelectedType("");
+                  setStartDate("");
+                  setEndDate("");
+                }}
+              >
+                초기화
+              </Button>
+            )}
           </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">시작일</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">종료일</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-            />
-          </div>
-          {(selectedType || startDate || endDate) && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedType("");
-                setStartDate("");
-                setEndDate("");
-              }}
-            >
-              초기화
-            </Button>
-          )}
         </CardContent>
       </Card>
 

@@ -69,12 +69,12 @@ export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="flex flex-wrap items-end gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end sm:gap-4">
           {/* 자산 유형 */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs">자산 유형</Label>
             <Select value={assetType} onValueChange={setAssetType}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="전체" />
               </SelectTrigger>
               <SelectContent>
@@ -91,7 +91,7 @@ export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs">거래 유형</Label>
             <Select value={txType} onValueChange={setTxType}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="전체" />
               </SelectTrigger>
               <SelectContent>
@@ -112,7 +112,7 @@ export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
               placeholder="검색어 입력"
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
-              className="w-[180px]"
+              className="w-full sm:w-[160px]"
             />
           </div>
 
@@ -137,9 +137,9 @@ export function TransactionFilter({ onFilterChange }: TransactionFilterProps) {
           </div>
 
           {/* 버튼 */}
-          <div className="flex gap-2">
-            <Button onClick={handleApply}>검색</Button>
-            <Button variant="outline" onClick={handleReset}>
+          <div className="col-span-2 flex gap-2 sm:col-span-1">
+            <Button onClick={handleApply} className="flex-1 sm:flex-none">검색</Button>
+            <Button variant="outline" onClick={handleReset} className="flex-1 sm:flex-none">
               초기화
             </Button>
           </div>

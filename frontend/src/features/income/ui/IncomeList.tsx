@@ -76,39 +76,39 @@ export function IncomeList({ incomeType, startDate, endDate, onEdit }: Props) {
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">일시</th>
-              <th className="px-4 py-3">유형</th>
-              <th className="px-4 py-3">설명</th>
-              <th className="px-4 py-3 text-right">금액</th>
-              <th className="px-4 py-3">정기</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-2 py-2 sm:px-4 sm:py-3">일시</th>
+              <th className="px-2 py-2 sm:px-4 sm:py-3">유형</th>
+              <th className="hidden sm:table-cell px-4 py-3">설명</th>
+              <th className="px-2 py-2 text-right sm:px-4 sm:py-3">금액</th>
+              <th className="hidden sm:table-cell px-4 py-3">정기</th>
+              <th className="px-2 py-2 sm:px-4 sm:py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {incomes.map((income) => (
               <tr key={income.id} className="hover:bg-muted/50">
-                <td className="px-4 py-3 whitespace-nowrap">
+                <td className="px-2 py-2 whitespace-nowrap sm:px-4 sm:py-3">
                   {income.received_at}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-2 py-2 sm:px-4 sm:py-3">
                   <Badge variant={getTypeBadgeVariant(income.type)}>
                     {INCOME_TYPE_LABELS[income.type as IncomeType] || income.type}
                   </Badge>
                 </td>
-                <td className="px-4 py-3 max-w-[200px] truncate">
+                <td className="hidden sm:table-cell px-4 py-3 max-w-[200px] truncate">
                   {income.description}
                 </td>
-                <td className="px-4 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400">
+                <td className="px-2 py-2 text-right font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap sm:px-4 sm:py-3">
                   +{formatKRW(income.amount)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden sm:table-cell px-4 py-3">
                   {income.is_recurring && (
                     <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
                       매월 {income.recurring_day}일
                     </Badge>
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-2 py-2 sm:px-4 sm:py-3">
                   <div className="flex gap-1">
                     {onEdit && (
                       <Button

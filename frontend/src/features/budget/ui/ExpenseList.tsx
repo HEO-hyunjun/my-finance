@@ -48,37 +48,37 @@ function ExpenseListInner({
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted text-xs uppercase text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">일시</th>
-              <th className="px-4 py-3">카테고리</th>
-              <th className="px-4 py-3">메모</th>
-              <th className="px-4 py-3 text-right">금액</th>
-              <th className="px-4 py-3"></th>
+              <th className="px-2 py-2 sm:px-4 sm:py-3">일시</th>
+              <th className="px-2 py-2 sm:px-4 sm:py-3">카테고리</th>
+              <th className="hidden sm:table-cell px-4 py-3">메모</th>
+              <th className="px-2 py-2 text-right sm:px-4 sm:py-3">금액</th>
+              <th className="px-2 py-2 sm:px-4 sm:py-3"></th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {expenses.map((exp) => (
               <tr key={exp.id} className="hover:bg-muted/50">
-                <td className="px-4 py-3 whitespace-nowrap">
+                <td className="px-2 py-2 whitespace-nowrap sm:px-4 sm:py-3">
                   {exp.spent_at}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-2 py-2 sm:px-4 sm:py-3">
                   <div className="flex items-center gap-2">
                     <div
                       className="h-2 w-2 rounded-full shrink-0"
                       style={{ backgroundColor: exp.category_color || '#B2BEC3' }}
                     />
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 whitespace-nowrap">
                       {exp.category_name}
                     </Badge>
                   </div>
                 </td>
-                <td className="px-4 py-3 max-w-[200px] truncate text-muted-foreground">
+                <td className="hidden sm:table-cell px-4 py-3 max-w-[200px] truncate text-muted-foreground">
                   {exp.memo || '-'}
                 </td>
-                <td className="px-4 py-3 text-right font-medium text-red-600">
+                <td className="px-2 py-2 text-right font-medium text-red-600 whitespace-nowrap sm:px-4 sm:py-3">
                   -{formatKRW(exp.amount)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-2 py-2 sm:px-4 sm:py-3">
                   <div className="flex gap-1">
                     <Button
                       variant="ghost"

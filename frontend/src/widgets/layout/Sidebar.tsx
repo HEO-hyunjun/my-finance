@@ -44,9 +44,10 @@ const navLinkClass = (isActive: boolean, collapsed?: boolean) =>
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  onNavigate?: () => void;
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
@@ -91,6 +92,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                   to={to}
                   end={to === "/"}
                   className={({ isActive }) => navLinkClass(isActive, true)}
+                  onClick={onNavigate}
                 >
                   <Icon className="h-6 w-6 shrink-0" aria-hidden="true" />
                 </NavLink>
@@ -103,6 +105,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
               to={to}
               end={to === "/"}
               className={({ isActive }) => navLinkClass(isActive)}
+              onClick={onNavigate}
             >
               <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
               <span className="truncate">{label}</span>
@@ -120,14 +123,14 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {collapsed ? (
           <Tooltip delayDuration={0}>
             <TooltipTrigger asChild>
-              <NavLink to="/settings" className={({ isActive }) => navLinkClass(isActive, true)}>
+              <NavLink to="/settings" className={({ isActive }) => navLinkClass(isActive, true)} onClick={onNavigate}>
                 <Settings className="h-6 w-6 shrink-0" aria-hidden="true" />
               </NavLink>
             </TooltipTrigger>
             <TooltipContent side="right">설정</TooltipContent>
           </Tooltip>
         ) : (
-          <NavLink to="/settings" className={({ isActive }) => navLinkClass(isActive)}>
+          <NavLink to="/settings" className={({ isActive }) => navLinkClass(isActive)} onClick={onNavigate}>
             <Settings className="h-5 w-5 shrink-0" aria-hidden="true" />
             <span className="truncate">설정</span>
           </NavLink>

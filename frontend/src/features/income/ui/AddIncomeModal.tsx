@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { AssetHolding, IncomeCreateRequest, IncomeType } from '@/shared/types';
 import { INCOME_TYPE_LABELS } from '@/shared/types';
 import { useAssetSummary } from '@/features/assets/api';
@@ -34,18 +34,23 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
     (h: AssetHolding) => ALLOWED_TARGET_TYPES.has(h.asset_type),
   );
 
-  // 급여 유형 선택 시 설정값 자동 적용
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (type === 'salary' && profile) {
+  // 급여 유형으로 변경 시에만 설정값 자동 적용 (유형 변경 핸들러에서 처리)
+  const handleTypeChange = (newType: IncomeType) => {
+    setType(newType);
+    if (newType === 'salary' && profile) {
       if (profile.salary_amount) setAmount(profile.salary_amount.toString());
       if (profile.salary_asset_id) setTargetAssetId(profile.salary_asset_id);
       setDescription('급여');
       setIsRecurring(true);
       if (profile.salary_day) setRecurringDay(profile.salary_day.toString());
+    } else {
+      setAmount('');
+      setDescription('');
+      setIsRecurring(false);
+      setRecurringDay('');
+      setTargetAssetId('');
     }
-  }, [type, profile]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +92,7 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
             <select
               id="income-type"
               value={type}
-              onChange={(e) => setType(e.target.value as IncomeType)}
+              onChange={(e) => handleTypeChange(e.target.value as IncomeType)}
               required
               className="w-full rounded border border-border bg-background text-foreground px-3 py-2 text-sm"
             >

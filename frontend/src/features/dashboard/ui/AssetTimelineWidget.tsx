@@ -156,11 +156,11 @@ function AssetTimelineWidgetInner({ assetTypeColors }: Props) {
                 <ChartTooltipContent
                   labelFormatter={(label) => String(label)}
                   formatter={(value, name) => (
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-muted-foreground">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-muted-foreground">
                         {chartConfig[name as string]?.label ?? name}
                       </span>
-                      <span className="font-mono font-medium">
+                      <span className="shrink-0 font-mono font-medium">
                         {formatKRW(Number(value), true)}
                       </span>
                     </div>

@@ -22,7 +22,7 @@ export function AppLayout() {
       {/* Mobile sidebar (Sheet) */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetContent side="left" className="w-60 p-0">
-          <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+          <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} onNavigate={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>
 
