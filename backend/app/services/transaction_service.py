@@ -68,14 +68,24 @@ async def create_transaction(
         source_asset_name = source_asset.name
 
         # 출금 금액 계산
+        # 출처가 원화 계좌면 환율 적용, 달러 계좌면 달러 그대로
+        source_is_krw = source_asset.asset_type != AssetType.CASH_USD
+
         if data.type == TransactionType.DEPOSIT:
-            # 입금(예금/적금): 입금 금액 그대로 출처에서 출금
+            # 입금(예금/적금): 입금 금액 기준
             withdraw_amount = data.quantity
+            if data.exchange_rate and source_is_krw:
+                # 달러 입금인데 출처가 원화 계좌 → 원화 환산
+                withdraw_amount = data.quantity * data.exchange_rate
         else:
             # 매수: 수량 × 단가 + 수수료
             withdraw_amount = data.quantity * data.unit_price + data.fee
-            if data.exchange_rate:
+            if data.exchange_rate and source_is_krw:
+                # 해외주식 매수인데 출처가 원화 계좌 → 원화 환산
                 withdraw_amount = withdraw_amount * data.exchange_rate
+
+        # 출금 통화: 출처 계좌의 통화를 따름
+        withdraw_currency = "USD" if source_asset.asset_type == AssetType.CASH_USD else "KRW"
 
         available = await _get_available_quantity(db, user_id, data.source_asset_id)
         if withdraw_amount > available:
@@ -92,7 +102,7 @@ async def create_transaction(
             type=TransactionType.WITHDRAW,
             quantity=withdraw_amount,
             unit_price=Decimal("1"),
-            currency=data.currency if not data.exchange_rate else "KRW",
+            currency=withdraw_currency,
             memo=f"{asset.name} {memo_label} 출금",
             transacted_at=data.transacted_at,
         )

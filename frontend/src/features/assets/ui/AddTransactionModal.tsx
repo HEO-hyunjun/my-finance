@@ -235,18 +235,62 @@ export function AddTransactionModal({ isOpen, onClose, onSubmit, onTransfer, ass
 
           {/* 현금성 자산: 금액만 입력 */}
           {isCashLike ? (
-            <div className="space-y-1.5">
-              <Label>금액 ({currency})</Label>
-              <Input
-                type="number"
-                step="any"
-                min="0"
-                placeholder="금액을 입력하세요"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                required
-              />
-            </div>
+            <>
+              <div className="space-y-1.5">
+                <Label>금액 ({currency})</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="금액을 입력하세요"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  required
+                />
+              </div>
+              {/* 달러 현금: 매입/매도 환율 입력 */}
+              {isForeign && !isTransfer && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label>환율 (USD/KRW)</Label>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
+                      onClick={async () => {
+                        setIsFetchingPrice(true);
+                        try {
+                          const res = await apiClient.get('/v1/market/exchange-rate');
+                          setExchangeRate(String(res.data.rate));
+                        } catch { /* ignore */ } finally {
+                          setIsFetchingPrice(false);
+                        }
+                      }}
+                      disabled={isFetchingPrice}
+                    >
+                      {isFetchingPrice ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-3 w-3" />
+                      )}
+                      현재 환율
+                    </button>
+                  </div>
+                  <Input
+                    type="number"
+                    step="any"
+                    min="0"
+                    placeholder="1380"
+                    value={exchangeRate}
+                    onChange={(e) => setExchangeRate(e.target.value)}
+                  />
+                  {quantity && exchangeRate && (
+                    <p className="text-xs text-muted-foreground">
+                      ≈ {(parseFloat(quantity) * parseFloat(exchangeRate)).toLocaleString()}원
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3">

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-20T11:49:00.393Z",
+  "lastUpdated": "2026-02-20T14:04:40.091Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -189,9 +189,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:16.611Z",
-        "lastUpdated": "2026-02-19T23:16:21.892Z"
+        "lastUpdated": "2026-02-20T13:02:36.035Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/assets/index.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/assets/ui/AddTransactionModal.tsx"
     },
     "budget": {
       "phase": "do",
@@ -408,7 +408,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T14:08:54.900Z",
-        "lastUpdated": "2026-02-19T11:29:15.173Z"
+        "lastUpdated": "2026-02-20T14:04:40.091Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/transaction_service.py"
     },
@@ -772,7 +772,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-20T11:49:00.393Z"
+    "lastActivity": "2026-02-20T14:04:40.091Z"
   },
   "history": [
     {
@@ -9940,6 +9940,24 @@
     {
       "timestamp": "2026-02-20T11:49:00.393Z",
       "feature": "budget",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-20T13:02:36.035Z",
+      "feature": "assets",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-20T13:02:49.900Z",
+      "feature": "transaction_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-20T14:04:40.091Z",
+      "feature": "transaction_service.py",
       "phase": "do",
       "action": "updated"
     }
