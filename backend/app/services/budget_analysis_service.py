@@ -166,10 +166,11 @@ async def get_budget_analysis(
     remaining_days = max((period_end - today).days + 1, 1)
     daily_available = max(variable_remaining / remaining_days, 0)
 
-    # Today's spending
+    # Today's spending (고정비 자동 Expense 제외 — daily_available과 기준 일치)
     today_spent_stmt = select(func.coalesce(func.sum(Expense.amount), 0)).where(
         Expense.user_id == user_id,
         Expense.spent_at == today,
+        Expense.fixed_expense_id.is_(None),
     )
     today_spent = float((await db.execute(today_spent_stmt)).scalar() or 0)
 
@@ -190,6 +191,7 @@ async def get_budget_analysis(
         Expense.user_id == user_id,
         Expense.spent_at >= week_start,
         Expense.spent_at <= min(week_end, period_end),
+        Expense.fixed_expense_id.is_(None),
     )
     week_spent = float((await db.execute(week_spent_stmt)).scalar() or 0)
 
