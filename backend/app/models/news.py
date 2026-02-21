@@ -19,6 +19,7 @@ class NewsArticleDB(Base):
     source_name: Mapped[str] = mapped_column(String(200), nullable=False)
     source_icon: Mapped[str | None] = mapped_column(String(500), nullable=True)
     snippet: Mapped[str | None] = mapped_column(Text, nullable=True)
+    raw_content: Mapped[str | None] = mapped_column(Text, nullable=True)
     thumbnail: Mapped[str | None] = mapped_column(String(500), nullable=True)
     published_at: Mapped[str] = mapped_column(String(100), nullable=False)
     category: Mapped[str] = mapped_column(String(50), nullable=False)

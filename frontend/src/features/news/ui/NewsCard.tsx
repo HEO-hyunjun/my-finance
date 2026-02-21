@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { NewsArticle } from '@/shared/types';
 
 interface Props {
@@ -6,10 +7,8 @@ interface Props {
 
 export function NewsCard({ article }: Props) {
   return (
-    <a
-      href={article.link}
-      target="_blank"
-      rel="noopener noreferrer"
+    <Link
+      to={`/news/${article.id}`}
       className="flex gap-4 px-4 py-3.5 transition-colors hover:bg-muted/50"
     >
       {/* 썸네일 (데스크톱만 표시) */}
@@ -61,6 +60,6 @@ export function NewsCard({ article }: Props) {
           </span>
         )}
       </div>
-    </a>
+    </Link>
   );
 }

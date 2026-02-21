@@ -30,6 +30,7 @@ class TavilyProvider(SearchProvider):
                 include_answer=False,
                 include_images=True,
                 include_favicon=True,
+                include_raw_content=True,
             )
 
             return [
@@ -38,6 +39,7 @@ class TavilyProvider(SearchProvider):
                     "link": r.get("url", ""),
                     "source": {"name": self._extract_domain(r.get("url", "")), "icon": r.get("favicon")},
                     "snippet": (r.get("content", "") or "")[:300],
+                    "raw_content": r.get("raw_content") or r.get("content") or "",
                     "thumbnail": (r.get("images") or [None])[0] if r.get("images") else None,
                     "date": r.get("published_date", ""),
                 }

@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.redis import get_redis
+from app.models.news import NewsArticleDB
 from app.models.user import User
 from app.schemas.news import (
     CATEGORY_QUERY_MAP,
@@ -93,22 +95,58 @@ async def get_processed_news(
     return {"articles": articles}
 
 
+@router.get("/articles/{external_id}")
+async def get_article_detail(
+    external_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """뉴스 기사 상세 조회 (본문 + LLM 분석 결과)"""
+    stmt = select(NewsArticleDB).where(NewsArticleDB.external_id == external_id)
+    result = await db.execute(stmt)
+    article = result.scalar_one_or_none()
+
+    if not article:
+        raise HTTPException(status_code=404, detail="Article not found")
+
+    return {
+        "id": str(article.id),
+        "external_id": article.external_id,
+        "title": article.title,
+        "link": article.link,
+        "source_name": article.source_name,
+        "source_icon": article.source_icon,
+        "snippet": article.snippet,
+        "raw_content": article.raw_content,
+        "thumbnail": article.thumbnail,
+        "published_at": article.published_at,
+        "category": article.category,
+        "related_asset": article.related_asset,
+        "summary": article.summary,
+        "sentiment": article.sentiment,
+        "sentiment_score": article.sentiment_score,
+        "keywords": article.keywords,
+        "processed_at": article.processed_at.isoformat() if article.processed_at else None,
+    }
+
+
 @router.post("/clusters")
 async def create_clusters(
     category: str | None = Query(default=None),
-    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """당일 미처리 기사 LLM 분석 + 클러스터링 실행"""
-    from app.services.news_llm_service import (
-        process_unprocessed_articles,
-        cluster_articles,
-    )
+    """당일 미처리 기사 LLM 분석 + 클러스터링 실행 (비동기)"""
+    from app.tasks.news_tasks import process_and_cluster_news
+    from app.core.redis import get_redis
 
-    processed = await process_unprocessed_articles(db)
-    clusters = await cluster_articles(db, category)
-    await db.commit()
-    return {"clusters": clusters, "count": len(clusters), "processed": processed}
+    redis = await get_redis()
+    # 이미 처리 중이면 중복 실행 방지
+    if await redis.get("news:clustering:status") == "processing":
+        return {"status": "already_processing"}
+
+    await redis.set("news:clustering:status", "processing", ex=300)  # 5분 TTL
+    process_and_cluster_news.delay()
+    return {"status": "processing"}
 
 
 @router.get("/clusters")
@@ -118,8 +156,12 @@ async def list_clusters(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """저장된 클러스터 조회"""
+    """저장된 클러스터 조회 (처리 상태 포함)"""
     from app.services.news_llm_service import get_clusters
+    from app.core.redis import get_redis
+
+    redis = await get_redis()
+    is_processing = await redis.get("news:clustering:status") == "processing"
 
     clusters = await get_clusters(db, category, limit)
-    return {"clusters": clusters}
+    return {"clusters": clusters, "is_processing": is_processing}

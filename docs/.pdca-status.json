@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-21T02:04:49.441Z",
+  "lastUpdated": "2026-02-21T02:58:04.099Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -53,7 +53,8 @@
     "ui",
     "expenses",
     "transfer_service.py",
-    "search"
+    "search",
+    "detail"
   ],
   "primaryFeature": "settings",
   "features": {
@@ -85,7 +86,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-19T16:03:51.720Z"
+        "lastUpdated": "2026-02-21T02:57:04.254Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
     },
@@ -150,7 +151,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:00.797Z",
-        "lastUpdated": "2026-02-19T16:19:31.553Z"
+        "lastUpdated": "2026-02-21T02:57:52.901Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/app/routes/index.tsx"
     },
@@ -219,11 +220,11 @@
       },
       "timestamps": {
         "started": "2026-02-13T00:00:00.000Z",
-        "lastUpdated": "2026-02-16T07:06:00.023Z",
+        "lastUpdated": "2026-02-21T02:58:04.099Z",
         "doCompletedAt": "2026-02-13T12:00:00.000Z",
         "checkCompletedAt": "2026-02-13T12:30:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/news/index.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/news/ui/NewsCard.tsx"
     },
     "calendar": {
       "phase": "do",
@@ -291,9 +292,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:25.124Z",
-        "lastUpdated": "2026-02-19T15:46:30.709Z"
+        "lastUpdated": "2026-02-21T02:55:09.111Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/models/budget.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/models/news.py"
     },
     "core": {
       "phase": "do",
@@ -317,9 +318,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-19T16:03:30.915Z"
+        "lastUpdated": "2026-02-21T02:55:24.513Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/dashboard.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/news.py"
     },
     "__init__.py": {
       "phase": "do",
@@ -343,7 +344,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:42.343Z",
-        "lastUpdated": "2026-02-21T02:04:49.441Z"
+        "lastUpdated": "2026-02-21T02:36:37.754Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/tasks/news_tasks.py"
     },
@@ -369,7 +370,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:44.088Z",
-        "lastUpdated": "2026-02-21T02:04:34.177Z"
+        "lastUpdated": "2026-02-21T02:56:15.368Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/api/v1/endpoints/news.py"
     },
@@ -473,7 +474,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-12T21:59:10.646Z",
-        "lastUpdated": "2026-02-19T12:55:45.939Z"
+        "lastUpdated": "2026-02-21T02:55:55.194Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/news_service.py"
     },
@@ -642,7 +643,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:53:12.791Z",
-        "lastUpdated": "2026-02-21T02:04:23.503Z"
+        "lastUpdated": "2026-02-21T02:55:38.444Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/news_llm_service.py"
     },
@@ -759,9 +760,22 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-18T23:19:08.731Z",
-        "lastUpdated": "2026-02-19T12:55:30.133Z"
+        "lastUpdated": "2026-02-21T02:55:18.752Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/search/tavily_provider.py"
+    },
+    "detail": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-21T02:57:46.588Z",
+        "lastUpdated": "2026-02-21T02:57:46.588Z"
+      },
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/news/detail/index.tsx"
     }
   },
   "pipeline": {
@@ -772,7 +786,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-21T02:04:49.441Z"
+    "lastActivity": "2026-02-21T02:58:04.099Z"
   },
   "history": [
     {
@@ -10018,6 +10032,156 @@
     {
       "timestamp": "2026-02-21T02:04:49.441Z",
       "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:32:30.814Z",
+      "feature": "news_llm_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:32:44.705Z",
+      "feature": "news_llm_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:32:51.777Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:34:25.886Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:34:45.222Z",
+      "feature": "news_llm_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:36:37.755Z",
+      "feature": "tasks",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:36:42.505Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:36:51.012Z",
+      "feature": "news",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:36:57.359Z",
+      "feature": "news",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:37:03.826Z",
+      "feature": "news",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:55:09.111Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:55:18.752Z",
+      "feature": "search",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:55:24.513Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:55:30.831Z",
+      "feature": "news_llm_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:55:38.444Z",
+      "feature": "news_llm_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:55:46.361Z",
+      "feature": "news_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:55:55.194Z",
+      "feature": "news_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:56:07.222Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:56:15.368Z",
+      "feature": "endpoints",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:57:04.254Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:57:12.929Z",
+      "feature": "news",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:57:18.688Z",
+      "feature": "news",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:57:46.588Z",
+      "feature": "detail",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:57:52.901Z",
+      "feature": "routes",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T02:58:04.099Z",
+      "feature": "news",
       "phase": "do",
       "action": "updated"
     }

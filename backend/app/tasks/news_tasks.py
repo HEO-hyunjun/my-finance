@@ -61,27 +61,37 @@ def process_and_cluster_news():
 
 
 async def _process_and_cluster_async():
+    import redis.asyncio as aioredis
+    from app.core.config import settings
     from app.services.news_llm_service import (
         process_unprocessed_articles,
         cluster_articles,
     )
 
     async_session, engine = _get_async_session()
+    redis_client = aioredis.from_url(settings.REDIS_URL)
     processed_count = 0
     cluster_count = 0
 
-    async with async_session() as db:
-        # 1. 당일 미처리 기사 전체 LLM 분석
-        processed_count = await process_unprocessed_articles(db)
+    try:
+        async with async_session() as db:
+            # 1. 당일 미처리 기사 전체 LLM 분석
+            processed_count = await process_unprocessed_articles(
+                db, session_factory=async_session
+            )
 
-        # 2. 당일 기사 클러스터링
-        try:
-            clusters = await cluster_articles(db)
-            cluster_count = len(clusters)
-            await db.commit()
-        except Exception as e:
-            logger.warning(f"Clustering failed: {e}")
+            # 2. 당일 기사 클러스터링
+            try:
+                clusters = await cluster_articles(db)
+                cluster_count = len(clusters)
+                await db.commit()
+            except Exception as e:
+                logger.warning(f"Clustering failed: {e}")
+    finally:
+        # 처리 완료 후 Redis 상태 플래그 제거
+        await redis_client.delete("news:clustering:status")
+        await redis_client.aclose()
+        await engine.dispose()
 
-    await engine.dispose()
     logger.info(f"Processed {processed_count} articles, created {cluster_count} clusters")
     return {"processed": processed_count, "clusters": cluster_count}

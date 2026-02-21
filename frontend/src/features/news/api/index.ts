@@ -1,12 +1,13 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
-import type { NewsListResponse, MyAssetNewsResponse, NewsCategory, NewsClustersResponse } from '@/shared/types';
+import type { NewsListResponse, MyAssetNewsResponse, NewsCategory, NewsClustersResponse, NewsArticleDetail } from '@/shared/types';
 
 export const newsKeys = {
   all: ['news'] as const,
   list: (category: NewsCategory, q: string) => [...newsKeys.all, 'list', category, q] as const,
   myAssets: () => [...newsKeys.all, 'my-assets'] as const,
   clusters: (category?: string) => [...newsKeys.all, 'clusters', category ?? 'all'] as const,
+  articleDetail: (id: string) => [...newsKeys.all, 'article', id] as const,
 };
 
 export function useNewsFeed(category: NewsCategory, q: string = '') {
@@ -50,6 +51,21 @@ export function useNewsClusters(category?: string) {
       return data;
     },
     staleTime: 10 * 60 * 1000,
+    refetchInterval: (query) => {
+      // 백엔드에서 분석 중이면 5초마다 폴링
+      return query.state.data?.is_processing ? 5000 : false;
+    },
+  });
+}
+
+export function useNewsArticleDetail(externalId: string) {
+  return useQuery({
+    queryKey: newsKeys.articleDetail(externalId),
+    queryFn: async (): Promise<NewsArticleDetail> => {
+      const { data } = await apiClient.get(`/v1/news/articles/${externalId}`);
+      return data;
+    },
+    enabled: !!externalId,
   });
 }
 

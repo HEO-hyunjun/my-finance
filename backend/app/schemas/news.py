@@ -105,6 +105,7 @@ class NewsArticle(BaseModel):
     link: str
     source: NewsSource
     snippet: str | None = None
+    raw_content: str | None = None
     thumbnail: str | None = None
     published_at: str
     category: str

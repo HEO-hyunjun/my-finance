@@ -60,6 +60,7 @@ function ClusterCard({ cluster }: { cluster: NewsCluster }) {
 export function NewsClusterView() {
   const { data, isLoading, isError } = useNewsClusters();
   const triggerMutation = useTriggerClustering();
+  const isProcessing = data?.is_processing ?? false;
 
   if (isLoading) {
     return (
@@ -89,10 +90,10 @@ export function NewsClusterView() {
         </p>
         <button
           onClick={() => triggerMutation.mutate(undefined)}
-          disabled={triggerMutation.isPending}
+          disabled={triggerMutation.isPending || isProcessing}
           className="text-xs px-3 py-1.5 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
         >
-          {triggerMutation.isPending ? '분석 중...' : '새로 분석'}
+          {triggerMutation.isPending || isProcessing ? '분석 중...' : '새로 분석'}
         </button>
       </div>
 

@@ -47,6 +47,7 @@ async def save_articles_to_db(
             source_name=article.source.name,
             source_icon=article.source.icon,
             snippet=article.snippet,
+            raw_content=article.raw_content,
             thumbnail=article.thumbnail,
             published_at=article.published_at,
             category=article.category,
@@ -71,10 +72,15 @@ async def process_article_with_llm(
     if not article or article.processed_at:
         return None
 
+    content_text = article.raw_content or article.snippet or "(내용 없음)"
+    # LLM 토큰 절약을 위해 본문은 2000자까지만
+    if len(content_text) > 2000:
+        content_text = content_text[:2000] + "..."
+
     prompt = f"""다음 뉴스 기사를 분석해주세요.
 
 제목: {article.title}
-내용: {article.snippet or '(내용 없음)'}
+내용: {content_text}
 출처: {article.source_name}
 
 아래 JSON 형식으로만 응답하세요:
@@ -126,12 +132,20 @@ async def process_article_with_llm(
 async def process_unprocessed_articles(
     db: AsyncSession,
     max_articles: int = 100,
+    concurrency: int = 20,
+    max_retries: int = 2,
+    session_factory=None,
 ) -> int:
-    """당일 미처리 기사를 일괄 LLM 분석"""
+    """당일 미처리 기사를 병렬 LLM 분석 (실패 시 재시도)"""
+    import asyncio
+
+    if session_factory is None:
+        from app.core.database import async_session as session_factory
+
     today_utc = _today_start_utc()
 
     stmt = (
-        select(NewsArticleDB)
+        select(NewsArticleDB.external_id)
         .where(
             NewsArticleDB.processed_at.is_(None),
             NewsArticleDB.created_at >= today_utc,
@@ -140,18 +154,30 @@ async def process_unprocessed_articles(
         .limit(max_articles)
     )
     result = await db.execute(stmt)
-    unprocessed = result.scalars().all()
+    article_ids = [row[0] for row in result.all()]
 
-    processed_count = 0
-    for article in unprocessed:
-        try:
-            res = await process_article_with_llm(db, article.external_id)
-            if res:
-                processed_count += 1
-        except Exception as e:
-            logger.warning(f"LLM processing failed for {article.external_id}: {e}")
+    if not article_ids:
+        return 0
 
-    return processed_count
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def _process_one(article_id: str) -> bool:
+        async with semaphore:
+            for attempt in range(1, max_retries + 1):
+                async with session_factory() as local_db:
+                    try:
+                        res = await process_article_with_llm(local_db, article_id)
+                        return res is not None
+                    except Exception as e:
+                        if attempt < max_retries:
+                            logger.info(f"Retry {attempt}/{max_retries} for {article_id}")
+                            await asyncio.sleep(1 * attempt)
+                        else:
+                            logger.warning(f"LLM failed after {max_retries} retries for {article_id}: {e}")
+            return False
+
+    results = await asyncio.gather(*[_process_one(aid) for aid in article_ids])
+    return sum(1 for r in results if r)
 
 
 async def get_processed_articles(

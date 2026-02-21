@@ -500,6 +500,26 @@ export interface NewsArticle {
   related_asset?: string;
 }
 
+export interface NewsArticleDetail {
+  id: string;
+  external_id: string;
+  title: string;
+  link: string;
+  source_name: string;
+  source_icon?: string;
+  snippet?: string;
+  raw_content?: string;
+  thumbnail?: string;
+  published_at: string;
+  category: string;
+  related_asset?: string;
+  summary?: string;
+  sentiment?: string;
+  sentiment_score?: number;
+  keywords?: string;
+  processed_at?: string;
+}
+
 export interface NewsListResponse {
   articles: NewsArticle[];
   page: number;
@@ -976,6 +996,7 @@ export interface AutoTransferCreateRequest {
 
 export interface NewsClustersResponse {
   clusters: NewsCluster[];
+  is_processing: boolean;
 }
 
 // ── Budget Analysis ──
