@@ -6,6 +6,17 @@ from app.core.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
+def _get_async_session():
+    """Create async session factory for Celery tasks"""
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from app.core.config import settings
+
+    engine = create_async_engine(settings.DATABASE_URL)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    return async_session, engine
+
+
 @celery_app.task(name="app.tasks.news_tasks.collect_news_batch")
 def collect_news_batch():
     """뉴스 배치 수집: 전체 자산 + 카테고리별 뉴스 수집 → DB 저장 → Redis 캐시"""
@@ -16,16 +27,16 @@ async def _collect_news_batch_async():
     import redis.asyncio as aioredis
     from sqlalchemy import select, distinct
     from app.core.config import settings
-    from app.core.database import async_session as AsyncSessionLocal
     from app.models.asset import Asset
     from app.services.news_service import NewsService
 
+    async_session, engine = _get_async_session()
     redis_client = aioredis.from_url(settings.REDIS_URL)
     news_service = NewsService(redis_client)
 
     try:
         # 전체 유저의 보유 자산명 수집 (중복 제거)
-        async with AsyncSessionLocal() as db:
+        async with async_session() as db:
             stmt = select(distinct(Asset.name))
             result = await db.execute(stmt)
             asset_names = [row[0] for row in result.all()]
@@ -40,6 +51,7 @@ async def _collect_news_batch_async():
         return {"error": str(e)}
     finally:
         await redis_client.aclose()
+        await engine.dispose()
 
 
 @celery_app.task(name="app.tasks.news_tasks.process_and_cluster_news")
@@ -50,17 +62,17 @@ def process_and_cluster_news():
 
 async def _process_and_cluster_async():
     from sqlalchemy import select
-    from app.core.database import async_session as AsyncSessionLocal
     from app.models.news import NewsArticleDB
     from app.services.news_llm_service import (
         process_article_with_llm,
         cluster_articles,
     )
 
+    async_session, engine = _get_async_session()
     processed_count = 0
     cluster_count = 0
 
-    async with AsyncSessionLocal() as db:
+    async with async_session() as db:
         # 1. 미처리 기사 LLM 분석 (최대 20개씩)
         stmt = (
             select(NewsArticleDB)
@@ -87,5 +99,6 @@ async def _process_and_cluster_async():
         except Exception as e:
             logger.warning(f"Clustering failed: {e}")
 
+    await engine.dispose()
     logger.info(f"Processed {processed_count} articles, created {cluster_count} clusters")
     return {"processed": processed_count, "clusters": cluster_count}

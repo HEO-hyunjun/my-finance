@@ -82,6 +82,7 @@ async def process_article_with_llm(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=settings.NEWS_LLM_MAX_TOKENS,
             temperature=settings.NEWS_LLM_TEMPERATURE,
+            drop_params=True,
         )
 
         content = response.choices[0].message.content.strip()
@@ -180,7 +181,7 @@ async def cluster_articles(
         return []
 
     # 2. 키워드 기반 유사도로 그룹핑 (Jaccard similarity)
-    groups = _group_by_keyword_similarity(articles, threshold=0.3)
+    groups = _group_by_keyword_similarity(articles, threshold=0.2)
 
     # 3. 각 그룹에 대해 LLM 요약
     clusters: list[dict] = []
@@ -274,6 +275,7 @@ async def _summarize_cluster(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=settings.NEWS_LLM_MAX_TOKENS,
             temperature=settings.NEWS_LLM_TEMPERATURE,
+            drop_params=True,
         )
 
         content = response.choices[0].message.content.strip()
