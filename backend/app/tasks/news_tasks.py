@@ -62,25 +62,45 @@ def process_and_cluster_news():
 
 async def _process_and_cluster_async():
     import redis.asyncio as aioredis
+    from sqlalchemy import select, func
     from app.core.config import settings
+    from app.models.news import NewsArticleDB
     from app.services.news_llm_service import (
         process_unprocessed_articles,
         cluster_articles,
+        _today_start_utc,
     )
 
     async_session, engine = _get_async_session()
-    redis_client = aioredis.from_url(settings.REDIS_URL)
+    redis_client = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
     processed_count = 0
     cluster_count = 0
+    collected = False
 
     try:
+        # 1. 오늘 수집된 기사가 있는지 확인
         async with async_session() as db:
-            # 1. 당일 미처리 기사 전체 LLM 분석
+            today_utc = _today_start_utc()
+            count_stmt = select(func.count()).select_from(NewsArticleDB).where(
+                NewsArticleDB.created_at >= today_utc
+            )
+            result = await db.execute(count_stmt)
+            today_count = result.scalar() or 0
+
+        # 2. 오늘 기사가 없으면 수집 먼저 실행
+        if today_count == 0:
+            logger.info("No articles collected today, collecting first...")
+            collect_result = await _collect_news_batch_async()
+            collected = True
+            logger.info(f"Collection result: {collect_result}")
+
+        # 3. 당일 미처리 기사 전체 LLM 분석
+        async with async_session() as db:
             processed_count = await process_unprocessed_articles(
                 db, session_factory=async_session
             )
 
-            # 2. 당일 기사 클러스터링
+            # 4. 당일 기사 클러스터링
             try:
                 clusters = await cluster_articles(db)
                 cluster_count = len(clusters)
@@ -93,5 +113,8 @@ async def _process_and_cluster_async():
         await redis_client.aclose()
         await engine.dispose()
 
-    logger.info(f"Processed {processed_count} articles, created {cluster_count} clusters")
-    return {"processed": processed_count, "clusters": cluster_count}
+    logger.info(
+        f"Processed {processed_count} articles, created {cluster_count} clusters"
+        f"{' (collected first)' if collected else ''}"
+    )
+    return {"processed": processed_count, "clusters": cluster_count, "collected_first": collected}
