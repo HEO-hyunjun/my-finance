@@ -99,12 +99,16 @@ async def create_clusters(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """뉴스 기사 클러스터링 실행"""
-    from app.services.news_llm_service import cluster_articles
+    """당일 미처리 기사 LLM 분석 + 클러스터링 실행"""
+    from app.services.news_llm_service import (
+        process_unprocessed_articles,
+        cluster_articles,
+    )
 
+    processed = await process_unprocessed_articles(db)
     clusters = await cluster_articles(db, category)
     await db.commit()
-    return {"clusters": clusters, "count": len(clusters)}
+    return {"clusters": clusters, "count": len(clusters), "processed": processed}
 
 
 @router.get("/clusters")

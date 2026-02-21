@@ -1,9 +1,9 @@
 import json
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from litellm import acompletion
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -11,6 +11,15 @@ from app.models.news import NewsArticleDB, NewsCluster
 from app.schemas.news import NewsArticle
 
 logger = logging.getLogger(__name__)
+
+KST = timezone(timedelta(hours=9))
+
+
+def _today_start_utc() -> datetime:
+    """오늘(KST) 00:00을 UTC로 변환"""
+    now_kst = datetime.now(KST)
+    today_start_kst = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
+    return today_start_kst.astimezone(timezone.utc)
 
 
 async def save_articles_to_db(
@@ -114,15 +123,54 @@ async def process_article_with_llm(
         return None
 
 
+async def process_unprocessed_articles(
+    db: AsyncSession,
+    max_articles: int = 100,
+) -> int:
+    """당일 미처리 기사를 일괄 LLM 분석"""
+    today_utc = _today_start_utc()
+
+    stmt = (
+        select(NewsArticleDB)
+        .where(
+            NewsArticleDB.processed_at.is_(None),
+            NewsArticleDB.created_at >= today_utc,
+        )
+        .order_by(NewsArticleDB.created_at.desc())
+        .limit(max_articles)
+    )
+    result = await db.execute(stmt)
+    unprocessed = result.scalars().all()
+
+    processed_count = 0
+    for article in unprocessed:
+        try:
+            res = await process_article_with_llm(db, article.external_id)
+            if res:
+                processed_count += 1
+        except Exception as e:
+            logger.warning(f"LLM processing failed for {article.external_id}: {e}")
+
+    return processed_count
+
+
 async def get_processed_articles(
     db: AsyncSession,
     category: str | None = None,
     limit: int = 20,
 ) -> list[dict]:
-    """DB에서 처리된 뉴스 기사 조회"""
-    stmt = select(NewsArticleDB).where(
-        NewsArticleDB.processed_at.isnot(None)
-    ).order_by(NewsArticleDB.created_at.desc()).limit(limit)
+    """DB에서 당일 처리된 뉴스 기사 조회"""
+    today_utc = _today_start_utc()
+
+    stmt = (
+        select(NewsArticleDB)
+        .where(
+            NewsArticleDB.processed_at.isnot(None),
+            NewsArticleDB.created_at >= today_utc,
+        )
+        .order_by(NewsArticleDB.created_at.desc())
+        .limit(limit)
+    )
 
     if category and category != "all":
         stmt = stmt.where(NewsArticleDB.category == category)
@@ -158,15 +206,18 @@ async def get_processed_articles(
 async def cluster_articles(
     db: AsyncSession,
     category: str | None = None,
-    max_articles: int = 50,
+    max_articles: int = 100,
 ) -> list[dict]:
-    """처리된 기사를 키워드 유사도 기반으로 클러스터링"""
-    # 1. 처리된 기사 조회
+    """당일 처리된 기사를 키워드 유사도 기반으로 클러스터링"""
+    today_utc = _today_start_utc()
+
+    # 1. 당일 처리된 기사 조회
     stmt = (
         select(NewsArticleDB)
         .where(
             NewsArticleDB.processed_at.isnot(None),
             NewsArticleDB.keywords.isnot(None),
+            NewsArticleDB.created_at >= today_utc,
         )
         .order_by(NewsArticleDB.created_at.desc())
         .limit(max_articles)
@@ -180,10 +231,18 @@ async def cluster_articles(
     if len(articles) < 2:
         return []
 
-    # 2. 키워드 기반 유사도로 그룹핑 (Jaccard similarity)
+    # 2. 기존 당일 클러스터 삭제 후 새로 생성
+    delete_stmt = delete(NewsCluster).where(
+        NewsCluster.created_at >= today_utc,
+    )
+    if category and category != "all":
+        delete_stmt = delete_stmt.where(NewsCluster.category == category)
+    await db.execute(delete_stmt)
+
+    # 3. 키워드 기반 유사도로 그룹핑 (Jaccard similarity)
     groups = _group_by_keyword_similarity(articles, threshold=0.2)
 
-    # 3. 각 그룹에 대해 LLM 요약
+    # 4. 각 그룹에 대해 LLM 요약
     clusters: list[dict] = []
     for group in groups:
         if len(group) < 2:
@@ -199,7 +258,7 @@ async def cluster_articles(
 
 def _group_by_keyword_similarity(
     articles: list[NewsArticleDB],
-    threshold: float = 0.3,
+    threshold: float = 0.2,
 ) -> list[list[NewsArticleDB]]:
     """키워드 Jaccard 유사도 기반 그룹핑 (Union-Find)"""
     from collections import defaultdict
@@ -345,7 +404,6 @@ async def search_articles_by_keywords(
     limit: int = 20,
 ) -> list[dict]:
     """키워드 목록으로 DB에서 관련 기사 검색 (LIKE 매칭)"""
-    from datetime import timedelta
     from sqlalchemy import or_
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
@@ -393,10 +451,13 @@ async def get_clusters(
     category: str | None = None,
     limit: int = 10,
 ) -> list[dict]:
-    """저장된 클러스터 조회"""
+    """당일 클러스터 조회"""
+    today_utc = _today_start_utc()
+
     stmt = (
         select(NewsCluster)
-        .order_by(NewsCluster.created_at.desc())
+        .where(NewsCluster.created_at >= today_utc)
+        .order_by(NewsCluster.importance_score.desc())
         .limit(limit)
     )
     if category and category != "all":

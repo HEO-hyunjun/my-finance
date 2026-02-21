@@ -56,15 +56,13 @@ async def _collect_news_batch_async():
 
 @celery_app.task(name="app.tasks.news_tasks.process_and_cluster_news")
 def process_and_cluster_news():
-    """뉴스 LLM 처리 + 클러스터링 파이프라인"""
+    """당일 뉴스 LLM 처리 + 클러스터링 파이프라인"""
     return asyncio.run(_process_and_cluster_async())
 
 
 async def _process_and_cluster_async():
-    from sqlalchemy import select
-    from app.models.news import NewsArticleDB
     from app.services.news_llm_service import (
-        process_article_with_llm,
+        process_unprocessed_articles,
         cluster_articles,
     )
 
@@ -73,25 +71,10 @@ async def _process_and_cluster_async():
     cluster_count = 0
 
     async with async_session() as db:
-        # 1. 미처리 기사 LLM 분석 (최대 20개씩)
-        stmt = (
-            select(NewsArticleDB)
-            .where(NewsArticleDB.processed_at.is_(None))
-            .order_by(NewsArticleDB.created_at.desc())
-            .limit(20)
-        )
-        result = await db.execute(stmt)
-        unprocessed = result.scalars().all()
+        # 1. 당일 미처리 기사 전체 LLM 분석
+        processed_count = await process_unprocessed_articles(db)
 
-        for article in unprocessed:
-            try:
-                res = await process_article_with_llm(db, article.external_id)
-                if res:
-                    processed_count += 1
-            except Exception as e:
-                logger.warning(f"LLM processing failed for {article.external_id}: {e}")
-
-        # 2. 클러스터링 실행
+        # 2. 당일 기사 클러스터링
         try:
             clusters = await cluster_articles(db)
             cluster_count = len(clusters)
