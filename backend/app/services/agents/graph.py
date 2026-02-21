@@ -125,6 +125,7 @@ class AgentGraph:
 
     Yields:
         {"type": "agent", "name": str, "status": "started"|"done"}
+        {"type": "tool", "agent": str, "name": str, "status": "calling"|"done"|"error"}
         {"type": "token", "content": str}
         {"type": "done", "state": dict}
         {"type": "error", "message": str}
@@ -223,13 +224,24 @@ class AgentGraph:
                             }
                             agents_called.append(agent.name)
 
-                            agent_result = await agent.run(
+                            # run_stream으로 도구 호출 이벤트를 실시간 전달
+                            agent_content = ""
+                            async for sub_event in agent.run_stream(
                                 question=args.get("question", query),
                                 context=financial_context,
                                 db=db,
                                 user_id=user_id,
                                 market=market,
-                            )
+                            ):
+                                if sub_event["type"] == "tool":
+                                    yield {
+                                        "type": "tool",
+                                        "agent": agent.display_name,
+                                        "name": sub_event["display_name"],
+                                        "status": sub_event["status"],
+                                    }
+                                elif sub_event["type"] == "result":
+                                    agent_content = sub_event["content"]
 
                             yield {
                                 "type": "agent",
@@ -240,7 +252,7 @@ class AgentGraph:
                             llm_messages.append({
                                 "role": "tool",
                                 "tool_call_id": tc.id,
-                                "content": agent_result.content,
+                                "content": agent_content,
                             })
                         else:
                             llm_messages.append({

@@ -630,7 +630,14 @@ export interface ChatAgentEvent {
   status: 'started' | 'done';
 }
 
-export type ChatSSEEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent;
+export interface ChatToolEvent {
+  type: 'tool';
+  agent: string;
+  name: string;
+  status: 'calling' | 'done' | 'error';
+}
+
+export type ChatSSEEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent | ChatToolEvent;
 
 // ========== Settings Types ==========
 

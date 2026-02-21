@@ -39,6 +39,7 @@ export function Component() {
     appendStreamToken,
     finishStreaming,
     updateAgent,
+    updateTool,
     clearChat,
   } = useChatStore();
 
@@ -80,6 +81,7 @@ export function Component() {
         finishStreaming(`error-${Date.now()}`);
       },
       onAgent: updateAgent,
+      onTool: updateTool,
     });
   };
 

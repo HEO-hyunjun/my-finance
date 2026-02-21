@@ -1,10 +1,16 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Bot, Search, TrendingUp, Wallet } from 'lucide-react';
+import { Bot, CheckCircle2, Loader2, Search, TrendingUp, Wallet, XCircle } from 'lucide-react';
+
+interface ToolStatus {
+  name: string;
+  status: 'calling' | 'done' | 'error';
+}
 
 interface AgentStatus {
   name: string;
   status: 'started' | 'done';
+  tools: ToolStatus[];
 }
 
 interface Props {
@@ -27,30 +33,65 @@ export function StreamingText({ content, activeAgents = [] }: Props) {
       <div className="max-w-[85%] sm:max-w-[80%] rounded-2xl bg-muted px-4 py-3 text-foreground">
         {/* 에이전트 상태 표시 */}
         {hasAgents && (
-          <div className="mb-2 space-y-1.5">
+          <div className="mb-2 space-y-2">
             {activeAgents.map((agent) => {
               const Icon = AGENT_ICONS[agent.name] || Bot;
               const isDone = agent.status === 'done';
               return (
                 <div
                   key={agent.name}
-                  className={`flex items-center gap-2 text-xs rounded-lg px-2.5 py-1.5 ${
+                  className={`rounded-lg border ${
                     isDone
-                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                      : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                      ? 'border-emerald-500/20 bg-emerald-500/5'
+                      : 'border-blue-500/20 bg-blue-500/5'
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="font-medium">{agent.name}</span>
-                  {isDone ? (
-                    <span className="ml-auto text-[10px]">완료</span>
-                  ) : (
-                    <span className="ml-auto flex items-center gap-0.5 text-[10px]">
-                      분석 중
-                      <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-                      <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-                      <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-                    </span>
+                  {/* 에이전트 헤더 */}
+                  <div
+                    className={`flex items-center gap-2 px-2.5 py-1.5 text-xs ${
+                      isDone
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-blue-600 dark:text-blue-400'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="font-medium">{agent.name}</span>
+                    {isDone ? (
+                      <span className="ml-auto text-[10px]">완료</span>
+                    ) : (
+                      <span className="ml-auto flex items-center gap-1 text-[10px]">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        분석 중
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 도구 호출 목록 */}
+                  {agent.tools.length > 0 && (
+                    <div className="border-t border-current/5 px-2.5 py-1.5 space-y-0.5">
+                      {agent.tools.map((tool) => (
+                        <div
+                          key={tool.name}
+                          className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                        >
+                          {tool.status === 'calling' && (
+                            <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+                          )}
+                          {tool.status === 'done' && (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                          )}
+                          {tool.status === 'error' && (
+                            <XCircle className="h-3 w-3 text-red-500" />
+                          )}
+                          <span className={tool.status === 'calling' ? 'text-foreground/80' : ''}>
+                            {tool.name}
+                          </span>
+                          {tool.status === 'calling' && (
+                            <span className="text-[10px] text-muted-foreground/60">조회 중...</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               );

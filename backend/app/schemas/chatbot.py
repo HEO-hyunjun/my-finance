@@ -41,6 +41,15 @@ class ChatAgentEvent(BaseModel):
     status: str  # "started" | "done"
 
 
+class ChatToolEvent(BaseModel):
+    """서브에이전트 도구 호출 이벤트"""
+
+    type: str = "tool"
+    agent: str  # 에이전트 display_name
+    name: str  # 도구 이름 (한글)
+    status: str  # "calling" | "done" | "error"
+
+
 class ChatErrorEvent(BaseModel):
     """에러 이벤트"""
 

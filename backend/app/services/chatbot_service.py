@@ -18,6 +18,7 @@ from app.schemas.chatbot import (
     ChatDoneEvent,
     ChatErrorEvent,
     ChatTokenEvent,
+    ChatToolEvent,
     ConversationDetailResponse,
     ConversationListResponse,
     ConversationSummary,
@@ -307,6 +308,15 @@ async def chat_stream(
                 ChatAgentEvent(name=event["name"], status=event["status"])
             )
 
+        elif event["type"] == "tool":
+            yield _sse_event(
+                ChatToolEvent(
+                    agent=event["agent"],
+                    name=event["name"],
+                    status=event["status"],
+                )
+            )
+
         elif event["type"] == "token":
             full_response += event["content"]
             yield _sse_event(ChatTokenEvent(content=event["content"]))
@@ -387,7 +397,7 @@ def _build_history(
 
 
 def _sse_event(
-    event: ChatTokenEvent | ChatDoneEvent | ChatErrorEvent,
+    event: ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent | ChatToolEvent,
 ) -> str:
     """EventSourceResponse가 data: 접두사를 자동 추가하므로 JSON만 반환"""
     return event.model_dump_json()

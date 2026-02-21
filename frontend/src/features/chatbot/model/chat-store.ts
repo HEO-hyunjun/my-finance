@@ -4,6 +4,12 @@ import type { ChatMessage } from '@/shared/types';
 interface AgentStatus {
   name: string;
   status: 'started' | 'done';
+  tools: ToolStatus[];
+}
+
+interface ToolStatus {
+  name: string;
+  status: 'calling' | 'done' | 'error';
 }
 
 interface ChatState {
@@ -20,6 +26,7 @@ interface ChatState {
   appendStreamToken: (token: string) => void;
   finishStreaming: (messageId: string) => void;
   updateAgent: (name: string, status: 'started' | 'done') => void;
+  updateTool: (agent: string, name: string, status: 'calling' | 'done' | 'error') => void;
   clearChat: () => void;
 }
 
@@ -70,7 +77,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => {
       if (status === 'started') {
         return {
-          activeAgents: [...state.activeAgents, { name, status }],
+          activeAgents: [...state.activeAgents, { name, status, tools: [] }],
         };
       }
       // done → 해당 에이전트 상태 업데이트
@@ -80,6 +87,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ),
       };
     }),
+
+  updateTool: (agent, name, status) =>
+    set((state) => ({
+      activeAgents: state.activeAgents.map((a) => {
+        if (a.name !== agent) return a;
+        const existing = a.tools.findIndex((t) => t.name === name);
+        if (existing >= 0) {
+          const updated = [...a.tools];
+          updated[existing] = { name, status };
+          return { ...a, tools: updated };
+        }
+        return { ...a, tools: [...a.tools, { name, status }] };
+      }),
+    })),
 
   clearChat: () =>
     set({

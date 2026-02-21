@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-21T07:33:35.601Z",
+  "lastUpdated": "2026-02-21T07:58:31.806Z",
   "activeFeatures": [
     "frontend",
     "api",
@@ -86,7 +86,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:54:14.477Z",
-        "lastUpdated": "2026-02-21T07:32:42.460Z"
+        "lastUpdated": "2026-02-21T07:57:20.116Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/shared/types/index.ts"
     },
@@ -258,11 +258,11 @@
       },
       "timestamps": {
         "started": "2026-02-15T00:00:00.000Z",
-        "lastUpdated": "2026-02-21T07:33:35.601Z",
+        "lastUpdated": "2026-02-21T07:58:31.806Z",
         "doCompletedAt": "2026-02-15T07:00:00.000Z",
         "checkCompletedAt": "2026-02-15T07:30:00.000Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/pages/chatbot/index.tsx"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/frontend/src/features/chatbot/ui/StreamingText.tsx"
     },
     "settings": {
       "phase": "do",
@@ -318,7 +318,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-04T13:55:41.140Z",
-        "lastUpdated": "2026-02-21T07:32:17.093Z"
+        "lastUpdated": "2026-02-21T07:56:38.982Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/schemas/chatbot.py"
     },
@@ -500,7 +500,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T06:28:55.481Z",
-        "lastUpdated": "2026-02-21T07:32:21.478Z"
+        "lastUpdated": "2026-02-21T07:57:14.204Z"
       },
       "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/chatbot_service.py"
     },
@@ -669,9 +669,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-15T08:54:34.886Z",
-        "lastUpdated": "2026-02-21T07:32:28.511Z"
+        "lastUpdated": "2026-02-21T07:56:58.569Z"
       },
-      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/agents/__init__.py"
+      "lastFile": "/Users/heohyeonjun/Projects/MyFinance/backend/app/services/agents/graph.py"
     },
     "versions": {
       "phase": "do",
@@ -786,7 +786,7 @@
   "session": {
     "startedAt": "2026-02-03T13:38:01.451Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-21T07:33:35.601Z"
+    "lastActivity": "2026-02-21T07:58:31.806Z"
   },
   "history": [
     {
@@ -10283,6 +10283,108 @@
     },
     {
       "timestamp": "2026-02-21T07:33:35.601Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:56:30.728Z",
+      "feature": "agents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:56:38.982Z",
+      "feature": "schemas",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:56:52.471Z",
+      "feature": "agents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:56:58.569Z",
+      "feature": "agents",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:04.110Z",
+      "feature": "chatbot_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:09.320Z",
+      "feature": "chatbot_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:14.204Z",
+      "feature": "chatbot_service.py",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:20.116Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:27.746Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:32.005Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:37.137Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:41.913Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:50.379Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:57:59.501Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:58:03.938Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:58:25.761Z",
+      "feature": "chatbot",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-21T07:58:31.806Z",
       "feature": "chatbot",
       "phase": "do",
       "action": "updated"

@@ -5,6 +5,7 @@ interface SSEOptions {
   onDone: (conversationId: string, messageId: string) => void;
   onError: (message: string) => void;
   onAgent?: (name: string, status: 'started' | 'done') => void;
+  onTool?: (agent: string, name: string, status: 'calling' | 'done' | 'error') => void;
 }
 
 export async function streamChat(
@@ -75,6 +76,9 @@ export async function streamChat(
                 return;
               case 'agent':
                 options.onAgent?.(event.name, event.status);
+                break;
+              case 'tool':
+                options.onTool?.(event.agent, event.name, event.status);
                 break;
             }
           } catch {
