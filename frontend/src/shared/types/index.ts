@@ -624,7 +624,13 @@ export interface ChatErrorEvent {
   message: string;
 }
 
-export type ChatSSEEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent;
+export interface ChatAgentEvent {
+  type: 'agent';
+  name: string;
+  status: 'started' | 'done';
+}
+
+export type ChatSSEEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent;
 
 // ========== Settings Types ==========
 

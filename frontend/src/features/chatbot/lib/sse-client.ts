@@ -4,6 +4,7 @@ interface SSEOptions {
   onToken: (content: string) => void;
   onDone: (conversationId: string, messageId: string) => void;
   onError: (message: string) => void;
+  onAgent?: (name: string, status: 'started' | 'done') => void;
 }
 
 export async function streamChat(
@@ -72,6 +73,9 @@ export async function streamChat(
               case 'error':
                 options.onError(event.message);
                 return;
+              case 'agent':
+                options.onAgent?.(event.name, event.status);
+                break;
             }
           } catch {
             // JSON 파싱 실패 무시

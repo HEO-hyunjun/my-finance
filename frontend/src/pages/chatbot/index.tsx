@@ -31,12 +31,14 @@ export function Component() {
     messages,
     isStreaming,
     streamingContent,
+    activeAgents,
     setConversationId,
     setMessages,
     addUserMessage,
     startStreaming,
     appendStreamToken,
     finishStreaming,
+    updateAgent,
     clearChat,
   } = useChatStore();
 
@@ -77,6 +79,7 @@ export function Component() {
       onError: () => {
         finishStreaming(`error-${Date.now()}`);
       },
+      onAgent: updateAgent,
     });
   };
 
@@ -166,7 +169,12 @@ export function Component() {
               <ChatMessage key={msg.id} message={msg} />
             ))}
 
-            {isStreaming && <StreamingText content={streamingContent} />}
+            {isStreaming && (
+              <StreamingText
+                content={streamingContent}
+                activeAgents={activeAgents}
+              />
+            )}
 
             <div ref={messagesEndRef} aria-live="polite" aria-atomic="true" className="sr-only">
               {isStreaming ? '메시지를 작성하고 있습니다' : ''}

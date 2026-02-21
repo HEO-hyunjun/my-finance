@@ -33,6 +33,14 @@ class ChatDoneEvent(BaseModel):
     message_id: str
 
 
+class ChatAgentEvent(BaseModel):
+    """서브에이전트 상태 이벤트"""
+
+    type: str = "agent"
+    name: str
+    status: str  # "started" | "done"
+
+
 class ChatErrorEvent(BaseModel):
     """에러 이벤트"""
 

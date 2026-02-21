@@ -14,6 +14,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.models.conversation import Conversation, Message
 from app.schemas.chatbot import (
+    ChatAgentEvent,
     ChatDoneEvent,
     ChatErrorEvent,
     ChatTokenEvent,
@@ -301,8 +302,10 @@ async def chat_stream(
         history=history,
         market=market,
     ):
-        if event["type"] == "tool":
-            logger.info(f"[ReAct] Tool call: {event['name']}")
+        if event["type"] == "agent":
+            yield _sse_event(
+                ChatAgentEvent(name=event["name"], status=event["status"])
+            )
 
         elif event["type"] == "token":
             full_response += event["content"]
