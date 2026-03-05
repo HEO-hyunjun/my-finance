@@ -1,5 +1,6 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/widgets/layout/AppLayout';
+import { AuthGuard } from '@/features/auth/ui/AuthGuard';
 
 export const router = createBrowserRouter([
   // Auth pages (no layout)
@@ -13,7 +14,7 @@ export const router = createBrowserRouter([
   },
   // App pages (with layout)
   {
-    element: <AppLayout />,
+    element: <AuthGuard><AppLayout /></AuthGuard>,
     children: [
       {
         path: '/',

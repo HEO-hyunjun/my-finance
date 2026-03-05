@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
@@ -9,10 +9,17 @@ import { AlertCircle } from 'lucide-react';
 
 export function Component() {
   const navigate = useNavigate();
-  const { login, isLoading } = useAuthStore();
+  const location = useLocation();
+  const { user, login, isLoading } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  // 이미 로그인된 상태면 이전 페이지 또는 홈으로 리다이렉트
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
+  if (user) {
+    return <Navigate to={from} replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +32,7 @@ export function Component() {
 
     try {
       await login(email, password);
-      navigate('/');
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : '로그인에 실패했습니다.';

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/model/auth-store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
@@ -9,7 +9,11 @@ import { AlertCircle } from 'lucide-react';
 
 export function Component() {
   const navigate = useNavigate();
-  const { register, isLoading } = useAuthStore();
+  const { user, register, isLoading } = useAuthStore();
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
