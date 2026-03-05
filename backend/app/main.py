@@ -30,6 +30,14 @@ async def lifespan(app: FastAPI):
         import logging
         logging.getLogger(__name__).warning(f"News cache warming failed: {e}")
 
+    # 다운타임 중 누락된 일일 태스크 보상 실행
+    try:
+        from app.tasks.startup_tasks import run_missed_tasks
+        run_missed_tasks()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Startup compensation tasks failed: {e}")
+
     yield
     await close_redis()
 
