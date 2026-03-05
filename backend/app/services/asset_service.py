@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -152,6 +153,25 @@ async def get_asset_summary(
     breakdown: dict[str, float] = {}
     total_value = 0.0
     total_invested = 0.0
+
+    # 시세 캐시 프리워밍: 캐시 미스 시 0원 방지를 위해 필요한 시세를 병렬로 미리 조회
+    symbols_needed: set[tuple[str, AssetType | None]] = set()
+    needs_exchange_rate = False
+    for asset in assets:
+        if asset.asset_type in INTEREST_BASED_TYPES or asset.asset_type == AssetType.CASH_KRW:
+            continue
+        if asset.asset_type in (AssetType.STOCK_US, AssetType.CASH_USD):
+            needs_exchange_rate = True
+        if asset.symbol:
+            symbols_needed.add((asset.symbol, asset.asset_type))
+
+    warm_tasks: list = []
+    if needs_exchange_rate:
+        warm_tasks.append(market.get_exchange_rate())
+    for symbol, atype in symbols_needed:
+        warm_tasks.append(market.get_price(symbol, atype))
+    if warm_tasks:
+        await asyncio.gather(*warm_tasks, return_exceptions=True)
 
     # cash_krw 자산의 지출/수입 합계를 사전 조회 (동적 잔액 계산용)
     today = date.today()
@@ -389,31 +409,21 @@ async def _calculate_holding(
         total_value_krw = quantity
         total_invested_krw = quantity
     elif asset.asset_type == AssetType.CASH_USD:
-        rate_resp = await market.get_cached_exchange_rate()
-        if rate_resp:
-            current_price = 1.0
-            current_exchange_rate = rate_resp.rate
-            total_value_krw = quantity * rate_resp.rate
-        else:
-            price_cached = False
-            current_price = 1.0
-            total_value_krw = 0.0
+        rate_resp = await market.get_exchange_rate()
+        current_price = 1.0
+        current_exchange_rate = rate_resp.rate
+        price_cached = rate_resp.cached
+        total_value_krw = quantity * rate_resp.rate
     elif asset.symbol:
-        price_resp = await market.get_cached_price(asset.symbol, asset.asset_type)
-        if price_resp:
-            current_price = price_resp.price
-        else:
-            price_cached = False
-            current_price = 0.0
+        price_resp = await market.get_price(asset.symbol, asset.asset_type)
+        current_price = price_resp.price
+        price_cached = price_resp.cached
 
         if is_foreign:
-            rate_resp = await market.get_cached_exchange_rate()
-            if rate_resp:
-                current_exchange_rate = rate_resp.rate
-                total_value_krw = quantity * current_price * rate_resp.rate
-            else:
-                price_cached = False
-                total_value_krw = 0.0
+            rate_resp = await market.get_exchange_rate()
+            current_exchange_rate = rate_resp.rate
+            price_cached = price_cached and rate_resp.cached
+            total_value_krw = quantity * current_price * rate_resp.rate
         else:
             total_value_krw = quantity * current_price
     else:
