@@ -2,6 +2,8 @@ import asyncio
 import logging
 from datetime import date
 
+from app.core.tz import today as tz_today
+
 from app.core.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ async def _initialize_period_fixed_expenses_async():
     from app.services.budget_period import get_budget_period
 
     async_session, engine = _get_async_session()
-    today = date.today()
+    today = tz_today()
 
     async with async_session() as db:
         # salary_day == today.day 인 유저만 처리
@@ -91,7 +93,7 @@ async def _deduct_installments_async():
     from app.models.budget import Installment, Expense
 
     async_session, engine = _get_async_session()
-    today = date.today()
+    today = tz_today()
 
     async with async_session() as db:
         stmt = select(Installment).where(

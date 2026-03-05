@@ -1,6 +1,8 @@
 import uuid
 from datetime import date, timedelta
 
+from app.core.tz import today as tz_today
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,7 +30,7 @@ async def get_budget_analysis(
     period_end: date | None = None,
     salary_day: int = 1,
 ) -> BudgetAnalysisResponse:
-    today = date.today()
+    today = tz_today()
     if not period_start or not period_end:
         period_start, period_end = get_budget_period(today, salary_day)
 

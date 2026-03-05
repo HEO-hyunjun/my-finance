@@ -3,6 +3,7 @@ import logging
 from datetime import date
 
 from app.core.celery_app import celery_app
+from app.core.tz import today as tz_today
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ async def _execute_auto_transfers_async():
 
     engine = create_async_engine(settings.DATABASE_URL)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    today = date.today()
+    today = tz_today()
     count = 0
 
     async with async_session() as db:

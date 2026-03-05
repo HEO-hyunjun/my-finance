@@ -441,7 +441,7 @@ class NewsService:
     # ─── Redis 캐시 ──────────────────────────
 
     async def _warm_cache_from_articles(self, articles: list[NewsArticle]) -> None:
-        """기사 목록을 카테고리별로 Redis에 캐시"""
+        """기사 목록을 카테고리별로 Redis에 캐시 (query-hash 키 포함)"""
         from collections import defaultdict
 
         by_category: dict[str, list[NewsArticle]] = defaultdict(list)
@@ -458,8 +458,17 @@ class NewsService:
                 per_page=len(sorted_articles),
                 has_next=False,
             )
+            data = result.model_dump()
+
+            # 카테고리 전용 키
             cache_key = self._cache_key(cat)
-            await self._set_cached(cache_key, result.model_dump())
+            await self._set_cached(cache_key, data)
+
+            # search_news에서 사용하는 기본 쿼리 해시 키도 함께 저장
+            default_query = CATEGORY_QUERY_MAP.get(cat)
+            if default_query:
+                query_cache_key = self._cache_key(cat, default_query)
+                await self._set_cached(query_cache_key, data)
 
     def _cache_key(self, category: str, query: str = "", page: int = 1) -> str:
         if query:

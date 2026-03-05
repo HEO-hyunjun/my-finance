@@ -7,19 +7,26 @@ from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.tz import APP_TZ, now as tz_now, to_utc
 from app.models.news import NewsArticleDB, NewsCluster
 from app.schemas.news import NewsArticle
 
 logger = logging.getLogger(__name__)
 
-KST = timezone(timedelta(hours=9))
-
 
 def _today_start_utc() -> datetime:
-    """오늘(KST) 00:00을 UTC로 변환"""
-    now_kst = datetime.now(KST)
-    today_start_kst = now_kst.replace(hour=0, minute=0, second=0, microsecond=0)
-    return today_start_kst.astimezone(timezone.utc)
+    """뉴스 수집 기준 '오늘' 시작 시각을 UTC로 변환.
+
+    오전 08:49 APP_TZ를 하루의 경계로 사용한다.
+    08:49 이전이면 전날 08:49, 이후이면 오늘 08:49가 기준.
+    """
+    now_local = tz_now()
+    if now_local.hour < 8 or (now_local.hour == 8 and now_local.minute < 49):
+        base = now_local - timedelta(days=1)
+    else:
+        base = now_local
+    today_start = base.replace(hour=8, minute=49, second=0, microsecond=0)
+    return to_utc(today_start)
 
 
 async def save_articles_to_db(
@@ -88,7 +95,7 @@ async def process_article_with_llm(
   "summary": "2-3문장 한국어 요약",
   "sentiment": "positive 또는 negative 또는 neutral",
   "sentiment_score": -1.0에서 1.0 사이의 숫자 (부정=-1, 긍정=1),
-  "keywords": "쉼표로 구분된 핵심 키워드 3-5개"
+  "keywords": "쉼표로 구분된 키워드 5-7개 (넓은 주제 키워드 2-3개 + 구체적 키워드 3-4개. 예: 반도체,미국증시,엔비디아,AI,실적)"
 }}"""
 
     try:
@@ -266,7 +273,7 @@ async def cluster_articles(
     await db.execute(delete_stmt)
 
     # 3. 키워드 기반 유사도로 그룹핑 (Jaccard similarity)
-    groups = _group_by_keyword_similarity(articles, threshold=0.2)
+    groups = _group_by_keyword_similarity(articles, threshold=0.15)
 
     # 4. 각 그룹에 대해 LLM 요약
     clusters: list[dict] = []

@@ -1,6 +1,8 @@
 import asyncio
 import uuid
 from datetime import date
+
+from app.core.tz import today as tz_today
 from decimal import Decimal
 
 from sqlalchemy import select, func
@@ -110,7 +112,7 @@ async def get_asset_detail(
         raise HTTPException(status_code=404, detail="Asset not found")
 
     # 지출/수입 합계 조회 (CASH_KRW 동적 잔액 계산용)
-    today = date.today()
+    today = tz_today()
     expense_stmt = (
         select(func.coalesce(func.sum(Expense.amount), 0))
         .where(
@@ -174,7 +176,7 @@ async def get_asset_summary(
         await asyncio.gather(*warm_tasks, return_exceptions=True)
 
     # cash_krw 자산의 지출/수입 합계를 사전 조회 (동적 잔액 계산용)
-    today = date.today()
+    today = tz_today()
     expense_stmt = (
         select(Expense.source_asset_id, func.coalesce(func.sum(Expense.amount), 0))
         .where(Expense.user_id == user_id, Expense.spent_at <= today, Expense.source_asset_id.isnot(None))
@@ -254,7 +256,7 @@ async def _calculate_holding(
     expense_sum: float = 0.0, income_sum: float = 0.0,
 ) -> AssetHoldingResponse:
     """보유량, 평균단가, 수익률 계산 (이자 기반 자산 포함)"""
-    today = date.today()
+    today = tz_today()
 
     # --- 예금 ---
     if asset.asset_type == AssetType.DEPOSIT:

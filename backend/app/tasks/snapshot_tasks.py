@@ -2,6 +2,8 @@ import asyncio
 import logging
 from datetime import date
 
+from app.core.tz import today as tz_today
+
 from app.core.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ async def _take_daily_snapshot_async():
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     redis_client = aioredis.from_url(settings.REDIS_URL)
     market = MarketService(redis_client)
-    today = date.today()
+    today = tz_today()
 
     async with async_session() as db:
         users = (await db.execute(select(User))).scalars().all()

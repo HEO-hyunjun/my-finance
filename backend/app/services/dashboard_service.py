@@ -1,6 +1,8 @@
 import uuid
 from datetime import date, timedelta
 
+from app.core.tz import today as tz_today
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,7 +41,7 @@ async def get_dashboard_summary(
 ) -> DashboardSummaryResponse:
     """대시보드 통합 데이터를 매번 계산하여 반환. 시세는 개별 Redis 캐시 사용."""
 
-    today = date.today()
+    today = tz_today()
 
     # 시세: 캐시 전용 (yfinance 호출 없음)
     exchange_rate_raw = await market.get_cached_exchange_rate()

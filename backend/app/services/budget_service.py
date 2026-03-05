@@ -1,6 +1,8 @@
 import uuid
 from calendar import monthrange
 from datetime import date
+
+from app.core.tz import today as tz_today
 from decimal import Decimal
 
 from fastapi import HTTPException
@@ -407,7 +409,7 @@ async def get_budget_summary(
     salary_day: int = 1,
 ) -> BudgetSummaryResponse:
     # 기간 미지정 시 급여일 기준 예산 기간 계산
-    today = date.today()
+    today = tz_today()
     if not period_start or not period_end:
         period_start, period_end = get_budget_period(today, salary_day)
 
@@ -524,7 +526,7 @@ async def _get_current_period_for_user(
     """User.salary_day 기반 현재 예산 기간 반환."""
     user = await db.get(User, user_id)
     salary_day = user.salary_day if user else 1
-    return get_budget_period(date.today(), salary_day)
+    return get_budget_period(tz_today(), salary_day)
 
 
 async def _ensure_auto_expenses_for_range(

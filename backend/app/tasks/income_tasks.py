@@ -2,6 +2,8 @@ import asyncio
 import logging
 from datetime import date
 
+from app.core.tz import today as tz_today
+
 from app.core.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ async def _generate_recurring_incomes_async():
     from app.models.income import Income
 
     async_session, engine = _get_async_session()
-    today = date.today()
+    today = tz_today()
 
     try:
         async with async_session() as db:

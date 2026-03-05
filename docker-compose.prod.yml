@@ -18,6 +18,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      - TZ=Asia/Seoul
       - DATABASE_URL=mysql+asyncmy://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DB}?charset=utf8mb4
       - REDIS_URL=redis://redis:6379/0
     depends_on:
@@ -73,6 +74,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      - TZ=Asia/Seoul
       - DATABASE_URL=mysql+asyncmy://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DB}?charset=utf8mb4
       - REDIS_URL=redis://redis:6379/0
     depends_on:
@@ -89,6 +91,7 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
+      - TZ=Asia/Seoul
       - DATABASE_URL=mysql+asyncmy://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DB}?charset=utf8mb4
       - REDIS_URL=redis://redis:6379/0
     volumes:

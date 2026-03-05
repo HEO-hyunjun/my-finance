@@ -44,11 +44,11 @@ celery_app.conf.beat_schedule = {
     },
     "collect-news-batch": {
         "task": "app.tasks.news_tasks.collect_news_batch",
-        "schedule": crontab(hour="7,19", minute=0),  # 하루 2회 (07:00, 19:00)
+        "schedule": crontab(hour="8,17", minute=50),  # 하루 2회 (08:50, 17:50)
     },
     "process-and-cluster-news": {
         "task": "app.tasks.news_tasks.process_and_cluster_news",
-        "schedule": crontab(hour="*/6", minute=30),  # 6시간마다
+        "schedule": crontab(hour="8,17", minute=51),  # 수집 1분 후 (08:51, 17:51)
     },
     # 시세 캐시 워밍: 한국장 마감(15:35), 미국장 마감(06:05 KST), 자정
     "warm-market-cache-kr-close": {

@@ -1,5 +1,7 @@
 import uuid
 from datetime import date, timedelta
+
+from app.core.tz import today as tz_today
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -19,7 +21,7 @@ from app.schemas.portfolio import (
 async def create_snapshot(
     db: AsyncSession, user_id: uuid.UUID, total_krw: Decimal, breakdown: dict
 ) -> AssetSnapshotResponse:
-    today = date.today()
+    today = tz_today()
     # Upsert: update if exists for today
     result = await db.execute(
         select(AssetSnapshot).where(
@@ -49,7 +51,7 @@ async def create_snapshot(
 async def get_asset_timeline(
     db: AsyncSession, user_id: uuid.UUID, period: str = "1M"
 ) -> AssetTimelineResponse:
-    today = date.today()
+    today = tz_today()
     period_map = {
         "1W": timedelta(weeks=1),
         "1M": timedelta(days=30),
@@ -99,7 +101,7 @@ async def get_goal(
     monthly_required = None
     estimated_date = None
     if goal.target_date and remaining > 0:
-        months_left = max(1, (goal.target_date - date.today()).days / 30)
+        months_left = max(1, (goal.target_date - tz_today()).days / 30)
         monthly_required = remaining / months_left
 
     # Simple trend estimation from snapshots
@@ -119,7 +121,7 @@ async def get_goal(
                 daily_growth = (float(newest.total_krw) - float(oldest.total_krw)) / days_diff
                 if daily_growth > 0:
                     days_needed = int(remaining / daily_growth)
-                    estimated_date = date.today() + timedelta(days=days_needed)
+                    estimated_date = tz_today() + timedelta(days=days_needed)
 
     return GoalAssetResponse(
         id=goal.id,

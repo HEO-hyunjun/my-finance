@@ -1,13 +1,13 @@
 import json
 import logging
 import uuid
-from datetime import date
 
 from litellm import acompletion
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.tz import today
 from app.models.insight import AIInsightRecord
 from app.services.asset_service import get_asset_summary
 from app.services.budget_analysis_service import get_budget_analysis
@@ -23,12 +23,12 @@ async def get_ai_insights(
     user_id: uuid.UUID,
 ) -> list[dict]:
     """DB에서 오늘 날짜의 AI 인사이트를 조회. 없으면 빈 리스트 반환."""
-    today = date.today()
+    today_ = today()
     result = await db.execute(
         select(AIInsightRecord)
         .where(
             AIInsightRecord.user_id == user_id,
-            AIInsightRecord.generated_date == today,
+            AIInsightRecord.generated_date == today_,
         )
         .order_by(AIInsightRecord.created_at)
     )
@@ -49,15 +49,16 @@ async def generate_daily_insights(
     db: AsyncSession,
     user_id: uuid.UUID,
     market: MarketService,
+    salary_day: int = 1,
 ) -> list[dict]:
     """LLM을 호출하여 인사이트를 생성하고 DB에 저장. 이미 있으면 재생성."""
-    today = date.today()
+    today_ = today()
 
     # 기존 데이터 삭제 (upsert 패턴)
     await db.execute(
         delete(AIInsightRecord).where(
             AIInsightRecord.user_id == user_id,
-            AIInsightRecord.generated_date == today,
+            AIInsightRecord.generated_date == today_,
         )
     )
 
@@ -75,7 +76,7 @@ async def generate_daily_insights(
         pass
 
     try:
-        budget = await get_budget_summary(db, user_id)
+        budget = await get_budget_summary(db, user_id, salary_day=salary_day)
         context_parts.append(
             f"예산: ₩{budget.total_budget:,.0f}, "
             f"지출: ₩{budget.total_spent:,.0f}, "
@@ -85,7 +86,7 @@ async def generate_daily_insights(
         pass
 
     try:
-        analysis = await get_budget_analysis(db, user_id)
+        analysis = await get_budget_analysis(db, user_id, salary_day=salary_day)
         context_parts.append(
             f"일일 가용: ₩{analysis.daily_budget.daily_available:,.0f}, "
             f"오늘 지출: ₩{analysis.daily_budget.today_spent:,.0f}, "
@@ -166,7 +167,7 @@ async def generate_daily_insights(
                     title=item["title"][:100],
                     description=item["description"][:500],
                     severity=item["severity"],
-                    generated_date=today,
+                    generated_date=today_,
                 )
                 db.add(record)
                 validated.append(item)

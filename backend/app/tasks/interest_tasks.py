@@ -1,6 +1,8 @@
 import asyncio
 import logging
 from datetime import date
+
+from app.core.tz import today as tz_today
 from decimal import Decimal
 
 from app.core.celery_app import celery_app
@@ -32,7 +34,7 @@ async def _record_parking_interest_async():
 
     engine = create_async_engine(settings.DATABASE_URL)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    today = date.today()
+    today = tz_today()
     count = 0
 
     async with async_session() as db:
@@ -113,7 +115,7 @@ async def _record_deposit_interest_async():
 
     engine = create_async_engine(settings.DATABASE_URL)
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
-    today = date.today()
+    today = tz_today()
     count = 0
 
     async with async_session() as db:
