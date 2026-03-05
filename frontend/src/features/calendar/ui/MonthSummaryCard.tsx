@@ -5,11 +5,26 @@ interface Props {
   summary: MonthSummary;
 }
 
+function formatPeriod(start?: string, end?: string) {
+  if (!start || !end) return null;
+  const s = new Date(start);
+  const e = new Date(end);
+  const fmt = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+  return `${fmt(s)} ~ ${fmt(e)}`;
+}
+
 export function MonthSummaryCard({ summary }: Props) {
+  const period = formatPeriod(summary.budget_period_start, summary.budget_period_end);
+
   return (
     <Card>
       <CardContent className="p-4">
-        <p className="text-sm font-medium text-foreground">{summary.month}월 요약</p>
+        <div className="flex items-baseline gap-2">
+          <p className="text-sm font-medium text-foreground">{summary.month}월 요약</p>
+          {period && (
+            <span className="text-xs text-muted-foreground">({period})</span>
+          )}
+        </div>
         <div className="mt-3 grid grid-cols-3 gap-3">
           <div>
             <p className="text-xs text-muted-foreground">수입</p>

@@ -11,6 +11,7 @@ import redis.asyncio as redis
 from app.models.asset import Asset, AssetType
 from app.models.budget import BudgetCategory, Expense, FixedExpense, Installment
 from app.models.income import Income, IncomeType
+from app.services.budget_period import get_budget_period
 from app.schemas.calendar import (
     CalendarEvent,
     CalendarEventType,
@@ -33,6 +34,7 @@ async def get_calendar_events(
     year: int,
     month: int,
     redis_client: redis.Redis | None = None,
+    salary_day: int = 1,
 ) -> CalendarEventsResponse:
     """
     월별 캘린더 이벤트를 조합하여 반환.
@@ -43,7 +45,7 @@ async def get_calendar_events(
     3. Asset(만기) → maturity_date가 해당 월인 경우
     4. Expense → spent_at이 해당 월인 경우
     """
-    cache_key = f"calendar:{user_id}:{year}:{month}"
+    cache_key = f"calendar:{user_id}:{year}:{month}:{salary_day}"
 
     # 1. 캐시 확인
     if redis_client:
@@ -60,12 +62,13 @@ async def get_calendar_events(
     month_end = date(year, month, last_day)
 
     # 3. 병렬 조회
-    fixed_expenses, installments, maturity_assets, expenses, incomes = await asyncio.gather(
+    fixed_expenses, installments, maturity_assets, expenses, incomes, recurring_incomes = await asyncio.gather(
         _get_fixed_expenses(db, user_id),
         _get_installments(db, user_id, month_start, month_end),
         _get_maturity_assets(db, user_id, month_start, month_end),
         _get_expenses(db, user_id, month_start, month_end),
         _get_incomes(db, user_id, month_start, month_end),
+        _get_recurring_incomes(db, user_id),
     )
 
     # 4. 소스 자산 이름 일괄 조회
@@ -159,6 +162,21 @@ async def get_calendar_events(
             description=INCOME_TYPE_LABELS.get(inc.type, "수입"),
         ))
 
+    # 5-6. 정기 수입 (급여 등) → 해당 월에 실제 기록이 없으면 recurring_day에 표시
+    actual_income_keys = {(inc.received_at.day, inc.type) for inc in incomes}
+    for inc in recurring_incomes:
+        day = min(inc.recurring_day, last_day)
+        if (day, inc.type) in actual_income_keys:
+            continue
+        events.append(CalendarEvent(
+            date=date(year, month, day),
+            type=CalendarEventType.INCOME,
+            title=inc.description or INCOME_TYPE_LABELS.get(inc.type, "수입"),
+            amount=float(inc.amount),
+            color=EVENT_COLOR_MAP[CalendarEventType.INCOME],
+            description=INCOME_TYPE_LABELS.get(inc.type, "수입") + " (정기)",
+        ))
+
     # 6. 정렬 (날짜순 → 유형순)
     type_order = {
         CalendarEventType.MATURITY: 0,
@@ -176,8 +194,47 @@ async def get_calendar_events(
     )
     day_summaries = _build_day_summaries(daily_expenses, daily_incomes, events)
 
-    # 8. 월 요약 생성
-    month_summary = _build_month_summary(daily_expenses, daily_incomes, events, year, month)
+    # 8. 월 요약 생성 (급여일 기준 예산 기간)
+    ref_date = date(year, month, min(15, last_day))
+    budget_start, budget_end = get_budget_period(ref_date, salary_day)
+
+    budget_expense_stmt = select(func.coalesce(func.sum(Expense.amount), 0)).where(
+        Expense.user_id == user_id,
+        Expense.spent_at >= budget_start,
+        Expense.spent_at <= budget_end,
+        Expense.fixed_expense_id.is_(None),
+    )
+    budget_income_stmt = select(func.coalesce(func.sum(Income.amount), 0)).where(
+        Income.user_id == user_id,
+        Income.received_at >= budget_start,
+        Income.received_at <= budget_end,
+    )
+    budget_expense_result, budget_income_result = await asyncio.gather(
+        db.execute(budget_expense_stmt),
+        db.execute(budget_income_stmt),
+    )
+    budget_expense_total = float(budget_expense_result.scalar() or 0)
+    budget_income_total = float(budget_income_result.scalar() or 0)
+
+    scheduled = sum(
+        e.amount for e in events
+        if e.type in {CalendarEventType.FIXED_EXPENSE, CalendarEventType.INSTALLMENT}
+    )
+    maturity_count = sum(
+        1 for e in events if e.type == CalendarEventType.MATURITY
+    )
+
+    month_summary = MonthSummary(
+        year=year,
+        month=month,
+        total_scheduled_amount=scheduled,
+        total_expense_amount=budget_expense_total,
+        total_income_amount=budget_income_total,
+        event_count=len(events),
+        maturity_count=maturity_count,
+        budget_period_start=budget_start,
+        budget_period_end=budget_end,
+    )
 
     result = CalendarEventsResponse(
         events=events,
@@ -265,6 +322,32 @@ async def _get_incomes(
     )
     result = await db.execute(stmt)
     return list(result.scalars().all())
+
+
+async def _get_recurring_incomes(
+    db: AsyncSession, user_id: uuid.UUID,
+) -> list[Income]:
+    """정기 반복 수입 조회 (급여 등) - 유형+일자별 최신 1건"""
+    stmt = (
+        select(Income)
+        .where(
+            Income.user_id == user_id,
+            Income.is_recurring.is_(True),
+            Income.recurring_day.isnot(None),
+        )
+        .order_by(Income.received_at.desc())
+    )
+    result = await db.execute(stmt)
+    all_recurring = list(result.scalars().all())
+
+    seen: set[tuple[str, int]] = set()
+    unique: list[Income] = []
+    for inc in all_recurring:
+        key = (inc.type, inc.recurring_day)
+        if key not in seen:
+            seen.add(key)
+            unique.append(inc)
+    return unique
 
 
 async def _get_expenses(
@@ -376,30 +459,3 @@ def _build_day_summaries(
     return summaries
 
 
-def _build_month_summary(
-    daily_expenses: dict[date, tuple[float, int]],
-    daily_incomes: dict[date, tuple[float, int]],
-    events: list[CalendarEvent],
-    year: int,
-    month: int,
-) -> MonthSummary:
-    """GROUP BY 결과로 월 요약 생성"""
-    expense_total = sum(v[0] for v in daily_expenses.values())
-    income_total = sum(v[0] for v in daily_incomes.values())
-    scheduled = sum(
-        e.amount for e in events
-        if e.type in {CalendarEventType.FIXED_EXPENSE, CalendarEventType.INSTALLMENT}
-    )
-    maturity_count = sum(
-        1 for e in events if e.type == CalendarEventType.MATURITY
-    )
-
-    return MonthSummary(
-        year=year,
-        month=month,
-        total_scheduled_amount=scheduled,
-        total_expense_amount=expense_total,
-        total_income_amount=income_total,
-        event_count=sum(v[1] for v in daily_expenses.values()) + sum(v[1] for v in daily_incomes.values()),
-        maturity_count=maturity_count,
-    )

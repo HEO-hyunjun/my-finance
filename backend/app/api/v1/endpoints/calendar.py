@@ -26,4 +26,5 @@ async def get_events(
         year=year,
         month=month,
         redis_client=redis,
+        salary_day=current_user.salary_day or 1,
     )

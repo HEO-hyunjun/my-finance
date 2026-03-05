@@ -565,6 +565,8 @@ export interface MonthSummary {
   total_income_amount: number;
   event_count: number;
   maturity_count: number;
+  budget_period_start?: string;
+  budget_period_end?: string;
 }
 
 export interface CalendarEventsResponse {

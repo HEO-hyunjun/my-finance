@@ -45,7 +45,7 @@ class DaySummary(BaseModel):
 
 
 class MonthSummary(BaseModel):
-    """월 요약"""
+    """월 요약 (급여일 기준 예산 기간)"""
     year: int
     month: int
     total_scheduled_amount: float
@@ -53,6 +53,8 @@ class MonthSummary(BaseModel):
     total_income_amount: float = 0.0
     event_count: int
     maturity_count: int
+    budget_period_start: date | None = None
+    budget_period_end: date | None = None
 
 
 class CalendarEventsResponse(BaseModel):

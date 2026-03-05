@@ -14,6 +14,7 @@ celery_app = Celery(
         "app.tasks.insight_tasks",
         "app.tasks.interest_tasks",
         "app.tasks.auto_transfer_tasks",
+        "app.tasks.income_tasks",
     ],
 )
 
@@ -77,5 +78,9 @@ celery_app.conf.beat_schedule = {
     "execute-auto-transfers-daily": {
         "task": "app.tasks.auto_transfer_tasks.execute_auto_transfers",
         "schedule": crontab(hour=9, minute=0),  # 매일 09:00
+    },
+    "generate-recurring-incomes-daily": {
+        "task": "app.tasks.income_tasks.generate_recurring_incomes",
+        "schedule": crontab(hour=0, minute=3),  # 매일 00:03
     },
 }
