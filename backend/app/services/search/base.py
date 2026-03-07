@@ -13,8 +13,14 @@ class SearchProvider(ABC):
     """
 
     @abstractmethod
-    async def search_news(self, query: str, max_results: int = 20) -> list[dict]:
+    async def search_news(
+        self, query: str, max_results: int = 20, include_raw_content: bool = False,
+    ) -> list[dict]:
         """뉴스 검색.
+
+        Args:
+            include_raw_content: True면 기사 전문 포함 (배치 LLM 처리용).
+                                False면 snippet만 반환 (사용자 응답용).
 
         Returns:
             list[dict]: 각 항목은 아래 키를 포함:
@@ -22,6 +28,7 @@ class SearchProvider(ABC):
                 - link: str
                 - source: dict (name, icon)
                 - snippet: str | None
+                - raw_content: str | None (include_raw_content=True일 때만)
                 - thumbnail: str | None
                 - date: str
         """

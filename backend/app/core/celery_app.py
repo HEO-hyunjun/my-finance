@@ -42,13 +42,9 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.snapshot_tasks.take_daily_snapshot",
         "schedule": crontab(hour=23, minute=55),  # 매일 23:55
     },
-    "collect-news-batch": {
-        "task": "app.tasks.news_tasks.collect_news_batch",
-        "schedule": crontab(hour="8,17", minute=50),  # 하루 2회 (08:50, 17:50)
-    },
-    "process-and-cluster-news": {
-        "task": "app.tasks.news_tasks.process_and_cluster_news",
-        "schedule": crontab(hour="8,17", minute=51),  # 수집 1분 후 (08:51, 17:51)
+    "collect-and-process-news": {
+        "task": "app.tasks.news_tasks.collect_and_process_news",
+        "schedule": crontab(hour="8,17", minute=50),  # 하루 2회: 수집 → LLM 처리 → 클러스터링 통합
     },
     # 시세 캐시 워밍: 한국장 마감(15:35), 미국장 마감(06:05 KST), 자정
     "warm-market-cache-kr-close": {
@@ -82,5 +78,9 @@ celery_app.conf.beat_schedule = {
     "generate-recurring-incomes-daily": {
         "task": "app.tasks.income_tasks.generate_recurring_incomes",
         "schedule": crontab(hour=0, minute=3),  # 매일 00:03
+    },
+    "cleanup-old-news-weekly": {
+        "task": "app.tasks.news_tasks.cleanup_old_news",
+        "schedule": crontab(hour=3, minute=0, day_of_week=0),  # 매주 일요일 03:00
     },
 }

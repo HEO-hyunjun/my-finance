@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_news_service
 from app.core.database import get_db
 from app.core.redis import get_redis
 from app.models.news import NewsArticleDB
@@ -27,10 +27,9 @@ async def get_news(
     per_page: int = Query(default=20, ge=1, le=50),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    news_service: NewsService = Depends(get_news_service),
 ):
     """카테고리별 뉴스 조회"""
-    redis = await get_redis()
-    news_service = NewsService(redis)
 
     # my_assets 카테고리: 보유 자산 기반 뉴스
     if category == NewsCategory.MY_ASSETS:
@@ -51,6 +50,7 @@ async def get_news(
         )
 
     # 검색어 우선, 없으면 카테고리 기본 쿼리
+    is_custom_search = bool(q)
     query = q if q else CATEGORY_QUERY_MAP.get(
         category, CATEGORY_QUERY_MAP[NewsCategory.ALL]
     )
@@ -60,6 +60,7 @@ async def get_news(
         page=page,
         per_page=per_page,
         category=category,
+        is_custom_search=is_custom_search,
     )
 
 
@@ -67,10 +68,9 @@ async def get_news(
 async def get_my_asset_news(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    news_service: NewsService = Depends(get_news_service),
 ):
     """보유 자산 기반 뉴스 조회"""
-    redis = await get_redis()
-    news_service = NewsService(redis)
 
     assets = await get_assets(db, current_user.id)
     asset_names = [a.name for a in assets if a.symbol or a.name]

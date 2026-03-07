@@ -44,6 +44,9 @@ coverage/
 /**/.claude
 .bkit
 volume
+.agents
+skills-lock.json
+docs
 
 # Celery
 celerybeat-schedule

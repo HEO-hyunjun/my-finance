@@ -51,17 +51,32 @@ class NewsService:
         per_page: int = 20,
         category: str = NewsCategory.ALL,
         related_asset: str | None = None,
+        is_custom_search: bool = False,
     ) -> NewsListResponse:
         """카테고리/검색어 기반 뉴스 조회"""
         cache_key = self._cache_key(category, query, page)
 
-        # 1. Redis 캐시 확인
+        # 1. Redis 캐시 확인 (워밍 캐시와 per_page 정합성 보장)
         cached = await self._get_cached(cache_key)
         if cached:
-            return NewsListResponse(**cached)
+            cached_response = NewsListResponse(**cached)
+            cached_articles = cached_response.articles
+            # 워밍 캐시(최대 50개)에서 요청 per_page에 맞게 재슬라이싱
+            if len(cached_articles) > per_page:
+                start = (page - 1) * per_page
+                end = start + per_page
+                return NewsListResponse(
+                    articles=cached_articles[start:end],
+                    page=page,
+                    per_page=per_page,
+                    has_next=end < len(cached_articles),
+                )
+            return cached_response
 
         # 2. DB에서 최근 7시간 기사 조회
-        articles = await self._load_from_db(category=category, query=query)
+        articles = await self._load_from_db(
+            category=category, query=query, is_custom_search=is_custom_search
+        )
 
         # 3. DB에 데이터 없으면 API fetch → DB 저장
         if not articles:
@@ -131,7 +146,7 @@ class NewsService:
                     )
                 )
         except Exception as e:
-            logger.warning(f"DB asset news search failed: {e}")
+            logger.error(f"DB asset news search failed: {e}")
 
         # 2. DB 결과 부족 시 API 폴백 (자산별 병렬 쿼리)
         if len(all_articles) < 3:
@@ -143,7 +158,7 @@ class NewsService:
                     await self._save_raw_to_db(raw, NewsCategory.MY_ASSETS, related_asset=asset_query)
                     return [(asset_query, item) for item in raw[:max_per_asset]]
                 except Exception as e:
-                    logger.warning(f"API asset news fallback failed for {asset_query}: {e}")
+                    logger.error(f"API asset news fallback failed for {asset_query}: {e}")
                     return []
 
             fetch_results = await asyncio.gather(*[_fetch_one(q) for q in queries])
@@ -185,22 +200,26 @@ class NewsService:
         """전체 뉴스 배치 수집 → DB 저장 → Redis 캐시.
 
         Celery beat에서 주기적으로 호출되며,
-        최대 2개 API 호출로 일반 경제 + 보유 자산 뉴스를 수집합니다.
+        카테고리별 개별 쿼리 + 보유 자산 쿼리로 뉴스를 수집합니다.
         """
         total_fetched = 0
         total_saved = 0
         all_articles: list[NewsArticle] = []
         seen_ids: set[str] = set()
 
-        # API 호출 최소화: 최대 2개 쿼리
-        queries = [CATEGORY_QUERY_MAP[NewsCategory.ALL]]  # 1) 일반 경제 뉴스
+        # 카테고리별 개별 쿼리 (all, stock_kr, stock_us, gold, economy)
+        category_queries: list[tuple[str, str]] = [
+            (cat, query) for cat, query in CATEGORY_QUERY_MAP.items()
+            if cat != NewsCategory.MY_ASSETS
+        ]
+        # 보유 자산 쿼리 추가
         asset_query = build_batch_query(asset_names)
         if asset_query != CATEGORY_QUERY_MAP[NewsCategory.ALL]:
-            queries.append(asset_query)  # 2) 보유 자산 뉴스
+            category_queries.append((NewsCategory.MY_ASSETS, asset_query))
 
-        for query in queries:
+        for category, query in category_queries:
             try:
-                raw = await self._fetch_news(query)
+                raw = await self._fetch_news(query, include_raw_content=True)
                 total_fetched += len(raw)
 
                 for item in raw:
@@ -214,7 +233,12 @@ class NewsService:
                         continue
                     seen_ids.add(art_id)
 
-                    category = classify_article_category(title, item.get("snippet"))
+                    # all 쿼리는 키워드 기반 자동 분류, 나머지는 쿼리 카테고리 사용
+                    if category == NewsCategory.ALL:
+                        art_category = classify_article_category(title, item.get("snippet"))
+                    else:
+                        art_category = category
+
                     source_data = item.get("source", {})
                     all_articles.append(
                         NewsArticle(
@@ -229,12 +253,12 @@ class NewsService:
                             raw_content=item.get("raw_content"),
                             thumbnail=item.get("thumbnail"),
                             published_at=item.get("date", ""),
-                            category=category,
+                            category=art_category,
                             related_asset=None,
                         )
                     )
             except Exception as e:
-                logger.warning(f"Batch fetch failed for query '{query}': {e}")
+                logger.error(f"Batch fetch failed for '{category}': {e}")
 
         # DB에 저장
         if all_articles:
@@ -245,7 +269,7 @@ class NewsService:
                 async with AsyncSessionLocal() as db:
                     total_saved = await save_articles_to_db(db, all_articles)
             except Exception as e:
-                logger.warning(f"Batch DB save failed: {e}")
+                logger.error(f"Batch DB save failed: {e}")
 
         # Redis 캐시 워밍 (카테고리별)
         await self._warm_cache_from_articles(all_articles)
@@ -293,7 +317,7 @@ class NewsService:
             logger.info(f"Cache warmed with {len(articles)} articles from DB")
             return len(articles)
         except Exception as e:
-            logger.warning(f"Cache warming from DB failed: {e}")
+            logger.error(f"Cache warming from DB failed: {e}")
             return 0
 
     # ─── DB 조회 ─────────────────────────────
@@ -302,20 +326,57 @@ class NewsService:
         self,
         category: str | None = None,
         query: str | None = None,
+        is_custom_search: bool = False,
     ) -> list[NewsArticle]:
-        """DB에서 최근 7시간 기사 조회"""
+        """DB에서 최근 7시간 기사 조회.
+
+        기본 카테고리 요청: category + created_at 인덱스 기반 조회 (빠름)
+        사용자 검색어 요청: LIKE 키워드 매칭 (느리지만 유연)
+        """
         try:
             from app.core.database import async_session as AsyncSessionLocal
-            from app.services.news_llm_service import search_articles_by_keywords
+            from sqlalchemy import select
+            from datetime import datetime, timezone, timedelta
+            from app.models.news import NewsArticleDB
 
             hours = settings.NEWS_CACHE_TTL // 3600
-            # 쿼리를 개별 키워드로 분할하여 LIKE 매칭 정확도 향상
-            keywords = query.split() if query else [""]
+            cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
             async with AsyncSessionLocal() as db:
-                results = await search_articles_by_keywords(
-                    db, keywords, hours=hours, limit=50
-                )
+                if is_custom_search and query:
+                    # 사용자 검색어: LIKE 키워드 매칭
+                    from app.services.news_llm_service import search_articles_by_keywords
+                    keywords = query.split()
+                    results = await search_articles_by_keywords(
+                        db, keywords, hours=hours, limit=50
+                    )
+                else:
+                    # 기본 카테고리: 인덱스 기반 조회 (ix_news_category_created)
+                    stmt = (
+                        select(NewsArticleDB)
+                        .where(NewsArticleDB.created_at >= cutoff)
+                        .order_by(NewsArticleDB.created_at.desc())
+                        .limit(50)
+                    )
+                    if category and category != NewsCategory.ALL:
+                        stmt = stmt.where(NewsArticleDB.category == category)
+
+                    result = await db.execute(stmt)
+                    db_articles = result.scalars().all()
+                    results = [
+                        {
+                            "external_id": a.external_id,
+                            "title": a.title,
+                            "link": a.link,
+                            "source_name": a.source_name,
+                            "snippet": a.summary or a.snippet,
+                            "thumbnail": a.thumbnail,
+                            "published_at": a.published_at,
+                            "category": a.category,
+                            "related_asset": a.related_asset,
+                        }
+                        for a in db_articles
+                    ]
 
             if not results:
                 return []
@@ -323,7 +384,7 @@ class NewsService:
             articles = self._map_db_results(results, category)
             return articles
         except Exception as e:
-            logger.warning(f"DB load failed: {e}")
+            logger.error(f"DB load failed: {e}")
             return []
 
     async def _fetch_and_save(self, query: str, category: str) -> list[NewsArticle]:
@@ -344,7 +405,7 @@ class NewsService:
                     saved = await save_articles_to_db(db, articles)
                     logger.info(f"Saved {saved} articles to DB for query '{query}'")
             except Exception as e:
-                logger.warning(f"Failed to save fetched articles to DB: {e}")
+                logger.error(f"Failed to save fetched articles to DB: {e}")
 
         return articles
 
@@ -359,16 +420,16 @@ class NewsService:
                 async with AsyncSessionLocal() as db:
                     await save_articles_to_db(db, articles)
             except Exception as e:
-                logger.warning(f"Failed to save raw articles to DB: {e}")
+                logger.error(f"Failed to save raw articles to DB: {e}")
 
     # ─── SearchProvider 연동 ─────────────────
 
-    async def _fetch_news(self, query: str) -> list[dict]:
+    async def _fetch_news(self, query: str, include_raw_content: bool = False) -> list[dict]:
         """SearchProvider를 통해 뉴스 검색"""
         from app.services.search import get_search_provider
 
         provider = get_search_provider()
-        return await provider.search_news(query)
+        return await provider.search_news(query, include_raw_content=include_raw_content)
 
     # ─── 매핑 / 유틸 ─────────────────────────
 

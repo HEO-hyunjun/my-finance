@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 class TavilyProvider(SearchProvider):
 
-    async def search_news(self, query: str, max_results: int = 20) -> list[dict]:
+    async def search_news(
+        self, query: str, max_results: int = 20, include_raw_content: bool = False,
+    ) -> list[dict]:
         if not settings.TAVILY_API_KEY:
             logger.warning("TAVILY_API_KEY not set, returning mock news")
             return self._mock_news(query)
@@ -30,7 +32,7 @@ class TavilyProvider(SearchProvider):
                 include_answer=False,
                 include_images=True,
                 include_favicon=True,
-                include_raw_content=True,
+                include_raw_content=include_raw_content,
             )
 
             return [
@@ -39,7 +41,7 @@ class TavilyProvider(SearchProvider):
                     "link": r.get("url", ""),
                     "source": {"name": self._extract_domain(r.get("url", "")), "icon": r.get("favicon")},
                     "snippet": (r.get("content", "") or "")[:300],
-                    "raw_content": r.get("raw_content") or r.get("content") or "",
+                    **({"raw_content": r.get("raw_content") or r.get("content") or ""} if include_raw_content else {}),
                     "thumbnail": (r.get("images") or [None])[0] if r.get("images") else None,
                     "date": r.get("published_date", ""),
                 }

@@ -17,15 +17,20 @@ logger = logging.getLogger(__name__)
 def _today_start_utc() -> datetime:
     """뉴스 수집 기준 '오늘' 시작 시각을 UTC로 변환.
 
-    오전 08:49 APP_TZ를 하루의 경계로 사용한다.
-    08:49 이전이면 전날 08:49, 이후이면 오늘 08:49가 기준.
+    배치 수집 시각(NEWS_BATCH_HOUR:NEWS_BATCH_MINUTE) 직전을 하루의 경계로 사용한다.
+    경계 이전이면 전날 경계, 이후이면 오늘 경계가 기준.
     """
+    batch_hour = settings.NEWS_BATCH_HOUR
+    batch_minute = settings.NEWS_BATCH_MINUTE
+
     now_local = tz_now()
-    if now_local.hour < 8 or (now_local.hour == 8 and now_local.minute < 49):
+    if now_local.hour < batch_hour or (
+        now_local.hour == batch_hour and now_local.minute < batch_minute
+    ):
         base = now_local - timedelta(days=1)
     else:
         base = now_local
-    today_start = base.replace(hour=8, minute=49, second=0, microsecond=0)
+    today_start = base.replace(hour=batch_hour, minute=batch_minute, second=0, microsecond=0)
     return to_utc(today_start)
 
 
@@ -132,7 +137,7 @@ async def process_article_with_llm(
             "keywords": article.keywords,
         }
     except Exception as e:
-        logger.warning(f"LLM processing failed for article {article_id}: {e}")
+        logger.error(f"LLM processing failed for article {article_id}: {e}")
         return None
 
 
@@ -450,7 +455,7 @@ async def _summarize_cluster(
             "importance_score": cluster.importance_score,
         }
     except Exception as e:
-        logger.warning(f"Cluster summarization failed: {e}")
+        logger.error(f"Cluster summarization failed: {e}")
         return None
 
 

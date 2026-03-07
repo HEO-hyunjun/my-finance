@@ -35,6 +35,8 @@ class Settings(BaseSettings):
 
     # 검색 캐시
     NEWS_CACHE_TTL: int = 25200       # 뉴스 캐시 7시간
+    NEWS_BATCH_HOUR: int = 8           # 뉴스 배치 수집 시작 시각 (시)
+    NEWS_BATCH_MINUTE: int = 50        # 뉴스 배치 수집 시작 시각 (분)
     WEB_SEARCH_CACHE_TTL: int = 7200  # 웹 검색 캐시 2시간
 
     # LLM API Keys
