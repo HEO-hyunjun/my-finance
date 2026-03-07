@@ -66,7 +66,6 @@ async def _process_and_cluster_async():
     from app.core.config import settings
     from app.models.news import NewsArticleDB
     from app.services.news_llm_service import (
-        process_unprocessed_articles,
         cluster_articles,
         _today_start_utc,
     )
@@ -94,19 +93,18 @@ async def _process_and_cluster_async():
             collected = True
             logger.info(f"Collection result: {collect_result}")
 
-        # 3. 당일 미처리 기사 전체 LLM 분석
+        # 3. 당일 미처리 기사 LLM 분석 + 클러스터링
+        # cluster_articles가 내부에서 미처리 기사를 자동 처리함
         async with async_session() as db:
-            processed_count = await process_unprocessed_articles(
-                db, session_factory=async_session
-            )
-
-            # 4. 당일 기사 클러스터링
             try:
-                clusters = await cluster_articles(db)
+                clusters = await cluster_articles(
+                    db, session_factory=async_session
+                )
                 cluster_count = len(clusters)
+                processed_count = cluster_count  # 클러스터 수로 대체
                 await db.commit()
             except Exception as e:
-                logger.warning(f"Clustering failed: {e}")
+                logger.warning(f"Processing/Clustering failed: {e}")
     finally:
         # 처리 완료 후 Redis 상태 플래그 제거
         await redis_client.delete("news:clustering:status")

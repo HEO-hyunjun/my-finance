@@ -133,43 +133,47 @@ class NewsService:
         except Exception as e:
             logger.warning(f"DB asset news search failed: {e}")
 
-        # 2. DB 결과 부족 시 API 폴백 (자산별 개별 쿼리)
+        # 2. DB 결과 부족 시 API 폴백 (자산별 병렬 쿼리)
         if len(all_articles) < 3:
-            for asset_query in queries:
+            import asyncio
+
+            async def _fetch_one(asset_query: str) -> list[tuple[str, dict]]:
                 try:
                     raw = await self._fetch_news(f"{asset_query} 주가 뉴스")
-
-                    # DB에도 저장
                     await self._save_raw_to_db(raw, NewsCategory.MY_ASSETS, related_asset=asset_query)
-
-                    for item in raw[:max_per_asset]:
-                        title = item.get("title", "")
-                        link = item.get("link", "")
-                        if not title or not link:
-                            continue
-                        art_id = NewsArticle.generate_id(title, link)
-                        if art_id in seen_ids:
-                            continue
-                        seen_ids.add(art_id)
-
-                        all_articles.append(
-                            NewsArticle(
-                                id=art_id,
-                                title=title,
-                                link=link,
-                                source=NewsSource(
-                                    name=item.get("source", {}).get("name", "") if isinstance(item.get("source"), dict) else str(item.get("source", "")),
-                                    icon=item.get("source", {}).get("icon") if isinstance(item.get("source"), dict) else None,
-                                ),
-                                snippet=(item.get("snippet") or "")[:300],
-                                thumbnail=item.get("thumbnail"),
-                                published_at=item.get("date", ""),
-                                category=NewsCategory.MY_ASSETS,
-                                related_asset=asset_query,
-                            )
-                        )
+                    return [(asset_query, item) for item in raw[:max_per_asset]]
                 except Exception as e:
                     logger.warning(f"API asset news fallback failed for {asset_query}: {e}")
+                    return []
+
+            fetch_results = await asyncio.gather(*[_fetch_one(q) for q in queries])
+            for items in fetch_results:
+                for asset_query, item in items:
+                    title = item.get("title", "")
+                    link = item.get("link", "")
+                    if not title or not link:
+                        continue
+                    art_id = NewsArticle.generate_id(title, link)
+                    if art_id in seen_ids:
+                        continue
+                    seen_ids.add(art_id)
+
+                    all_articles.append(
+                        NewsArticle(
+                            id=art_id,
+                            title=title,
+                            link=link,
+                            source=NewsSource(
+                                name=item.get("source", {}).get("name", "") if isinstance(item.get("source"), dict) else str(item.get("source", "")),
+                                icon=item.get("source", {}).get("icon") if isinstance(item.get("source"), dict) else None,
+                            ),
+                            snippet=(item.get("snippet") or "")[:300],
+                            thumbnail=item.get("thumbnail"),
+                            published_at=item.get("date", ""),
+                            category=NewsCategory.MY_ASSETS,
+                            related_asset=asset_query,
+                        )
+                    )
 
         result = MyAssetNewsResponse(articles=all_articles, asset_queries=queries)
         await self._set_cached(cache_key, result.model_dump())
@@ -305,7 +309,8 @@ class NewsService:
             from app.services.news_llm_service import search_articles_by_keywords
 
             hours = settings.NEWS_CACHE_TTL // 3600
-            keywords = [query] if query else [""]
+            # 쿼리를 개별 키워드로 분할하여 LIKE 매칭 정확도 향상
+            keywords = query.split() if query else [""]
 
             async with AsyncSessionLocal() as db:
                 results = await search_articles_by_keywords(

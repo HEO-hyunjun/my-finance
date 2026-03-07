@@ -240,9 +240,33 @@ async def cluster_articles(
     db: AsyncSession,
     category: str | None = None,
     max_articles: int = 100,
+    session_factory=None,
 ) -> list[dict]:
-    """당일 처리된 기사를 키워드 유사도 기반으로 클러스터링"""
+    """당일 기사를 LLM 처리 후 키워드 유사도 기반으로 클러스터링.
+
+    미처리 기사가 있으면 먼저 LLM 처리를 수행한 후 클러스터링합니다.
+    """
     today_utc = _today_start_utc()
+
+    # 0. 미처리 기사가 있으면 LLM 처리 먼저 수행
+    unprocessed_stmt = (
+        select(NewsArticleDB.external_id)
+        .where(
+            NewsArticleDB.processed_at.is_(None),
+            NewsArticleDB.created_at >= today_utc,
+        )
+        .limit(max_articles)
+    )
+    unprocessed_result = await db.execute(unprocessed_stmt)
+    unprocessed_ids = unprocessed_result.scalars().all()
+
+    if unprocessed_ids:
+        if session_factory is None:
+            from app.core.database import async_session as session_factory
+        processed = await process_unprocessed_articles(
+            db, max_articles=max_articles, session_factory=session_factory
+        )
+        logger.info(f"Auto-processed {processed} articles before clustering")
 
     # 1. 당일 처리된 기사 조회
     stmt = (

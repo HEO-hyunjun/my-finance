@@ -116,10 +116,24 @@ class NewsArticle(BaseModel):
         return hashlib.md5(f"{title}:{link}".encode()).hexdigest()[:12]
 
 
+class NewsListArticle(BaseModel):
+    """뉴스 목록용 기사 (raw_content 제외 - 응답 경량화)"""
+
+    id: str
+    title: str
+    link: str
+    source: NewsSource
+    snippet: str | None = None
+    thumbnail: str | None = None
+    published_at: str
+    category: str
+    related_asset: str | None = None
+
+
 class NewsListResponse(BaseModel):
     """뉴스 목록 응답"""
 
-    articles: list[NewsArticle]
+    articles: list[NewsListArticle]
     page: int
     per_page: int
     has_next: bool
@@ -128,5 +142,5 @@ class NewsListResponse(BaseModel):
 class MyAssetNewsResponse(BaseModel):
     """보유 자산 기반 뉴스 응답"""
 
-    articles: list[NewsArticle]
+    articles: list[NewsListArticle]
     asset_queries: list[str]
