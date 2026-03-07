@@ -9,7 +9,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const refreshToken = localStorage.getItem('refresh_token');
-    if (!user && refreshToken) {
+    if (refreshToken) {
       checkAuth().finally(() => setChecking(false));
     } else {
       setChecking(false);

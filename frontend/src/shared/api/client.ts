@@ -18,6 +18,15 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// 동시 refresh 요청 방지용 공유 Promise
+let refreshPromise: Promise<string> | null = null;
+
+function clearAuthState() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('auth-storage'); // zustand persist 상태도 제거
+}
+
 // 401 응답 시 토큰 갱신
 apiClient.interceptors.response.use(
   (response) => response,
@@ -29,17 +38,30 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refresh_token');
-        const { data } = await axios.post(`${API_BASE_URL}/v1/auth/refresh`, {
-          refresh_token: refreshToken,
-        });
+        if (!refreshPromise) {
+          const refreshToken = localStorage.getItem('refresh_token');
+          if (!refreshToken) {
+            clearAuthState();
+            window.location.href = '/login';
+            return Promise.reject(error);
+          }
 
-        localStorage.setItem('access_token', data.access_token);
-        originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
+          refreshPromise = axios
+            .post(`${API_BASE_URL}/v1/auth/refresh`, { refresh_token: refreshToken })
+            .then(({ data }) => {
+              localStorage.setItem('access_token', data.access_token);
+              return data.access_token as string;
+            })
+            .finally(() => {
+              refreshPromise = null;
+            });
+        }
+
+        const newToken = await refreshPromise;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return apiClient(originalRequest);
       } catch {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        clearAuthState();
         window.location.href = '/login';
       }
     }
