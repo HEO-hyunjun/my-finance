@@ -139,6 +139,7 @@ async def generate_daily_insights(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=settings.INSIGHT_MAX_TOKENS,
             temperature=settings.INSIGHT_TEMPERATURE,
+            drop_params=True,
         )
 
         content = response.choices[0].message.content.strip()

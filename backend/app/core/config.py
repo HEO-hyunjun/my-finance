@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
     # AI 인사이트 - 대시보드 AI 위젯
     INSIGHT_MODEL: str = ""
-    INSIGHT_MAX_TOKENS: int = 512
+    INSIGHT_MAX_TOKENS: int = 4096
     INSIGHT_TEMPERATURE: float = 0.5
 
     @property
