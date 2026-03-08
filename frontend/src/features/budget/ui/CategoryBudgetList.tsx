@@ -82,7 +82,7 @@ function SortableItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: cat.category_id });
+  } = useSortable({ id: cat.category_id! });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -192,7 +192,7 @@ function SortableItem({
           )}
           {!isEditing && onDelete && (
             <button
-              onClick={(e) => onDeleteClick(e, cat.category_id)}
+              onClick={(e) => onDeleteClick(e, cat.category_id!)}
               disabled={isUpdating}
               className="rounded p-1 text-muted-foreground/0 group-hover:text-destructive/70 hover:bg-destructive/10 transition-colors"
             >

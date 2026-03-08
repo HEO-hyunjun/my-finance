@@ -48,7 +48,6 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
   if (!asset) return null;
 
   const isInterestBased = INTEREST_BASED_TYPES.includes(asset.asset_type);
-  const isParking = asset.asset_type === 'parking';
   const isSavings = asset.asset_type === 'savings';
   const isDeposit = asset.asset_type === 'deposit';
 
