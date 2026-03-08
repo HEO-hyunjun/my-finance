@@ -50,6 +50,12 @@ class ChatToolEvent(BaseModel):
     status: str  # "calling" | "done" | "error"
 
 
+class ChatGeneratingEvent(BaseModel):
+    """최종 응답 생성 시작 이벤트"""
+
+    type: str = "generating"
+
+
 class ChatErrorEvent(BaseModel):
     """에러 이벤트"""
 

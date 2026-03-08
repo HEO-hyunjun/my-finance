@@ -30,6 +30,7 @@ export function Component() {
     conversationId,
     messages,
     isStreaming,
+    isGenerating,
     streamingContent,
     activeAgents,
     setConversationId,
@@ -40,6 +41,7 @@ export function Component() {
     finishStreaming,
     updateAgent,
     updateTool,
+    setGenerating,
     clearChat,
   } = useChatStore();
 
@@ -82,6 +84,7 @@ export function Component() {
       },
       onAgent: updateAgent,
       onTool: updateTool,
+      onGenerating: setGenerating,
     });
   };
 
@@ -175,6 +178,7 @@ export function Component() {
               <StreamingText
                 content={streamingContent}
                 activeAgents={activeAgents}
+                isGenerating={isGenerating}
               />
             )}
 

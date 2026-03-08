@@ -17,6 +17,7 @@ from app.schemas.chatbot import (
     ChatAgentEvent,
     ChatDoneEvent,
     ChatErrorEvent,
+    ChatGeneratingEvent,
     ChatTokenEvent,
     ChatToolEvent,
     ConversationDetailResponse,
@@ -333,6 +334,9 @@ async def chat_stream(
                     status=event["status"],
                 )
             )
+
+        elif event["type"] == "generating":
+            yield _sse_event(ChatGeneratingEvent())
 
         elif event["type"] == "token":
             full_response += event["content"]

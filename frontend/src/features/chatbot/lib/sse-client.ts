@@ -6,6 +6,7 @@ interface SSEOptions {
   onError: (message: string) => void;
   onAgent?: (name: string, status: 'started' | 'done') => void;
   onTool?: (agent: string, name: string, status: 'calling' | 'done' | 'error') => void;
+  onGenerating?: () => void;
 }
 
 export async function streamChat(
@@ -79,6 +80,9 @@ export async function streamChat(
                 break;
               case 'tool':
                 options.onTool?.(event.agent, event.name, event.status);
+                break;
+              case 'generating':
+                options.onGenerating?.();
                 break;
             }
           } catch {

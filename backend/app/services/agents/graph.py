@@ -269,9 +269,7 @@ class AgentGraph:
                     # (불필요한 비스트리밍 합성 호출 생략)
                     break
 
-                # 직접 답변 (에이전트 위임 없이)
-                if message.content:
-                    yield {"type": "token", "content": message.content}
+                # 직접 답변 — 아래 스트리밍 섹션에서 처리
                 break
 
         except Exception as e:
@@ -283,28 +281,30 @@ class AgentGraph:
             return
 
         # ── 4. 최종 응답 스트리밍 ──
-        if tool_rounds > 0:
-            try:
-                stream_response = await acompletion(
-                    model=settings.chatbot_model,
-                    messages=llm_messages,
-                    max_tokens=settings.CHATBOT_MAX_TOKENS,
-                    temperature=settings.CHATBOT_TEMPERATURE,
-                    stream=True,
-                )
+        # 직접 답변이든 서브에이전트 경유든 항상 스트리밍으로 최종 응답 생성
+        yield {"type": "generating"}
 
-                async for chunk in stream_response:
-                    delta = chunk.choices[0].delta
-                    if delta.content:
-                        yield {"type": "token", "content": delta.content}
+        try:
+            stream_response = await acompletion(
+                model=settings.chatbot_model,
+                messages=llm_messages,
+                max_tokens=settings.CHATBOT_MAX_TOKENS,
+                temperature=settings.CHATBOT_TEMPERATURE,
+                stream=True,
+            )
 
-            except Exception as e:
-                logger.error(f"[Orchestrator] Stream error: {e}")
-                yield {
-                    "type": "error",
-                    "message": "AI 응답 생성 중 오류가 발생했습니다.",
-                }
-                return
+            async for chunk in stream_response:
+                delta = chunk.choices[0].delta
+                if delta.content:
+                    yield {"type": "token", "content": delta.content}
+
+        except Exception as e:
+            logger.error(f"[Orchestrator] Stream error: {e}")
+            yield {
+                "type": "error",
+                "message": "AI 응답 생성 중 오류가 발생했습니다.",
+            }
+            return
 
         # ── 5. 체크포인트 저장 ──
         store = await self._get_checkpoint_store()

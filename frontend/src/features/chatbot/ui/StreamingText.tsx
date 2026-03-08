@@ -16,6 +16,7 @@ interface AgentStatus {
 interface Props {
   content: string;
   activeAgents?: AgentStatus[];
+  isGenerating?: boolean;
 }
 
 const AGENT_ICONS: Record<string, typeof Bot> = {
@@ -24,7 +25,7 @@ const AGENT_ICONS: Record<string, typeof Bot> = {
   '가계부 분석': Wallet,
 };
 
-export function StreamingText({ content, activeAgents = [] }: Props) {
+export function StreamingText({ content, activeAgents = [], isGenerating = false }: Props) {
   const hasAgents = activeAgents.length > 0;
   const isAnalyzing = hasAgents && activeAgents.some((a) => a.status === 'started');
 
@@ -99,6 +100,14 @@ export function StreamingText({ content, activeAgents = [] }: Props) {
           </div>
         )}
 
+        {/* 답변 생성중 표시 */}
+        {isGenerating && (
+          <div className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>답변 생성중...</span>
+          </div>
+        )}
+
         {/* 응답 콘텐츠 */}
         {content ? (
           <div className="prose prose-sm max-w-none dark:prose-invert prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-ol:my-1">
@@ -106,7 +115,7 @@ export function StreamingText({ content, activeAgents = [] }: Props) {
               {content}
             </ReactMarkdown>
           </div>
-        ) : !isAnalyzing ? (
+        ) : !isAnalyzing && !isGenerating ? (
           <div className="flex items-center gap-1 text-muted-foreground">
             <span className="animate-pulse">생각 중</span>
             <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>

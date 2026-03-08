@@ -639,7 +639,11 @@ export interface ChatToolEvent {
   status: 'calling' | 'done' | 'error';
 }
 
-export type ChatSSEEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent | ChatToolEvent;
+export interface ChatGeneratingEvent {
+  type: 'generating';
+}
+
+export type ChatSSEEvent = ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent | ChatToolEvent | ChatGeneratingEvent;
 
 // ========== Settings Types ==========
 

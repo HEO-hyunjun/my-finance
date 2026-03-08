@@ -16,6 +16,7 @@ interface ChatState {
   conversationId: string | null;
   messages: ChatMessage[];
   isStreaming: boolean;
+  isGenerating: boolean;
   streamingContent: string;
   activeAgents: AgentStatus[];
 
@@ -27,6 +28,7 @@ interface ChatState {
   finishStreaming: (messageId: string) => void;
   updateAgent: (name: string, status: 'started' | 'done') => void;
   updateTool: (agent: string, name: string, status: 'calling' | 'done' | 'error') => void;
+  setGenerating: () => void;
   clearChat: () => void;
 }
 
@@ -34,6 +36,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   conversationId: null,
   messages: [],
   isStreaming: false,
+  isGenerating: false,
   streamingContent: '',
   activeAgents: [],
 
@@ -52,7 +55,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   startStreaming: () =>
-    set({ isStreaming: true, streamingContent: '', activeAgents: [] }),
+    set({ isStreaming: true, isGenerating: false, streamingContent: '', activeAgents: [] }),
 
   appendStreamToken: (token) =>
     set((state) => ({ streamingContent: state.streamingContent + token })),
@@ -68,6 +71,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({
       messages: [...messages, aiMsg],
       isStreaming: false,
+      isGenerating: false,
       streamingContent: '',
       activeAgents: [],
     });
@@ -102,11 +106,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     })),
 
+  setGenerating: () => set({ isGenerating: true }),
+
   clearChat: () =>
     set({
       conversationId: null,
       messages: [],
       isStreaming: false,
+      isGenerating: false,
       streamingContent: '',
       activeAgents: [],
     }),
