@@ -32,10 +32,10 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId || !amount || !spentAt || !sourceAssetId) return;
+    if (!amount || !spentAt || !sourceAssetId) return;
 
     onSubmit({
-      category_id: categoryId,
+      category_id: categoryId || undefined,
       amount: Number(amount),
       memo: memo || undefined,
       spent_at: spentAt,
@@ -61,10 +61,9 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
               id="category"
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              required
               className="w-full rounded border border-border bg-background text-foreground px-3 py-2 text-sm"
             >
-              <option value="">선택</option>
+              <option value="">미분류</option>
               {activeCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon} {c.name}
@@ -143,7 +142,7 @@ export function AddExpenseModal({ categories, isOpen, onClose, onSubmit, isLoadi
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !categoryId || !amount || !sourceAssetId}
+              disabled={isLoading || !amount || !sourceAssetId}
               className="flex-1"
             >
               {isLoading ? '저장 중...' : '저장'}

@@ -142,13 +142,13 @@ async def _adjust_asset_principal(asset: Asset, delta: Decimal) -> None:
 
 
 def _expense_to_response(
-    exp: Expense, category: BudgetCategory, source_asset_name: str | None = None
+    exp: Expense, category: BudgetCategory | None, source_asset_name: str | None = None
 ) -> ExpenseResponse:
     return ExpenseResponse(
         id=exp.id,
         category_id=exp.category_id,
-        category_name=category.name,
-        category_color=category.color,
+        category_name=category.name if category else "미분류",
+        category_color=category.color if category else "#9CA3AF",
         amount=float(exp.amount),
         memo=exp.memo,
         source_asset_id=exp.source_asset_id,
@@ -246,7 +246,9 @@ async def update_category(
 async def create_expense(
     db: AsyncSession, user_id: uuid.UUID, data: ExpenseCreate
 ) -> ExpenseResponse:
-    category = await _get_user_category(db, user_id, data.category_id)
+    category: BudgetCategory | None = None
+    if data.category_id:
+        category = await _get_user_category(db, user_id, data.category_id)
 
     source_asset_name: str | None = None
     if data.source_asset_id:
@@ -308,7 +310,7 @@ async def get_expenses(
     expenses = result.scalars().all()
 
     # 단일 IN 쿼리로 필요한 모든 카테고리를 한번에 조회
-    cat_ids = {exp.category_id for exp in expenses}
+    cat_ids = {exp.category_id for exp in expenses if exp.category_id}
     category_cache: dict[uuid.UUID, BudgetCategory] = {}
     if cat_ids:
         cat_stmt = select(BudgetCategory).where(BudgetCategory.id.in_(cat_ids))
@@ -325,10 +327,9 @@ async def get_expenses(
 
     responses = []
     for exp in expenses:
-        cat = category_cache.get(exp.category_id)
-        if cat:
-            asset_name = asset_cache.get(exp.source_asset_id) if exp.source_asset_id else None
-            responses.append(_expense_to_response(exp, cat, asset_name))
+        cat = category_cache.get(exp.category_id) if exp.category_id else None
+        asset_name = asset_cache.get(exp.source_asset_id) if exp.source_asset_id else None
+        responses.append(_expense_to_response(exp, cat, asset_name))
 
     return ExpenseListResponse(
         data=responses,
@@ -348,7 +349,7 @@ async def update_expense(
     update_data = data.model_dump(exclude_unset=True)
 
     # 카테고리 변경 시 소유권 확인
-    if "category_id" in update_data:
+    if "category_id" in update_data and update_data["category_id"] is not None:
         await _get_user_category(db, user_id, update_data["category_id"])
 
     # 자산 연동 처리
@@ -373,7 +374,7 @@ async def update_expense(
 
     await db.commit()
     await db.refresh(exp)
-    category = await db.get(BudgetCategory, exp.category_id)
+    category = await db.get(BudgetCategory, exp.category_id) if exp.category_id else None
     source_asset_name = None
     if exp.source_asset_id:
         sa = await db.get(Asset, exp.source_asset_id)
@@ -437,14 +438,15 @@ async def get_budget_summary(
         )
         .where(
             Expense.user_id == user_id,
-            Expense.category_id.in_([cat.id for cat in categories]),
             Expense.spent_at >= period_start,
             Expense.spent_at <= period_end,
         )
         .group_by(Expense.category_id)
     )
     spent_result = await db.execute(spent_stmt)
-    spending_map = {row.category_id: float(row.total) for row in spent_result.all()}
+    spending_map: dict[uuid.UUID | None, float] = {
+        row.category_id: float(row.total) for row in spent_result.all()
+    }
 
     for cat in categories:
         # 해당 카테고리의 기간 내 지출 합계
@@ -468,6 +470,23 @@ async def get_budget_summary(
 
         total_budget += budget
         total_spent += spent
+
+    # 미분류 지출 합산
+    uncategorized_spent = spending_map.get(None, 0.0)
+    if uncategorized_spent > 0:
+        category_summaries.append(
+            CategoryBudgetSummary(
+                category_id=None,
+                category_name="미분류",
+                category_icon="📋",
+                category_color="#9CA3AF",
+                monthly_budget=0.0,
+                spent=uncategorized_spent,
+                remaining=-uncategorized_spent,
+                usage_rate=0.0,
+            )
+        )
+        total_spent += uncategorized_spent
 
     total_remaining = total_budget - total_spent
     total_usage_rate = (total_spent / total_budget * 100) if total_budget > 0 else 0.0
@@ -569,6 +588,14 @@ async def _ensure_auto_expenses_for_range(
         for row in (await db.execute(existing_stmt)).all()
     )
 
+    # 연결된 자산의 생성일 조회 (자산 생성 이전 날짜에 지출 생성 방지)
+    source_ids = {fe.source_asset_id for fe in fixed_expenses if fe.source_asset_id}
+    asset_created: dict[uuid.UUID, date] = {}
+    if source_ids:
+        asset_stmt = select(Asset.id, Asset.created_at).where(Asset.id.in_(source_ids))
+        for row in (await db.execute(asset_stmt)).all():
+            asset_created[row[0]] = row[1].date() if hasattr(row[1], 'date') else row[1]
+
     # 누락된 자동 Expense 생성
     new_expenses = []
     for fe in fixed_expenses:
@@ -580,6 +607,10 @@ async def _ensure_auto_expenses_for_range(
             spent_at = date(year, month, pay_day)
             if spent_at < range_start or spent_at > range_end:
                 continue
+            # 자산 생성일 이전의 고정비는 생성하지 않음
+            if fe.source_asset_id and fe.source_asset_id in asset_created:
+                if spent_at < asset_created[fe.source_asset_id]:
+                    continue
             new_expenses.append(Expense(
                 user_id=user_id,
                 category_id=fe.category_id,

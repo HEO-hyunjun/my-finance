@@ -215,7 +215,7 @@ export interface BudgetCategoryUpdateRequest {
 // 지출
 export interface Expense {
   id: string;
-  category_id: string;
+  category_id: string | null;
   category_name: string;
   category_color?: string;
   amount: number;
@@ -228,7 +228,7 @@ export interface Expense {
 }
 
 export interface ExpenseCreateRequest {
-  category_id: string;
+  category_id?: string;
   amount: number;
   memo?: string;
   tags?: string;
@@ -247,7 +247,7 @@ export interface ExpenseUpdateRequest {
 
 // 예산 요약
 export interface CategoryBudgetSummary {
-  category_id: string;
+  category_id: string | null;
   category_name: string;
   category_icon?: string;
   category_color?: string;

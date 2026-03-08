@@ -218,6 +218,36 @@ function SortableItem({
   );
 }
 
+function UncategorizedItem({ cat }: { cat: CategoryBudgetSummary }) {
+  const barColor = getBarColor(0, cat.category_color ?? undefined);
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/30">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span>{cat.category_icon || ''}</span>
+          <span className="font-medium">{cat.category_name}</span>
+        </div>
+        <div className="text-right text-sm">
+          <span className="text-foreground">{formatKRW(cat.spent)}</span>
+        </div>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full transition-[width]"
+          style={{
+            width: '0%',
+            backgroundColor: barColor,
+          }}
+        />
+      </div>
+      <div className="mt-1 flex justify-between text-xs text-muted-foreground">
+        <span>예산 미지정</span>
+        <span>{formatKRW(cat.spent)} 지출</span>
+      </div>
+    </div>
+  );
+}
+
 function CategoryBudgetListInner({ categories, onUpdateBudget, onUpdateName, onDelete, onReorder, isUpdating }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<EditMode>('budget');
@@ -227,6 +257,10 @@ function CategoryBudgetListInner({ categories, onUpdateBudget, onUpdateName, onD
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+
+  // 미분류 항목 분리
+  const sortableCategories = categories.filter((c) => c.category_id !== null);
+  const uncategorized = categories.find((c) => c.category_id === null);
 
   const handleStartEditBudget = useCallback((cat: CategoryBudgetSummary) => {
     setEditingId(cat.category_id);
@@ -271,13 +305,13 @@ function CategoryBudgetListInner({ categories, onUpdateBudget, onUpdateName, onD
     const { active, over } = event;
     if (!over || active.id === over.id || !onReorder) return;
 
-    const oldIndex = categories.findIndex((c) => c.category_id === active.id);
-    const newIndex = categories.findIndex((c) => c.category_id === over.id);
+    const oldIndex = sortableCategories.findIndex((c) => c.category_id === active.id);
+    const newIndex = sortableCategories.findIndex((c) => c.category_id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
-    const reordered = arrayMove(categories, oldIndex, newIndex);
-    onReorder(reordered.map((c, i) => ({ id: c.category_id, sort_order: i })));
-  }, [categories, onReorder]);
+    const reordered = arrayMove(sortableCategories, oldIndex, newIndex);
+    onReorder(reordered.map((c, i) => ({ id: c.category_id!, sort_order: i })));
+  }, [sortableCategories, onReorder]);
 
   if (categories.length === 0) {
     return (
@@ -289,9 +323,9 @@ function CategoryBudgetListInner({ categories, onUpdateBudget, onUpdateName, onD
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={categories.map((c) => c.category_id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={sortableCategories.map((c) => c.category_id!)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3">
-          {categories.map((cat) => {
+          {sortableCategories.map((cat) => {
             const isEditing = editingId === cat.category_id;
             return (
               <SortableItem
@@ -315,6 +349,9 @@ function CategoryBudgetListInner({ categories, onUpdateBudget, onUpdateName, onD
               />
             );
           })}
+          {uncategorized && uncategorized.spent > 0 && (
+            <UncategorizedItem cat={uncategorized} />
+          )}
         </div>
       </SortableContext>
     </DndContext>

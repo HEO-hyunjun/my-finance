@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function EditExpenseModal({ expense, categories, isOpen, onClose, onSubmit, isLoading }: Props) {
-  const [categoryId, setCategoryId] = useState(expense.category_id);
+  const [categoryId, setCategoryId] = useState(expense.category_id ?? '');
   const [amount, setAmount] = useState(String(expense.amount));
   const [memo, setMemo] = useState(expense.memo ?? '');
   const [spentAt, setSpentAt] = useState(expense.spent_at);
@@ -33,7 +33,7 @@ export function EditExpenseModal({ expense, categories, isOpen, onClose, onSubmi
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
-    setCategoryId(expense.category_id);
+    setCategoryId(expense.category_id ?? '');
     setAmount(String(expense.amount));
     setMemo(expense.memo ?? '');
     setSpentAt(expense.spent_at);
@@ -43,12 +43,12 @@ export function EditExpenseModal({ expense, categories, isOpen, onClose, onSubmi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId || !amount || !spentAt) return;
+    if (!amount || !spentAt) return;
 
     onSubmit({
       id: expense.id,
       data: {
-        category_id: categoryId,
+        category_id: categoryId || undefined,
         amount: Number(amount),
         memo: memo || undefined,
         spent_at: spentAt,
@@ -71,10 +71,9 @@ export function EditExpenseModal({ expense, categories, isOpen, onClose, onSubmi
               id="edit-category"
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              required
               className="w-full rounded border border-border bg-background text-foreground px-3 py-2 text-sm"
             >
-              <option value="">선택</option>
+              <option value="">미분류</option>
               {activeCategories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon} {c.name}
@@ -147,7 +146,7 @@ export function EditExpenseModal({ expense, categories, isOpen, onClose, onSubmi
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !categoryId || !amount}
+              disabled={isLoading || !amount}
               className="flex-1"
             >
               {isLoading ? '저장 중...' : '수정'}

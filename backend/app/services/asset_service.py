@@ -100,6 +100,15 @@ async def get_asset_detail(
     asset_id: uuid.UUID,
     market: MarketService,
 ) -> AssetHoldingResponse:
+    # 고정비 자동 Expense 보장
+    from app.services.budget_service import _ensure_auto_expenses_for_range, _get_current_period_for_user
+    try:
+        ps, pe = await _get_current_period_for_user(db, user_id)
+        await _ensure_auto_expenses_for_range(db, user_id, ps, pe)
+        await db.flush()
+    except Exception:
+        pass
+
     stmt = (
         select(Asset)
         .options(selectinload(Asset.transactions))
@@ -129,11 +138,23 @@ async def get_asset_detail(
             Income.received_at <= today,
         )
     )
+    # 고정비 자동 Expense 합계 (PARKING/DEPOSIT 동적 반영용)
+    auto_expense_stmt = (
+        select(func.coalesce(func.sum(Expense.amount), 0))
+        .where(
+            Expense.user_id == user_id,
+            Expense.source_asset_id == asset_id,
+            Expense.spent_at <= today,
+            Expense.fixed_expense_id.isnot(None),
+        )
+    )
     expense_sum = float((await db.execute(expense_stmt)).scalar() or 0)
     income_sum = float((await db.execute(income_stmt)).scalar() or 0)
+    auto_expense_sum = float((await db.execute(auto_expense_stmt)).scalar() or 0)
 
     holding = await _calculate_holding(
         asset, market, expense_sum=expense_sum, income_sum=income_sum,
+        auto_expense_sum=auto_expense_sum,
     )
     return holding
 
@@ -143,6 +164,15 @@ async def get_asset_summary(
     user_id: uuid.UUID,
     market: MarketService,
 ) -> AssetSummaryResponse:
+    # 고정비 자동 Expense 보장 (자산 잔액에 반영되도록)
+    from app.services.budget_service import _ensure_auto_expenses_for_range, _get_current_period_for_user
+    try:
+        ps, pe = await _get_current_period_for_user(db, user_id)
+        await _ensure_auto_expenses_for_range(db, user_id, ps, pe)
+        await db.flush()
+    except Exception:
+        pass  # 예산 설정 없어도 자산 조회는 가능
+
     stmt = (
         select(Asset)
         .options(selectinload(Asset.transactions))
@@ -175,7 +205,7 @@ async def get_asset_summary(
     if warm_tasks:
         await asyncio.gather(*warm_tasks, return_exceptions=True)
 
-    # cash_krw 자산의 지출/수입 합계를 사전 조회 (동적 잔액 계산용)
+    # 지출/수입 합계 사전 조회 (동적 잔액 계산용)
     today = tz_today()
     expense_stmt = (
         select(Expense.source_asset_id, func.coalesce(func.sum(Expense.amount), 0))
@@ -184,6 +214,20 @@ async def get_asset_summary(
     )
     expense_rows = (await db.execute(expense_stmt)).all()
     expense_by_asset: dict[uuid.UUID, float] = {row[0]: float(row[1]) for row in expense_rows}
+
+    # 자동 고정비 Expense 합계 (PARKING/DEPOSIT 동적 반영용 - principal에 미반영된 분)
+    auto_expense_stmt = (
+        select(Expense.source_asset_id, func.coalesce(func.sum(Expense.amount), 0))
+        .where(
+            Expense.user_id == user_id,
+            Expense.spent_at <= today,
+            Expense.source_asset_id.isnot(None),
+            Expense.fixed_expense_id.isnot(None),
+        )
+        .group_by(Expense.source_asset_id)
+    )
+    auto_expense_rows = (await db.execute(auto_expense_stmt)).all()
+    auto_expense_by_asset: dict[uuid.UUID, float] = {row[0]: float(row[1]) for row in auto_expense_rows}
 
     income_stmt = (
         select(Income.target_asset_id, func.coalesce(func.sum(Income.amount), 0))
@@ -198,6 +242,7 @@ async def get_asset_summary(
             asset, market,
             expense_sum=expense_by_asset.get(asset.id, 0.0),
             income_sum=income_by_asset.get(asset.id, 0.0),
+            auto_expense_sum=auto_expense_by_asset.get(asset.id, 0.0),
         )
         holdings.append(holding)
         total_value += holding.total_value_krw
@@ -254,6 +299,7 @@ async def delete_asset(
 async def _calculate_holding(
     asset: Asset, market: MarketService,
     expense_sum: float = 0.0, income_sum: float = 0.0,
+    auto_expense_sum: float = 0.0,
 ) -> AssetHoldingResponse:
     """보유량, 평균단가, 수익률 계산 (이자 기반 자산 포함)"""
     today = tz_today()
@@ -270,6 +316,7 @@ async def _calculate_holding(
             tax_rate=asset.tax_rate or Decimal("15.4"),
         )
         p = float(asset.principal)
+        effective_value = result["total_value_krw"] - auto_expense_sum
         return AssetHoldingResponse(
             id=asset.id,
             asset_type=asset.asset_type,
@@ -279,10 +326,10 @@ async def _calculate_holding(
             avg_price=p,
             current_price=p,
             exchange_rate=None,
-            total_value_krw=result["total_value_krw"],
+            total_value_krw=effective_value,
             total_invested_krw=p,
-            profit_loss=result["accrued_interest_aftertax"],
-            profit_loss_rate=round(result["accrued_interest_aftertax"] / p * 100, 2) if p else 0,
+            profit_loss=result["accrued_interest_aftertax"] - auto_expense_sum,
+            profit_loss_rate=round((result["accrued_interest_aftertax"] - auto_expense_sum) / p * 100, 2) if p else 0,
             created_at=asset.created_at,
             interest_rate=float(asset.interest_rate),
             interest_type=asset.interest_type.value if asset.interest_type else "simple",
@@ -339,12 +386,13 @@ async def _calculate_holding(
 
     # --- 파킹통장 ---
     if asset.asset_type == AssetType.PARKING:
+        effective_principal = Decimal(str(float(asset.principal) - auto_expense_sum))
         result = calculate_parking_interest(
-            principal=asset.principal,
+            principal=effective_principal,
             annual_rate=asset.interest_rate,
             tax_rate=asset.tax_rate or Decimal("15.4"),
         )
-        p = float(asset.principal)
+        p = float(effective_principal)
         return AssetHoldingResponse(
             id=asset.id,
             asset_type=asset.asset_type,

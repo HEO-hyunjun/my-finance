@@ -66,10 +66,10 @@ class Expense(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
-    category_id: Mapped[uuid.UUID] = mapped_column(
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
-        ForeignKey("budget_categories.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("budget_categories.id", ondelete="SET NULL"),
+        nullable=True,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 0), nullable=False)
     memo: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -91,8 +91,8 @@ class Expense(Base):
     )
 
     # Relationships
-    category: Mapped["BudgetCategory"] = relationship(
-        "BudgetCategory", back_populates="expenses"
+    category: Mapped["BudgetCategory | None"] = relationship(
+        "BudgetCategory", back_populates="expenses", foreign_keys=[category_id]
     )
     fixed_expense: Mapped["FixedExpense | None"] = relationship(
         "FixedExpense", foreign_keys=[fixed_expense_id]

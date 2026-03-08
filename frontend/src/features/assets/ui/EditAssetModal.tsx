@@ -56,7 +56,7 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
     e.preventDefault();
     const data: AssetUpdateRequest = {};
     if (name !== asset.name) data.name = name;
-    if (principal && Number(principal) !== asset.principal) data.principal = Number(principal);
+    if (!isInterestBased && principal && Number(principal) !== asset.principal) data.principal = Number(principal);
     if (interestRate && Number(interestRate) !== asset.interest_rate) data.interest_rate = Number(interestRate);
     if (isSavings && monthlyAmount && Number(monthlyAmount) !== asset.monthly_amount) data.monthly_amount = Number(monthlyAmount);
     if (bankName !== (asset.bank_name ?? '')) data.bank_name = bankName || undefined;
@@ -83,11 +83,6 @@ export function EditAssetModal({ isOpen, onClose, onSubmit, asset, isLoading }: 
 
           {isInterestBased && (
             <>
-              <div>
-                <Label>{isParking ? '현재 잔액 (원)' : isSavings ? '총 납입액 (원)' : '원금 (원)'}</Label>
-                <Input type="number" value={principal} onChange={(e) => setPrincipal(e.target.value)} min="0" required />
-              </div>
-
               <div>
                 <Label>연이율 (%)</Label>
                 <Input type="number" value={interestRate} onChange={(e) => setInterestRate(e.target.value)} step="0.01" min="0" required />

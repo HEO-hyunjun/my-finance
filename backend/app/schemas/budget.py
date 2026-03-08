@@ -45,7 +45,7 @@ class BudgetCategoryResponse(BaseModel):
 
 
 class ExpenseCreate(BaseModel):
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None = None
     amount: Decimal = Field(gt=0)
     memo: str | None = Field(default=None, max_length=500)
     spent_at: date
@@ -65,7 +65,7 @@ class ExpenseUpdate(BaseModel):
 
 class ExpenseResponse(BaseModel):
     id: uuid.UUID
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None
     category_name: str
     category_color: str | None
     amount: float
@@ -87,7 +87,7 @@ class ExpenseListResponse(BaseModel):
 
 
 class CategoryBudgetSummary(BaseModel):
-    category_id: uuid.UUID
+    category_id: uuid.UUID | None
     category_name: str
     category_icon: str | None
     category_color: str | None
