@@ -21,6 +21,7 @@ class FirecrawlProvider(SearchProvider):
 
     async def search_news(
         self, query: str, max_results: int = 20, include_raw_content: bool = False,
+        category: str = "",
     ) -> list[dict]:
         if not settings.FIRECRAWL_API_KEY:
             logger.warning("FIRECRAWL_API_KEY not set, returning mock news")

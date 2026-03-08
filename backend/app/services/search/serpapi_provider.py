@@ -14,6 +14,7 @@ class SerpApiProvider(SearchProvider):
 
     async def search_news(
         self, query: str, max_results: int = 20, include_raw_content: bool = False,
+        category: str = "",
     ) -> list[dict]:
         if not settings.SERPAPI_KEY:
             logger.warning("SERPAPI_KEY not set, returning mock news")

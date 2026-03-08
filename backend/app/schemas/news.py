@@ -18,17 +18,17 @@ class NewsCategory:
     VALID = {ALL, MY_ASSETS, STOCK_KR, STOCK_US, GOLD, ECONOMY}
 
 
-# 카테고리 → 검색 쿼리 매핑 (topic="general"에 최적화된 한국어 쿼리)
+# 카테고리 → 검색 쿼리 매핑 (뉴스 검색에 최적화)
 CATEGORY_QUERY_MAP: dict[str, str] = {
-    NewsCategory.ALL: "코스피 나스닥 금값 환율 최신 뉴스",
-    NewsCategory.STOCK_KR: "코스피 코스닥 한국 증시 오늘 뉴스",
-    NewsCategory.STOCK_US: "나스닥 미국증시 뉴스 최신",
-    NewsCategory.GOLD: "금값 금시세 투자 뉴스",
-    NewsCategory.ECONOMY: "금리 환율 경제 뉴스 최신",
+    NewsCategory.ALL: "오늘 증시 금융시장 동향",
+    NewsCategory.STOCK_KR: "코스피 코스닥 증시 장 마감 시황",
+    NewsCategory.STOCK_US: "나스닥 S&P500 미국 증시 마감",
+    NewsCategory.GOLD: "국제 금값 금 시세 전망",
+    NewsCategory.ECONOMY: "기준금리 원달러 환율 경제 전망",
 }
 
-# 통합 배치 기본 쿼리 (topic="general"에 최적화)
-BASE_NEWS_QUERY = "코스피 나스닥 금값 환율 최신 뉴스"
+# 통합 배치 기본 쿼리
+BASE_NEWS_QUERY = "오늘 증시 금융시장 동향"
 
 # 하위 호환용 (기존 참조 유지)
 COMBINED_NEWS_QUERY = BASE_NEWS_QUERY

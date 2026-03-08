@@ -21,6 +21,7 @@ from app.schemas.news import (
     MyAssetNewsResponse,
     NewsArticle,
     NewsCategory,
+    NewsListArticle,
     NewsListResponse,
     NewsSource,
     build_batch_query,
@@ -85,7 +86,7 @@ class NewsService:
         # 4. 페이지네이션 + 캐시
         start = (page - 1) * per_page
         end = start + per_page
-        page_articles = articles[start:end]
+        page_articles = [self._to_list_article(a) for a in articles[start:end]]
 
         result = NewsListResponse(
             articles=page_articles,
@@ -219,7 +220,7 @@ class NewsService:
 
         for category, query in category_queries:
             try:
-                raw = await self._fetch_news(query, include_raw_content=True)
+                raw = await self._fetch_news(query, include_raw_content=True, category=category)
                 total_fetched += len(raw)
 
                 for item in raw:
@@ -389,7 +390,7 @@ class NewsService:
 
     async def _fetch_and_save(self, query: str, category: str) -> list[NewsArticle]:
         """API에서 뉴스 fetch → DB 저장 → 기사 반환"""
-        raw = await self._fetch_news(query)
+        raw = await self._fetch_news(query, category=category)
         if not raw:
             return []
 
@@ -424,12 +425,12 @@ class NewsService:
 
     # ─── SearchProvider 연동 ─────────────────
 
-    async def _fetch_news(self, query: str, include_raw_content: bool = False) -> list[dict]:
+    async def _fetch_news(self, query: str, include_raw_content: bool = False, category: str = "") -> list[dict]:
         """SearchProvider를 통해 뉴스 검색"""
         from app.services.search import get_search_provider
 
         provider = get_search_provider()
-        return await provider.search_news(query, include_raw_content=include_raw_content)
+        return await provider.search_news(query, include_raw_content=include_raw_content, category=category)
 
     # ─── 매핑 / 유틸 ─────────────────────────
 
@@ -504,6 +505,21 @@ class NewsService:
                 return q
         return None
 
+    @staticmethod
+    def _to_list_article(article: NewsArticle) -> NewsListArticle:
+        """NewsArticle → NewsListArticle 변환 (raw_content 제외)."""
+        return NewsListArticle(
+            id=article.id,
+            title=article.title,
+            link=article.link,
+            source=article.source,
+            snippet=article.snippet,
+            thumbnail=article.thumbnail,
+            published_at=article.published_at,
+            category=article.category,
+            related_asset=article.related_asset,
+        )
+
     # ─── Redis 캐시 ──────────────────────────
 
     async def _warm_cache_from_articles(self, articles: list[NewsArticle]) -> None:
@@ -516,8 +532,8 @@ class NewsService:
             by_category[NewsCategory.ALL].append(a)
 
         for cat, cat_articles in by_category.items():
-            # 최신순 정렬
-            sorted_articles = cat_articles[:50]  # 카테고리당 최대 50개
+            # 최신순 정렬, NewsArticle → NewsListArticle 변환
+            sorted_articles = [self._to_list_article(a) for a in cat_articles[:50]]
             result = NewsListResponse(
                 articles=sorted_articles,
                 page=1,
