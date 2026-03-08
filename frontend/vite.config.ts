@@ -66,6 +66,22 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_PROXY_TARGET || 'http://localhost:8000',
         changeOrigin: true,
+        // SSE 스트리밍 지원: 프록시 응답 버퍼링 비활성화
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes, _req, res) => {
+            const ct = proxyRes.headers['content-type'] || '';
+            if (ct.includes('text/event-stream')) {
+              // 프록시-브라우저 간 버퍼링 방지 헤더
+              res.setHeader('Cache-Control', 'no-cache, no-transform');
+              res.setHeader('X-Accel-Buffering', 'no');
+              res.setHeader('Connection', 'keep-alive');
+              // Nagle 알고리즘 비활성화 → 즉시 flush
+              if (res.socket) {
+                res.socket.setNoDelay(true);
+              }
+            }
+          });
+        },
       },
     },
   },

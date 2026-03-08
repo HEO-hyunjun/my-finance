@@ -41,7 +41,12 @@ async def chat(
             message=body.message,
             conversation_id=body.conversation_id,
             market=market,
-        )
+        ),
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+        ping=15,
     )
 
 

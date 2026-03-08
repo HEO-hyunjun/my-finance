@@ -418,7 +418,7 @@ def _build_history(
 
 
 def _sse_event(
-    event: ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent | ChatToolEvent,
+    event: ChatTokenEvent | ChatDoneEvent | ChatErrorEvent | ChatAgentEvent | ChatToolEvent | ChatGeneratingEvent,
 ) -> str:
     """EventSourceResponse가 data: 접두사를 자동 추가하므로 JSON만 반환"""
     return event.model_dump_json()
