@@ -15,20 +15,20 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Drop the existing foreign key constraint
+    # Drop the existing foreign key constraint (MySQL auto-generated name)
     op.drop_constraint(
-        "expenses_category_id_fkey", "expenses", type_="foreignkey"
+        "expenses_ibfk_2", "expenses", type_="foreignkey"
     )
     # Alter column to nullable
     op.alter_column(
         "expenses",
         "category_id",
-        existing_type=sa.Uuid(),
+        existing_type=sa.CHAR(36),
         nullable=True,
     )
     # Re-create foreign key with SET NULL on delete
     op.create_foreign_key(
-        "expenses_category_id_fkey",
+        "expenses_ibfk_2",
         "expenses",
         "budget_categories",
         ["category_id"],
@@ -40,18 +40,18 @@ def upgrade() -> None:
 def downgrade() -> None:
     # Drop SET NULL foreign key
     op.drop_constraint(
-        "expenses_category_id_fkey", "expenses", type_="foreignkey"
+        "expenses_ibfk_2", "expenses", type_="foreignkey"
     )
     # Alter column back to non-nullable
     op.alter_column(
         "expenses",
         "category_id",
-        existing_type=sa.Uuid(),
+        existing_type=sa.CHAR(36),
         nullable=False,
     )
     # Re-create original CASCADE foreign key
     op.create_foreign_key(
-        "expenses_category_id_fkey",
+        "expenses_ibfk_2",
         "expenses",
         "budget_categories",
         ["category_id"],
