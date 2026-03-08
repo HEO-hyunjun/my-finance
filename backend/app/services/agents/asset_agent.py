@@ -175,9 +175,13 @@ class AssetAgent(SubAgent):
             }
 
         if tool_name == "get_rebalancing_analysis":
+            from app.services.asset_service import get_asset_summary
             from app.services.portfolio_service import get_rebalancing_analysis
 
-            analysis = await get_rebalancing_analysis(db, user_id)
+            summary = await get_asset_summary(db, user_id, market)
+            analysis = await get_rebalancing_analysis(
+                db, user_id, breakdown=summary.breakdown,
+            )
             return json.loads(analysis.model_dump_json())
 
         return {"error": f"Unknown tool: {tool_name}"}

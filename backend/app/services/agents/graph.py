@@ -265,7 +265,9 @@ class AgentGraph:
                         f"[Orchestrator] Round {tool_rounds}: "
                         f"{[tc.function.name for tc in message.tool_calls]}"
                     )
-                    continue
+                    # 서브에이전트 실행 완료 → 스트리밍 최종 응답으로 이동
+                    # (불필요한 비스트리밍 합성 호출 생략)
+                    break
 
                 # 직접 답변 (에이전트 위임 없이)
                 if message.content:

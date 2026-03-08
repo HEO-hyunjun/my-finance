@@ -77,6 +77,23 @@ async def build_financial_context(
             f"({asset_summary.total_profit_loss_rate:+.2f}%)\n"
             f"- 자산 분포: {json.dumps(asset_summary.breakdown, ensure_ascii=False)}"
         )
+
+        # 개별 보유 종목 상세
+        if asset_summary.holdings:
+            holding_lines = ["### 보유 종목 상세"]
+            holding_lines.append("| 종목명 | 유형 | 수량 | 현재가 | 평가금액(KRW) | 수익률 |")
+            holding_lines.append("|--------|------|------|--------|--------------|--------|")
+            for h in asset_summary.holdings:
+                name = h.name or h.symbol or "N/A"
+                asset_type = h.asset_type.value if hasattr(h.asset_type, 'value') else str(h.asset_type)
+                qty = f"{h.quantity:,.4f}" if h.quantity < 10 else f"{h.quantity:,.2f}"
+                price = f"₩{h.current_price:,.0f}" if h.current_price else "-"
+                if h.exchange_rate:
+                    price = f"${h.current_price:,.2f} (₩{h.exchange_rate:,.0f})"
+                value = f"₩{h.total_value_krw:,.0f}"
+                rate = f"{h.profit_loss_rate:+.2f}%"
+                holding_lines.append(f"| {name} | {asset_type} | {qty} | {price} | {value} | {rate} |")
+            parts.append("\n".join(holding_lines))
     except Exception:
         parts.append("### 자산 현황\n- 데이터를 불러올 수 없습니다.")
 
