@@ -15,6 +15,7 @@ celery_app = Celery(
         "app.tasks.interest_tasks",
         "app.tasks.auto_transfer_tasks",
         "app.tasks.income_tasks",
+        "app.tasks.compensation_tasks",
     ],
 )
 
