@@ -1,51 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
 import type {
-  Income,
-  IncomeCreateRequest,
+  RecurringIncome,
+  RecurringIncomeCreateRequest,
+  RecurringIncomeUpdateRequest,
   IncomeSummary,
 } from '@/shared/types';
 
-export const incomeKeys = {
-  all: ['incomes'] as const,
-  list: (filters?: Record<string, unknown>) =>
-    [...incomeKeys.all, 'list', filters] as const,
-  summary: () => [...incomeKeys.all, 'summary'] as const,
+export const recurringIncomeKeys = {
+  all: ['recurring-incomes'] as const,
+  list: () => [...recurringIncomeKeys.all, 'list'] as const,
+  summary: () => [...recurringIncomeKeys.all, 'summary'] as const,
 };
 
-export interface IncomeFilters {
-  is_recurring?: boolean;
-  type?: string;
-}
-
-interface IncomeListResponse {
-  data: Income[];
-  total: number;
-  page: number;
-  per_page: number;
-}
-
-export function useIncomes(filters: IncomeFilters = {}) {
+export function useRecurringIncomes() {
   return useQuery({
-    queryKey: incomeKeys.list(filters as Record<string, unknown>),
+    queryKey: recurringIncomeKeys.list(),
     queryFn: async () => {
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params.append(key, String(value));
-        }
-      });
-      const { data } = await apiClient.get<IncomeListResponse>(
-        `/v1/incomes?${params.toString()}`,
+      const { data } = await apiClient.get<RecurringIncome[]>(
+        '/v1/recurring-incomes',
       );
-      return data.data;
+      return data;
     },
   });
 }
 
 export function useIncomeSummary() {
   return useQuery({
-    queryKey: incomeKeys.summary(),
+    queryKey: recurringIncomeKeys.summary(),
     queryFn: async () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -62,30 +44,65 @@ export function useIncomeSummary() {
   });
 }
 
-export function useCreateIncome() {
+export function useCreateRecurringIncome() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: IncomeCreateRequest) => {
-      const { data: result } = await apiClient.post<Income>(
-        '/v1/incomes',
+    mutationFn: async (data: RecurringIncomeCreateRequest) => {
+      const { data: result } = await apiClient.post<RecurringIncome>(
+        '/v1/recurring-incomes',
         data,
       );
       return result;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: incomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: recurringIncomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['income'] });
     },
   });
 }
 
-export function useDeleteIncome() {
+export function useUpdateRecurringIncome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: RecurringIncomeUpdateRequest }) => {
+      const { data: result } = await apiClient.put<RecurringIncome>(
+        `/v1/recurring-incomes/${id}`,
+        data,
+      );
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recurringIncomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['income'] });
+    },
+  });
+}
+
+export function useDeleteRecurringIncome() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      await apiClient.delete(`/v1/incomes/${id}`);
+      await apiClient.delete(`/v1/recurring-incomes/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: incomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: recurringIncomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['income'] });
+    },
+  });
+}
+
+export function useToggleRecurringIncome() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.patch<RecurringIncome>(
+        `/v1/recurring-incomes/${id}/toggle`,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: recurringIncomeKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['income'] });
     },
   });
 }

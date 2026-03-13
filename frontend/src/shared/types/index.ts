@@ -701,8 +701,7 @@ export interface Income {
   type: IncomeType;
   amount: number;
   description: string;
-  is_recurring: boolean;
-  recurring_day?: number;
+  recurring_income_id?: string;
   target_asset_id?: string;
   target_asset_name?: string;
   received_at: string;
@@ -713,8 +712,6 @@ export interface IncomeCreateRequest {
   type: IncomeType;
   amount: number;
   description: string;
-  is_recurring?: boolean;
-  recurring_day?: number;
   received_at: string;
   target_asset_id?: string;
 }
@@ -723,8 +720,6 @@ export interface IncomeUpdateRequest {
   type?: IncomeType;
   amount?: number;
   description?: string;
-  is_recurring?: boolean;
-  recurring_day?: number;
   received_at?: string;
   target_asset_id?: string;
 }
@@ -736,6 +731,38 @@ export interface IncomeSummary {
   investment_income: number;
   other_income: number;
   recurring_count: number;
+}
+
+// ── RecurringIncome (정기 수입 템플릿) ──
+
+export interface RecurringIncome {
+  id: string;
+  type: IncomeType;
+  amount: number;
+  description: string;
+  recurring_day: number;
+  target_asset_id?: string;
+  target_asset_name?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringIncomeCreateRequest {
+  type: IncomeType;
+  amount: number;
+  description: string;
+  recurring_day: number;
+  target_asset_id?: string;
+}
+
+export interface RecurringIncomeUpdateRequest {
+  type?: IncomeType;
+  amount?: number;
+  description?: string;
+  recurring_day?: number;
+  target_asset_id?: string;
+  is_active?: boolean;
 }
 
 // ========== Carryover Types ==========

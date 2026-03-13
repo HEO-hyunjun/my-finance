@@ -20,10 +20,6 @@ export function EditIncomeModal({ income, isOpen, onClose }: Props) {
   const [type, setType] = useState<IncomeType>(income.type);
   const [amount, setAmount] = useState(String(income.amount));
   const [description, setDescription] = useState(income.description);
-  const [isRecurring, setIsRecurring] = useState(income.is_recurring);
-  const [recurringDay, setRecurringDay] = useState(
-    income.recurring_day ? String(income.recurring_day) : '',
-  );
   const [receivedAt, setReceivedAt] = useState(income.received_at);
   const [targetAssetId, setTargetAssetId] = useState(income.target_asset_id ?? '');
 
@@ -38,8 +34,6 @@ export function EditIncomeModal({ income, isOpen, onClose }: Props) {
     setType(income.type);
     setAmount(String(income.amount));
     setDescription(income.description);
-    setIsRecurring(income.is_recurring);
-    setRecurringDay(income.recurring_day ? String(income.recurring_day) : '');
     setReceivedAt(income.received_at);
     setTargetAssetId(income.target_asset_id ?? '');
   }, [income]);
@@ -53,8 +47,6 @@ export function EditIncomeModal({ income, isOpen, onClose }: Props) {
       type,
       amount: Number(amount),
       description,
-      is_recurring: isRecurring,
-      recurring_day: isRecurring && recurringDay ? Number(recurringDay) : undefined,
       received_at: receivedAt,
       target_asset_id: targetAssetId || undefined,
     };
@@ -116,34 +108,6 @@ export function EditIncomeModal({ income, isOpen, onClose }: Props) {
               maxLength={500}
             />
           </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="edit-is-recurring"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
-            />
-            <Label htmlFor="edit-is-recurring" className="text-sm font-medium">
-              정기 수입
-            </Label>
-          </div>
-
-          {isRecurring && (
-            <div className="space-y-2">
-              <Label htmlFor="edit-recurring-day">매월 수입일</Label>
-              <Input
-                id="edit-recurring-day"
-                type="number"
-                value={recurringDay}
-                onChange={(e) => setRecurringDay(e.target.value)}
-                placeholder="25"
-                min={1}
-                max={31}
-              />
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="edit-received-at">수입일</Label>

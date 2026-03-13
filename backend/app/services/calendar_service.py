@@ -10,7 +10,7 @@ import redis.asyncio as redis
 
 from app.models.asset import Asset, AssetType
 from app.models.budget import BudgetCategory, Expense, FixedExpense, Installment
-from app.models.income import Income, IncomeType
+from app.models.income import Income, IncomeType, RecurringIncome
 from app.services.budget_period import get_budget_period
 from app.schemas.calendar import (
     CalendarEvent,
@@ -163,18 +163,18 @@ async def get_calendar_events(
         ))
 
     # 5-6. 정기 수입 (급여 등) → 해당 월에 실제 기록이 없으면 recurring_day에 표시
-    actual_income_keys = {(inc.received_at.day, inc.type) for inc in incomes}
-    for inc in recurring_incomes:
-        day = min(inc.recurring_day, last_day)
-        if (day, inc.type) in actual_income_keys:
+    actual_ri_ids = {inc.recurring_income_id for inc in incomes if inc.recurring_income_id}
+    for ri in recurring_incomes:
+        if ri.id in actual_ri_ids:
             continue
+        day = min(ri.recurring_day, last_day)
         events.append(CalendarEvent(
             date=date(year, month, day),
             type=CalendarEventType.INCOME,
-            title=inc.description or INCOME_TYPE_LABELS.get(inc.type, "수입"),
-            amount=float(inc.amount),
+            title=ri.description or INCOME_TYPE_LABELS.get(ri.type, "수입"),
+            amount=float(ri.amount),
             color=EVENT_COLOR_MAP[CalendarEventType.INCOME],
-            description=INCOME_TYPE_LABELS.get(inc.type, "수입") + " (정기)",
+            description=INCOME_TYPE_LABELS.get(ri.type, "수입") + " (정기)",
         ))
 
     # 6. 정렬 (날짜순 → 유형순)
@@ -326,28 +326,18 @@ async def _get_incomes(
 
 async def _get_recurring_incomes(
     db: AsyncSession, user_id: uuid.UUID,
-) -> list[Income]:
-    """정기 반복 수입 조회 (급여 등) - 유형+일자별 최신 1건"""
+) -> list[RecurringIncome]:
+    """활성 정기 수입 템플릿 조회"""
     stmt = (
-        select(Income)
+        select(RecurringIncome)
         .where(
-            Income.user_id == user_id,
-            Income.is_recurring.is_(True),
-            Income.recurring_day.isnot(None),
+            RecurringIncome.user_id == user_id,
+            RecurringIncome.is_active.is_(True),
         )
-        .order_by(Income.received_at.desc())
+        .order_by(RecurringIncome.recurring_day)
     )
     result = await db.execute(stmt)
-    all_recurring = list(result.scalars().all())
-
-    seen: set[tuple[str, int]] = set()
-    unique: list[Income] = []
-    for inc in all_recurring:
-        key = (inc.type, inc.recurring_day)
-        if key not in seen:
-            seen.add(key)
-            unique.append(inc)
-    return unique
+    return list(result.scalars().all())
 
 
 async def _get_expenses(

@@ -10,7 +10,7 @@ from app.models.budget import (
     BudgetCategory, Expense, FixedExpense, Installment,
     BudgetCarryoverSetting,
 )
-from app.models.income import Income
+from app.models.income import Income, RecurringIncome
 from app.schemas.budget_analysis import (
     BudgetAnalysisResponse,
     CarryoverPrediction,
@@ -197,10 +197,10 @@ async def get_budget_analysis(
     )
     week_spent = float((await db.execute(week_spent_stmt)).scalar() or 0)
 
-    # Weekly average budget from income
-    income_stmt = select(func.coalesce(func.sum(Income.amount), 0)).where(
-        Income.user_id == user_id,
-        Income.is_recurring.is_(True),
+    # Weekly average budget from recurring income templates
+    income_stmt = select(func.coalesce(func.sum(RecurringIncome.amount), 0)).where(
+        RecurringIncome.user_id == user_id,
+        RecurringIncome.is_active.is_(True),
     )
     monthly_income = float((await db.execute(income_stmt)).scalar() or 0)
     if monthly_income == 0:

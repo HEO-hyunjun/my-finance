@@ -81,7 +81,7 @@ async def _record_parking_interest_async():
                     type=IncomeType.INVESTMENT,
                     amount=Decimal(str(daily_after_tax)),
                     description=f"{asset.name} 일일이자",
-                    is_recurring=True,
+
                     target_asset_id=asset.id,
                     received_at=today,
                 )
@@ -204,7 +204,7 @@ async def _record_deposit_interest_async():
                     type=IncomeType.INVESTMENT,
                     amount=Decimal(str(monthly_interest)),
                     description=f"{asset.name} 월별이자",
-                    is_recurring=True,
+
                     target_asset_id=asset.id,
                     received_at=today,
                 )

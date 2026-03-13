@@ -9,7 +9,7 @@ from app.models.budget import (  # noqa: F401
     Installment,
 )
 from app.models.transaction import Transaction  # noqa: F401
-from app.models.income import Income  # noqa: F401
+from app.models.income import Income, RecurringIncome  # noqa: F401
 from app.models.insight import AIInsightRecord  # noqa: F401
 from app.models.news import NewsArticleDB, NewsCluster  # noqa: F401
 from app.models.portfolio import (  # noqa: F401

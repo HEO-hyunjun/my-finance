@@ -80,7 +80,7 @@ export function IncomeList({ incomeType, startDate, endDate, onEdit }: Props) {
               <th className="px-2 py-2 sm:px-4 sm:py-3">유형</th>
               <th className="hidden sm:table-cell px-4 py-3">설명</th>
               <th className="px-2 py-2 text-right sm:px-4 sm:py-3">금액</th>
-              <th className="hidden sm:table-cell px-4 py-3">정기</th>
+              <th className="hidden sm:table-cell px-4 py-3">구분</th>
               <th className="px-2 py-2 sm:px-4 sm:py-3"></th>
             </tr>
           </thead>
@@ -102,9 +102,9 @@ export function IncomeList({ incomeType, startDate, endDate, onEdit }: Props) {
                   +{formatKRW(income.amount)}
                 </td>
                 <td className="hidden sm:table-cell px-4 py-3">
-                  {income.is_recurring && (
+                  {income.recurring_income_id && (
                     <Badge variant="outline" className="px-1.5 py-0 text-[10px]">
-                      매월 {income.recurring_day}일
+                      정기
                     </Badge>
                   )}
                 </td>

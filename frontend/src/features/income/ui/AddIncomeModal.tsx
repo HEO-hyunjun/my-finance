@@ -20,8 +20,6 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
   const [type, setType] = useState<IncomeType>('salary');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringDay, setRecurringDay] = useState('');
   const [receivedAt, setReceivedAt] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -34,20 +32,15 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
     (h: AssetHolding) => ALLOWED_TARGET_TYPES.has(h.asset_type),
   );
 
-  // 급여 유형으로 변경 시에만 설정값 자동 적용 (유형 변경 핸들러에서 처리)
   const handleTypeChange = (newType: IncomeType) => {
     setType(newType);
     if (newType === 'salary' && profile) {
       if (profile.salary_amount) setAmount(profile.salary_amount.toString());
       if (profile.salary_asset_id) setTargetAssetId(profile.salary_asset_id);
       setDescription('급여');
-      setIsRecurring(true);
-      if (profile.salary_day) setRecurringDay(profile.salary_day.toString());
     } else {
       setAmount('');
       setDescription('');
-      setIsRecurring(false);
-      setRecurringDay('');
       setTargetAssetId('');
     }
   };
@@ -60,8 +53,6 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
       type,
       amount: Number(amount),
       description,
-      is_recurring: isRecurring,
-      recurring_day: isRecurring && recurringDay ? Number(recurringDay) : undefined,
       received_at: receivedAt,
       target_asset_id: targetAssetId || undefined,
     };
@@ -71,8 +62,6 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
         setType('salary');
         setAmount('');
         setDescription('');
-        setIsRecurring(false);
-        setRecurringDay('');
         setReceivedAt(new Date().toISOString().slice(0, 10));
         setTargetAssetId('');
         onClose();
@@ -131,34 +120,6 @@ export function AddIncomeModal({ isOpen, onClose }: Props) {
               maxLength={500}
             />
           </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is-recurring"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
-            />
-            <Label htmlFor="is-recurring" className="text-sm font-medium">
-              정기 수입
-            </Label>
-          </div>
-
-          {isRecurring && (
-            <div className="space-y-2">
-              <Label htmlFor="recurring-day">매월 수입일</Label>
-              <Input
-                id="recurring-day"
-                type="number"
-                value={recurringDay}
-                onChange={(e) => setRecurringDay(e.target.value)}
-                placeholder="25"
-                min={1}
-                max={31}
-              />
-            </div>
-          )}
 
           <div className="space-y-2">
             <Label htmlFor="received-at">수입일</Label>

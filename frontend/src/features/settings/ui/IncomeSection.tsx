@@ -1,7 +1,13 @@
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
-import { useIncomes, useIncomeSummary, useCreateIncome, useDeleteIncome } from '../api/income';
-import type { IncomeType, IncomeCreateRequest } from '@/shared/types';
+import { Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import {
+  useRecurringIncomes,
+  useIncomeSummary,
+  useCreateRecurringIncome,
+  useDeleteRecurringIncome,
+  useToggleRecurringIncome,
+} from '../api/income';
+import type { IncomeType, RecurringIncomeCreateRequest } from '@/shared/types';
 import { INCOME_TYPE_LABELS } from '@/shared/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
@@ -11,7 +17,7 @@ import { Button } from '@/shared/ui/button';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { formatKRW } from '@/shared/lib/format';
 
-function AddIncomeModal({
+function AddRecurringIncomeModal({
   isOpen,
   onClose,
   onSubmit,
@@ -19,30 +25,26 @@ function AddIncomeModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: IncomeCreateRequest) => void;
+  onSubmit: (data: RecurringIncomeCreateRequest) => void;
   isSubmitting: boolean;
 }) {
   const [type, setType] = useState<IncomeType>('salary');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [isRecurring, setIsRecurring] = useState(true);
   const [recurringDay, setRecurringDay] = useState('25');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !description) return;
+    if (!amount || !description || !recurringDay) return;
     onSubmit({
       type,
       amount: Number(amount),
       description,
-      is_recurring: isRecurring,
-      recurring_day: isRecurring ? Number(recurringDay) : undefined,
-      received_at: new Date().toISOString().slice(0, 10),
+      recurring_day: Number(recurringDay),
     });
     setType('salary');
     setAmount('');
     setDescription('');
-    setIsRecurring(true);
     setRecurringDay('25');
     onClose();
   };
@@ -51,7 +53,7 @@ function AddIncomeModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>수입 추가</DialogTitle>
+          <DialogTitle>정기 수입 추가</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -90,37 +92,22 @@ function AddIncomeModal({
             />
           </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              id="is-recurring"
-              type="checkbox"
-              checked={isRecurring}
-              onChange={(e) => setIsRecurring(e.target.checked)}
-              className="h-4 w-4 rounded border-border"
+          <div>
+            <Label>매월 수령일</Label>
+            <Input
+              type="number"
+              value={recurringDay}
+              onChange={(e) => setRecurringDay(e.target.value)}
+              min="1"
+              max="31"
             />
-            <Label htmlFor="is-recurring" className="font-normal cursor-pointer">
-              매월 반복
-            </Label>
           </div>
-
-          {isRecurring && (
-            <div>
-              <Label>수령일</Label>
-              <Input
-                type="number"
-                value={recurringDay}
-                onChange={(e) => setRecurringDay(e.target.value)}
-                min="1"
-                max="31"
-              />
-            </div>
-          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={onClose}>
               취소
             </Button>
-            <Button type="submit" disabled={!amount || !description || isSubmitting}>
+            <Button type="submit" disabled={!amount || !description || !recurringDay || isSubmitting}>
               {isSubmitting ? '추가 중...' : '추가'}
             </Button>
           </div>
@@ -132,10 +119,11 @@ function AddIncomeModal({
 
 export function IncomeSection() {
   const [modalOpen, setModalOpen] = useState(false);
-  const { data: incomes, isLoading } = useIncomes({ is_recurring: true });
+  const { data: recurringIncomes, isLoading } = useRecurringIncomes();
   const { data: summary } = useIncomeSummary();
-  const createIncome = useCreateIncome();
-  const deleteIncome = useDeleteIncome();
+  const createRecurring = useCreateRecurringIncome();
+  const deleteRecurring = useDeleteRecurringIncome();
+  const toggleRecurring = useToggleRecurringIncome();
 
   if (isLoading) {
     return (
@@ -154,7 +142,7 @@ export function IncomeSection() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle>수입 관리</CardTitle>
+        <CardTitle>정기 수입 관리</CardTitle>
         <Button onClick={() => setModalOpen(true)}>수입 추가</Button>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -181,33 +169,45 @@ export function IncomeSection() {
           </div>
         )}
 
-        {(!incomes || incomes.length === 0) ? (
+        {(!recurringIncomes || recurringIncomes.length === 0) ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            등록된 반복 수입이 없습니다.
+            등록된 정기 수입이 없습니다.
           </p>
         ) : (
           <ul className="space-y-3">
-            {incomes.map((income) => (
+            {recurringIncomes.map((ri) => (
               <li
-                key={income.id}
-                className="flex items-center justify-between rounded-md border border-border px-4 py-3"
+                key={ri.id}
+                className={`flex items-center justify-between rounded-md border border-border px-4 py-3 ${!ri.is_active ? 'opacity-50' : ''}`}
               >
                 <div>
-                  <p className="text-sm font-medium">{income.description}</p>
+                  <p className="text-sm font-medium">{ri.description}</p>
                   <p className="text-xs text-muted-foreground">
-                    {INCOME_TYPE_LABELS[income.type]}
-                    {income.recurring_day && ` · 매월 ${income.recurring_day}일`}
+                    {INCOME_TYPE_LABELS[ri.type]} · 매월 {ri.recurring_day}일
                   </p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold">
-                    {formatKRW(income.amount)}원
+                    {formatKRW(ri.amount)}원
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => deleteIncome.mutate(income.id)}
-                    disabled={deleteIncome.isPending}
+                    onClick={() => toggleRecurring.mutate(ri.id)}
+                    disabled={toggleRecurring.isPending}
+                    title={ri.is_active ? '비활성화' : '활성화'}
+                  >
+                    {ri.is_active ? (
+                      <ToggleRight className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <ToggleLeft className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteRecurring.mutate(ri.id)}
+                    disabled={deleteRecurring.isPending}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -217,11 +217,11 @@ export function IncomeSection() {
           </ul>
         )}
 
-        <AddIncomeModal
+        <AddRecurringIncomeModal
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
-          onSubmit={(data) => createIncome.mutate(data)}
-          isSubmitting={createIncome.isPending}
+          onSubmit={(data) => createRecurring.mutate(data)}
+          isSubmitting={createRecurring.isPending}
         />
       </CardContent>
     </Card>
