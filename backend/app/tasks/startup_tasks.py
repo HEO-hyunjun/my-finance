@@ -14,8 +14,9 @@ DAILY_TASKS = [
     ("app.tasks.budget_tasks.initialize_period_fixed_expenses", 5),
     ("app.tasks.budget_tasks.deduct_installments", 8),
     ("app.tasks.income_tasks.generate_recurring_incomes", 10),
-    ("app.tasks.market_tasks.warm_market_cache", 15),
     ("app.tasks.interest_tasks.record_daily_parking_interest", 12),
+    ("app.tasks.auto_transfer_tasks.execute_auto_transfers", 15),
+    ("app.tasks.market_tasks.warm_market_cache", 20),
 ]
 
 
