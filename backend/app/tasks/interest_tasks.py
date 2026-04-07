@@ -1,222 +1,273 @@
 import asyncio
 import logging
-
-from app.core.tz import today as tz_today
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from app.core.celery_app import celery_app
+from app.core.tz import today as tz_today
 
 logger = logging.getLogger(__name__)
 
 
+def _get_async_session():
+    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+    from sqlalchemy.orm import sessionmaker
+    from app.core.config import settings
+
+    engine = create_async_engine(settings.DATABASE_URL)
+    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    return async_session, engine
+
+
 @celery_app.task(name="app.tasks.interest_tasks.record_daily_parking_interest")
 def record_daily_parking_interest():
-    """파킹통장/CMA 일일이자를 수입으로 기록 (매일 실행)"""
+    """파킹통장/CMA 일일이자를 Entry로 기록 (매일 실행)"""
     return asyncio.run(_record_parking_interest_async())
 
 
 @celery_app.task(name="app.tasks.interest_tasks.record_monthly_deposit_interest")
 def record_monthly_deposit_interest():
-    """예금/적금 월별이자를 수입으로 기록 (매월 1일 실행)"""
+    """예금/적금 월별이자를 Entry로 기록 (매월 1일 실행)"""
     return asyncio.run(_record_deposit_interest_async())
 
 
 async def _record_parking_interest_async():
-    from sqlalchemy import select, and_
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy import select, and_, cast, Date
 
-    from app.core.config import settings
-    from app.models.asset import Asset, AssetType
-    from app.models.income import Income, IncomeType
+    from app.models.account import Account, AccountType
+    from app.models.entry import Entry, EntryType
+    from app.services.entry_service import get_account_balance
     from app.services.interest_service import calculate_parking_interest
 
-    engine = create_async_engine(settings.DATABASE_URL)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async_session, engine = _get_async_session()
     today = tz_today()
     count = 0
 
-    async with async_session() as db:
-        # 파킹통장/CMA 자산 조회
-        result = await db.execute(
-            select(Asset).where(
-                Asset.asset_type == AssetType.PARKING,
-                Asset.principal > 0,
-                Asset.interest_rate > 0,
+    try:
+        async with async_session() as db:
+            # 파킹통장/CMA 계좌 조회 (이율이 있는 활성 계좌)
+            result = await db.execute(
+                select(Account).where(
+                    Account.account_type == AccountType.PARKING,
+                    Account.is_active.is_(True),
+                    Account.interest_rate > 0,
+                )
             )
-        )
-        assets = result.scalars().all()
+            accounts = result.scalars().all()
 
-        for asset in assets:
-            try:
-                # 중복 체크: 오늘 이미 기록된 이자가 있는지
-                existing = await db.execute(
-                    select(Income).where(
-                        and_(
-                            Income.user_id == asset.user_id,
-                            Income.target_asset_id == asset.id,
-                            Income.received_at == today,
-                            Income.type == IncomeType.INVESTMENT,
-                            Income.description.like("%일일이자%"),
+            for account in accounts:
+                try:
+                    # 현재 잔액 조회 (Entry 합계 = 유일한 진실 원천)
+                    balance = await get_account_balance(db, account.id)
+                    if balance <= 0:
+                        continue
+
+                    # 중복 체크: 오늘 이미 기록된 이자 Entry가 있는지
+                    existing = await db.execute(
+                        select(Entry).where(
+                            and_(
+                                Entry.account_id == account.id,
+                                Entry.type == EntryType.INTEREST,
+                                cast(Entry.transacted_at, Date) == today,
+                                Entry.memo.like("%일일이자%"),
+                            )
                         )
                     )
-                )
-                if existing.scalar_one_or_none():
-                    continue
+                    if existing.scalar_one_or_none():
+                        continue
 
-                info = calculate_parking_interest(
-                    principal=asset.principal,
-                    annual_rate=asset.interest_rate,
-                    tax_rate=asset.tax_rate or Decimal("15.400"),
-                )
+                    info = calculate_parking_interest(
+                        principal=balance,
+                        annual_rate=account.interest_rate,
+                        tax_rate=account.tax_rate or Decimal("15.400"),
+                    )
 
-                daily_after_tax = round(info["daily_interest"] * (1 - float(asset.tax_rate or Decimal("15.400")) / 100))
-                if daily_after_tax <= 0:
-                    continue
+                    daily_after_tax = round(
+                        info["daily_interest"]
+                        * (1 - float(account.tax_rate or Decimal("15.400")) / 100)
+                    )
+                    if daily_after_tax <= 0:
+                        continue
 
-                after_tax_decimal = Decimal(str(daily_after_tax))
+                    after_tax_decimal = Decimal(str(daily_after_tax))
 
-                # 수입 기록 (target_asset_id 연결 → 원금에 이자 반영)
-                income = Income(
-                    user_id=asset.user_id,
-                    type=IncomeType.INVESTMENT,
-                    amount=after_tax_decimal,
-                    description=f"{asset.name} 일일이자",
+                    # Entry로 이자 기록 (원금 업데이트 불필요 — Entry가 진실 원천)
+                    entry = Entry(
+                        user_id=account.user_id,
+                        account_id=account.id,
+                        type=EntryType.INTEREST,
+                        amount=after_tax_decimal,
+                        currency=account.currency,
+                        memo=f"{account.name} 일일이자",
+                        transacted_at=datetime.now(timezone.utc),
+                    )
+                    db.add(entry)
+                    count += 1
+                except Exception as e:
+                    logger.warning(
+                        f"Parking interest failed for account {account.id}: {e}"
+                    )
 
-                    target_asset_id=asset.id,
-                    received_at=today,
-                )
-                db.add(income)
+            await db.commit()
+            logger.info(
+                f"Daily parking interest recorded: {count} accounts on {today}"
+            )
 
-                # 원금에 이자 반영 (asyncmy가 float 반환할 수 있으므로 Decimal 변환)
-                current_principal = Decimal(str(asset.principal or 0))
-                asset.principal = current_principal + after_tax_decimal
-                count += 1
-            except Exception as e:
-                logger.warning(f"Parking interest failed for asset {asset.id}: {e}")
-
-        await db.commit()
-        logger.info(f"Daily parking interest recorded: {count} assets on {today}")
-
-    await engine.dispose()
-    return {"recorded": count, "date": str(today)}
+        return {"recorded": count, "date": str(today)}
+    finally:
+        await engine.dispose()
 
 
 async def _record_deposit_interest_async():
-    from sqlalchemy import select, and_
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy import select, and_, func
 
-    from app.core.config import settings
-    from app.models.asset import Asset, AssetType
-    from app.models.income import Income, IncomeType
+    from app.models.account import Account, AccountType
+    from app.models.entry import Entry, EntryType
     from app.services.interest_service import (
         calculate_deposit_interest,
         calculate_savings_interest,
     )
 
-    engine = create_async_engine(settings.DATABASE_URL)
-    async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    async_session, engine = _get_async_session()
     today = tz_today()
     count = 0
 
-    async with async_session() as db:
-        # 예금 + 적금 자산 조회 (만기 전, 이율 있는 것만)
-        result = await db.execute(
-            select(Asset).where(
-                Asset.asset_type.in_([AssetType.DEPOSIT, AssetType.SAVINGS]),
-                Asset.principal > 0,
-                Asset.interest_rate > 0,
-                Asset.maturity_date >= today,
+    try:
+        async with async_session() as db:
+            # 예금 + 적금 계좌 조회 (만기 전, 이율 있는 활성 계좌)
+            result = await db.execute(
+                select(Account).where(
+                    Account.account_type.in_(
+                        [AccountType.DEPOSIT, AccountType.SAVINGS]
+                    ),
+                    Account.is_active.is_(True),
+                    Account.interest_rate > 0,
+                    Account.maturity_date >= today,
+                )
             )
-        )
-        assets = result.scalars().all()
+            accounts = result.scalars().all()
 
-        for asset in assets:
-            try:
-                # 중복 체크: 이번 달 이미 기록된 이자가 있는지
-                month_start = today.replace(day=1)
-                existing = await db.execute(
-                    select(Income).where(
-                        and_(
-                            Income.user_id == asset.user_id,
-                            Income.target_asset_id == asset.id,
-                            Income.received_at >= month_start,
-                            Income.type == IncomeType.INVESTMENT,
-                            Income.description.like("%월별이자%"),
+            for account in accounts:
+                try:
+                    # 중복 체크: 이번 달 이미 기록된 월별이자 Entry가 있는지
+                    month_start = today.replace(day=1)
+                    existing = await db.execute(
+                        select(Entry).where(
+                            and_(
+                                Entry.account_id == account.id,
+                                Entry.type == EntryType.INTEREST,
+                                Entry.transacted_at >= datetime(
+                                    month_start.year,
+                                    month_start.month,
+                                    month_start.day,
+                                    tzinfo=timezone.utc,
+                                ),
+                                Entry.memo.like("%월별이자%"),
+                            )
                         )
                     )
-                )
-                if existing.scalar_one_or_none():
-                    continue
+                    if existing.scalar_one_or_none():
+                        continue
 
-                tax_rate = asset.tax_rate or Decimal("15.400")
+                    tax_rate = account.tax_rate or Decimal("15.400")
 
-                if asset.asset_type == AssetType.DEPOSIT:
-                    info = calculate_deposit_interest(
-                        principal=asset.principal,
-                        annual_rate=asset.interest_rate,
-                        start_date=asset.start_date,
-                        as_of_date=today,
-                        maturity_date=asset.maturity_date,
-                        interest_type=asset.interest_type.value if asset.interest_type else "simple",
-                        tax_rate=tax_rate,
+                    # 원금 계산: 이자 Entry를 제외한 모든 Entry의 합계
+                    principal_result = await db.execute(
+                        select(
+                            func.coalesce(func.sum(Entry.amount), 0)
+                        ).where(
+                            Entry.account_id == account.id,
+                            Entry.type != EntryType.INTEREST,
+                        )
                     )
-                    # 이번 달 이자 = 현재 경과 이자 - 전월 경과 이자
-                    prev_month = today.replace(day=1)
-                    prev_info = calculate_deposit_interest(
-                        principal=asset.principal,
-                        annual_rate=asset.interest_rate,
-                        start_date=asset.start_date,
-                        as_of_date=prev_month,
-                        maturity_date=asset.maturity_date,
-                        interest_type=asset.interest_type.value if asset.interest_type else "simple",
-                        tax_rate=tax_rate,
+                    principal = Decimal(str(principal_result.scalar()))
+
+                    if principal <= 0:
+                        continue
+
+                    if account.account_type == AccountType.DEPOSIT:
+                        info = calculate_deposit_interest(
+                            principal=principal,
+                            annual_rate=account.interest_rate,
+                            start_date=account.start_date,
+                            as_of_date=today,
+                            maturity_date=account.maturity_date,
+                            interest_type=(
+                                account.interest_type.value
+                                if account.interest_type
+                                else "simple"
+                            ),
+                            tax_rate=tax_rate,
+                        )
+                        prev_month = today.replace(day=1)
+                        prev_info = calculate_deposit_interest(
+                            principal=principal,
+                            annual_rate=account.interest_rate,
+                            start_date=account.start_date,
+                            as_of_date=prev_month,
+                            maturity_date=account.maturity_date,
+                            interest_type=(
+                                account.interest_type.value
+                                if account.interest_type
+                                else "simple"
+                            ),
+                            tax_rate=tax_rate,
+                        )
+                        monthly_interest = (
+                            info["accrued_interest_aftertax"]
+                            - prev_info["accrued_interest_aftertax"]
+                        )
+                    else:
+                        # 적금
+                        info = calculate_savings_interest(
+                            monthly_amount=account.monthly_amount or Decimal("0"),
+                            annual_rate=account.interest_rate,
+                            start_date=account.start_date,
+                            as_of_date=today,
+                            maturity_date=account.maturity_date,
+                            tax_rate=tax_rate,
+                            principal=principal,
+                        )
+                        prev_month = today.replace(day=1)
+                        prev_info = calculate_savings_interest(
+                            monthly_amount=account.monthly_amount or Decimal("0"),
+                            annual_rate=account.interest_rate,
+                            start_date=account.start_date,
+                            as_of_date=prev_month,
+                            maturity_date=account.maturity_date,
+                            tax_rate=tax_rate,
+                            principal=principal,
+                        )
+                        monthly_interest = (
+                            info["accrued_interest_aftertax"]
+                            - prev_info["accrued_interest_aftertax"]
+                        )
+
+                    if monthly_interest <= 0:
+                        continue
+
+                    # Entry로 월별이자 기록 (원금 업데이트 불필요)
+                    entry = Entry(
+                        user_id=account.user_id,
+                        account_id=account.id,
+                        type=EntryType.INTEREST,
+                        amount=Decimal(str(monthly_interest)),
+                        currency=account.currency,
+                        memo=f"{account.name} 월별이자",
+                        transacted_at=datetime.now(timezone.utc),
                     )
-                    monthly_interest = info["accrued_interest_aftertax"] - prev_info["accrued_interest_aftertax"]
-                else:
-                    # 적금
-                    info = calculate_savings_interest(
-                        monthly_amount=asset.monthly_amount or Decimal("0"),
-                        annual_rate=asset.interest_rate,
-                        start_date=asset.start_date,
-                        as_of_date=today,
-                        maturity_date=asset.maturity_date,
-                        tax_rate=tax_rate,
-                        principal=asset.principal,
+                    db.add(entry)
+                    count += 1
+                except Exception as e:
+                    logger.warning(
+                        f"Deposit interest failed for account {account.id}: {e}"
                     )
-                    prev_month = today.replace(day=1)
-                    prev_info = calculate_savings_interest(
-                        monthly_amount=asset.monthly_amount or Decimal("0"),
-                        annual_rate=asset.interest_rate,
-                        start_date=asset.start_date,
-                        as_of_date=prev_month,
-                        maturity_date=asset.maturity_date,
-                        tax_rate=tax_rate,
-                        principal=asset.principal,
-                    )
-                    monthly_interest = info["accrued_interest_aftertax"] - prev_info["accrued_interest_aftertax"]
 
-                if monthly_interest <= 0:
-                    continue
+            await db.commit()
+            logger.info(
+                f"Monthly deposit/savings interest recorded: {count} accounts on {today}"
+            )
 
-                # 수입 기록 (원금 변동 없이 기록만)
-                income = Income(
-                    user_id=asset.user_id,
-                    type=IncomeType.INVESTMENT,
-                    amount=Decimal(str(monthly_interest)),
-                    description=f"{asset.name} 월별이자",
-
-                    target_asset_id=asset.id,
-                    received_at=today,
-                )
-                db.add(income)
-                count += 1
-            except Exception as e:
-                logger.warning(f"Deposit interest failed for asset {asset.id}: {e}")
-
-        await db.commit()
-        logger.info(f"Monthly deposit/savings interest recorded: {count} assets on {today}")
-
-    await engine.dispose()
-    return {"recorded": count, "date": str(today)}
+        return {"recorded": count, "date": str(today)}
+    finally:
+        await engine.dispose()

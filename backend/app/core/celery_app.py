@@ -29,15 +29,11 @@ celery_app = Celery(
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
     include=[
-        "app.tasks.budget_tasks",
+        "app.tasks.schedule_tasks",
+        "app.tasks.interest_tasks",
         "app.tasks.snapshot_tasks",
-        "app.tasks.news_tasks",
         "app.tasks.market_tasks",
         "app.tasks.insight_tasks",
-        "app.tasks.interest_tasks",
-        "app.tasks.auto_transfer_tasks",
-        "app.tasks.income_tasks",
-        "app.tasks.compensation_tasks",
     ],
 )
 
@@ -52,23 +48,22 @@ celery_app.conf.update(
 
 # Celery Beat schedule
 celery_app.conf.beat_schedule = {
-    "initialize-period-fixed-expenses-daily": {
-        "task": "app.tasks.budget_tasks.initialize_period_fixed_expenses",
-        "schedule": crontab(hour=0, minute=1),  # 매일 00:01
+    "execute-daily-schedules": {
+        "task": "app.tasks.schedule_tasks.execute_daily_schedules",
+        "schedule": crontab(hour=0, minute=1),
     },
-    "deduct-installments-daily": {
-        "task": "app.tasks.budget_tasks.deduct_installments",
-        "schedule": crontab(hour=0, minute=10),  # 매일 00:10
+    "record-parking-interest-daily": {
+        "task": "app.tasks.interest_tasks.record_daily_parking_interest",
+        "schedule": crontab(hour=0, minute=5),
+    },
+    "record-deposit-interest-monthly": {
+        "task": "app.tasks.interest_tasks.record_monthly_deposit_interest",
+        "schedule": crontab(hour=0, minute=15, day_of_month=1),
     },
     "take-asset-snapshot-daily": {
         "task": "app.tasks.snapshot_tasks.take_daily_snapshot",
-        "schedule": crontab(hour=23, minute=55),  # 매일 23:55
+        "schedule": crontab(hour=23, minute=55),
     },
-    "collect-and-process-news": {
-        "task": "app.tasks.news_tasks.collect_and_process_news",
-        "schedule": crontab(hour="8,17", minute=50),  # 하루 2회: 수집 → LLM 처리 → 클러스터링 통합
-    },
-    # 시세 캐시 워밍: 한국장 마감(15:35), 미국장 마감(06:05 KST), 자정
     "warm-market-cache-kr-close": {
         "task": "app.tasks.market_tasks.warm_market_cache",
         "schedule": crontab(hour=15, minute=35),
@@ -83,26 +78,6 @@ celery_app.conf.beat_schedule = {
     },
     "generate-daily-insights": {
         "task": "app.tasks.insight_tasks.generate_all_user_insights",
-        "schedule": crontab(hour=6, minute=0),  # 매일 06:00
-    },
-    "record-parking-interest-daily": {
-        "task": "app.tasks.interest_tasks.record_daily_parking_interest",
-        "schedule": crontab(hour=0, minute=5),  # 매일 00:05
-    },
-    "record-deposit-interest-monthly": {
-        "task": "app.tasks.interest_tasks.record_monthly_deposit_interest",
-        "schedule": crontab(hour=0, minute=15, day_of_month=1),  # 매월 1일 00:15
-    },
-    "execute-auto-transfers-daily": {
-        "task": "app.tasks.auto_transfer_tasks.execute_auto_transfers",
-        "schedule": crontab(hour=9, minute=0),  # 매일 09:00
-    },
-    "generate-recurring-incomes-daily": {
-        "task": "app.tasks.income_tasks.generate_recurring_incomes",
-        "schedule": crontab(hour=0, minute=3),  # 매일 00:03
-    },
-    "cleanup-old-news-weekly": {
-        "task": "app.tasks.news_tasks.cleanup_old_news",
-        "schedule": crontab(hour=3, minute=0, day_of_week=0),  # 매주 일요일 03:00
+        "schedule": crontab(hour=6, minute=0),
     },
 }
