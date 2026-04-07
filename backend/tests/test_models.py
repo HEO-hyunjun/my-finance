@@ -6,6 +6,7 @@ from app.models.account import Account, AccountType
 from app.models.category import Category, CategoryDirection
 from app.models.entry import Entry, EntryGroup, EntryType, GroupType
 from app.models.security import Security, SecurityPrice, AssetClass, DataSource
+from app.models.recurring_schedule import RecurringSchedule, ScheduleType
 
 
 async def test_create_cash_account(db):
@@ -147,3 +148,74 @@ async def test_create_category(db):
     await db.flush()
     assert cat.is_active is True
     assert cat.direction == CategoryDirection.EXPENSE
+
+
+async def test_create_recurring_expense_schedule(db):
+    """고정비 스케줄 생성 (종료일 없음 = 무기한)"""
+    user_id = uuid.uuid4()
+    src = Account(
+        user_id=user_id, account_type=AccountType.CASH, name="급여통장", currency="KRW"
+    )
+    db.add(src)
+    await db.flush()
+
+    schedule = RecurringSchedule(
+        user_id=user_id,
+        type=ScheduleType.EXPENSE,
+        name="월세",
+        amount=Decimal("1350000"),
+        currency="KRW",
+        schedule_day=15,
+        start_date=date(2026, 1, 1),
+        source_account_id=src.id,
+    )
+    db.add(schedule)
+    await db.flush()
+    assert schedule.is_active is True
+    assert schedule.end_date is None
+    assert schedule.total_count is None
+
+
+async def test_create_installment_schedule(db):
+    """할부 스케줄 (total_count로 종료 조건)"""
+    schedule = RecurringSchedule(
+        user_id=uuid.uuid4(),
+        type=ScheduleType.EXPENSE,
+        name="노트북 할부",
+        amount=Decimal("150000"),
+        schedule_day=20,
+        start_date=date(2026, 1, 1),
+        total_count=12,
+        executed_count=0,
+    )
+    db.add(schedule)
+    await db.flush()
+    assert schedule.total_count == 12
+
+
+async def test_create_transfer_schedule(db):
+    """자동이체 스케줄"""
+    user_id = uuid.uuid4()
+    src = Account(
+        user_id=user_id, account_type=AccountType.CASH, name="급여통장", currency="KRW"
+    )
+    dst = Account(
+        user_id=user_id, account_type=AccountType.PARKING, name="CMA", currency="KRW"
+    )
+    db.add_all([src, dst])
+    await db.flush()
+
+    schedule = RecurringSchedule(
+        user_id=user_id,
+        type=ScheduleType.TRANSFER,
+        name="CMA 자동이체",
+        amount=Decimal("500000"),
+        schedule_day=11,
+        start_date=date(2026, 1, 1),
+        source_account_id=src.id,
+        target_account_id=dst.id,
+    )
+    db.add(schedule)
+    await db.flush()
+    assert schedule.source_account_id == src.id
+    assert schedule.target_account_id == dst.id

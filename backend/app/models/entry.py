@@ -80,7 +80,7 @@ class Entry(Base):
     exchange_rate: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
     memo: Mapped[str | None] = mapped_column(Text, nullable=True)
     recurring_schedule_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid, nullable=True,
+        Uuid, ForeignKey("recurring_schedules.id", ondelete="SET NULL"), nullable=True,
     )
     transacted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
