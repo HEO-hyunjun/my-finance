@@ -1,9 +1,11 @@
 """자산 분석 서브에이전트.
 
 포트폴리오, 보유 자산, 거래 내역, 시세, 리밸런싱을 분석합니다.
+
+TODO: Phase 2 - asset_service, transaction_service를
+새 스키마(Account, Entry) 기반 서비스로 교체 예정.
 """
 
-import json
 import uuid
 from typing import Any
 
@@ -122,37 +124,16 @@ class AssetAgent(SubAgent):
         market: MarketService,
     ) -> Any:
         if tool_name == "get_asset_summary":
-            from app.services.asset_service import get_asset_summary
-
-            summary = await get_asset_summary(db, user_id, market)
-            return json.loads(summary.model_dump_json())
+            # TODO: Phase 2 - rewrite for new schema (Account, Entry)
+            return {
+                "message": "자산 요약 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         if tool_name == "get_transactions":
-            from datetime import date as date_type
-
-            from app.services.transaction_service import get_transactions
-
-            start = (
-                date_type.fromisoformat(args["start_date"])
-                if args.get("start_date")
-                else None
-            )
-            end = (
-                date_type.fromisoformat(args["end_date"])
-                if args.get("end_date")
-                else None
-            )
-
-            tx_resp = await get_transactions(
-                db,
-                user_id,
-                asset_type=args.get("asset_type"),
-                tx_type=args.get("tx_type"),
-                start_date=start,
-                end_date=end,
-                per_page=min(args.get("per_page", 20), 50),
-            )
-            return json.loads(tx_resp.model_dump_json())
+            # TODO: Phase 2 - rewrite for new schema (Entry)
+            return {
+                "message": "거래 내역 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         if tool_name == "get_market_price":
             price_data = await market.get_price(args["symbol"], asset_type=None)
@@ -175,13 +156,9 @@ class AssetAgent(SubAgent):
             }
 
         if tool_name == "get_rebalancing_analysis":
-            from app.services.asset_service import get_asset_summary
-            from app.services.portfolio_service import get_rebalancing_analysis
-
-            summary = await get_asset_summary(db, user_id, market)
-            analysis = await get_rebalancing_analysis(
-                db, user_id, breakdown=summary.breakdown,
-            )
-            return json.loads(analysis.model_dump_json())
+            # TODO: Phase 2 - rewrite for new schema (Account, Entry)
+            return {
+                "message": "리밸런싱 분석 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         return {"error": f"Unknown tool: {tool_name}"}

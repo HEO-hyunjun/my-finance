@@ -1,5 +1,5 @@
 import uuid
-from datetime import date, timedelta
+from datetime import timedelta
 
 from app.core.tz import today as tz_today
 from decimal import Decimal

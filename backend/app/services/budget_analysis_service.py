@@ -10,7 +10,7 @@ from app.models.budget import (
     BudgetCategory, Expense, FixedExpense, Installment,
     BudgetCarryoverSetting,
 )
-from app.models.income import Income, RecurringIncome
+from app.models.income import RecurringIncome
 from app.schemas.budget_analysis import (
     BudgetAnalysisResponse,
     CarryoverPrediction,

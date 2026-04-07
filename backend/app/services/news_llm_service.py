@@ -7,7 +7,7 @@ from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.tz import APP_TZ, now as tz_now, to_utc
+from app.core.tz import now as tz_now, to_utc
 from app.models.news import NewsArticleDB, NewsCluster
 from app.schemas.news import NewsArticle
 

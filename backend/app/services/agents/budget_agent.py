@@ -1,6 +1,9 @@
 """가계부 분석 서브에이전트.
 
 예산, 지출, 수입, 고정비, 할부금을 분석합니다.
+
+TODO: Phase 2 - budget_service, income_service를
+새 스키마(Entry, Category) 기반 서비스로 교체 예정.
 """
 
 import json
@@ -130,17 +133,10 @@ class BudgetAgent(SubAgent):
         market: MarketService,
     ) -> Any:
         if tool_name == "get_budget_status":
-            from sqlalchemy import select as sa_select
-
-            from app.models.user import User as UserModel
-            from app.services.budget_service import get_budget_summary
-
-            stmt = sa_select(UserModel.salary_day).where(UserModel.id == user_id)
-            row = await db.execute(stmt)
-            salary_day = row.scalar_one_or_none() or 1
-
-            summary = await get_budget_summary(db, user_id, salary_day=salary_day)
-            return json.loads(summary.model_dump_json())
+            # TODO: Phase 2 - rewrite for new schema (Entry, Category)
+            return {
+                "message": "예산 현황 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         if tool_name == "get_budget_analysis":
             from app.services.budget_analysis_service import get_budget_analysis
@@ -149,66 +145,27 @@ class BudgetAgent(SubAgent):
             return json.loads(analysis.model_dump_json())
 
         if tool_name == "get_expense_list":
-            from datetime import date as date_type
-
-            from app.services.budget_service import get_expenses
-
-            start = (
-                date_type.fromisoformat(args["start_date"])
-                if args.get("start_date")
-                else None
-            )
-            end = (
-                date_type.fromisoformat(args["end_date"])
-                if args.get("end_date")
-                else None
-            )
-
-            expense_resp = await get_expenses(
-                db,
-                user_id,
-                start_date=start,
-                end_date=end,
-                per_page=min(args.get("per_page", 20), 50),
-            )
-            return json.loads(expense_resp.model_dump_json())
+            # TODO: Phase 2 - rewrite for new schema (Entry)
+            return {
+                "message": "지출 내역 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         if tool_name == "get_income_list":
-            from datetime import date as date_type
-
-            from app.services.income_service import get_incomes
-
-            start = (
-                date_type.fromisoformat(args["start_date"])
-                if args.get("start_date")
-                else None
-            )
-            end = (
-                date_type.fromisoformat(args["end_date"])
-                if args.get("end_date")
-                else None
-            )
-
-            income_resp = await get_incomes(
-                db,
-                user_id,
-                income_type=args.get("income_type"),
-                start_date=start,
-                end_date=end,
-                per_page=min(args.get("per_page", 20), 50),
-            )
-            return json.loads(income_resp.model_dump_json())
+            # TODO: Phase 2 - rewrite for new schema (Entry)
+            return {
+                "message": "수입 내역 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         if tool_name == "get_fixed_expenses":
-            from app.services.budget_service import get_fixed_expenses
-
-            fixed_resp = await get_fixed_expenses(db, user_id)
-            return [json.loads(f.model_dump_json()) for f in fixed_resp]
+            # TODO: Phase 2 - rewrite for new schema
+            return {
+                "message": "고정비 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         if tool_name == "get_installments":
-            from app.services.budget_service import get_installments
-
-            inst_resp = await get_installments(db, user_id)
-            return [json.loads(i.model_dump_json()) for i in inst_resp]
+            # TODO: Phase 2 - rewrite for new schema
+            return {
+                "message": "할부금 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+            }
 
         return {"error": f"Unknown tool: {tool_name}"}

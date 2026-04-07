@@ -3,7 +3,6 @@
 DB의 뉴스를 검색하고, 클러스터를 분석하며, 필요시 실시간 검색합니다.
 """
 
-import json
 import uuid
 from typing import Any
 

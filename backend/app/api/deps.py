@@ -5,17 +5,10 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.redis import get_redis
 from app.core.security import decode_token
 from app.models.user import User
-from app.services.news_service import NewsService
 
 security = HTTPBearer()
-
-
-async def get_news_service() -> NewsService:
-    redis = await get_redis()
-    return NewsService(redis)
 
 
 async def get_current_user(
