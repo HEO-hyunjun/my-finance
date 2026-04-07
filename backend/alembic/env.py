@@ -24,6 +24,14 @@ from app.models.settings import ApiKey, LlmSetting  # noqa: F401
 from app.models.conversation import Conversation  # noqa: F401
 from app.models.news import NewsArticleDB, NewsCluster  # noqa: F401
 
+# New v2 models
+from app.models.account import Account  # noqa: F401
+from app.models.security import Security, SecurityPrice  # noqa: F401
+from app.models.entry import Entry, EntryGroup  # noqa: F401
+from app.models.category import Category  # noqa: F401
+from app.models.recurring_schedule import RecurringSchedule  # noqa: F401
+from app.models.portfolio import AccountSnapshot  # noqa: F401
+
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
 

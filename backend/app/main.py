@@ -12,6 +12,12 @@ from app.api.v1.endpoints import (
 )
 from app.api.v1.endpoints import settings as settings_endpoints
 
+# New v2 routers
+from app.api.v1.endpoints import accounts as accounts_router
+from app.api.v1.endpoints import entries as entries_router
+from app.api.v1.endpoints import categories as categories_router
+from app.api.v1.endpoints import schedules as schedules_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -78,6 +84,12 @@ app.include_router(carryover.router, prefix="/api/v1")
 app.include_router(portfolio.router, prefix="/api/v1")
 app.include_router(transfers.router, prefix="/api/v1")
 app.include_router(settings_endpoints.router, prefix="/api/v1")
+
+# New v2 routers
+app.include_router(accounts_router.router, prefix="/api/v1")
+app.include_router(entries_router.router, prefix="/api/v1")
+app.include_router(categories_router.router, prefix="/api/v1")
+app.include_router(schedules_router.router, prefix="/api/v1")
 
 
 @app.get("/api/health")
