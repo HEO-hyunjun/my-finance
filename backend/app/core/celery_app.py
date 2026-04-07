@@ -1,6 +1,28 @@
+import logging
+
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import after_setup_logger
 from app.core.config import settings
+
+
+@after_setup_logger.connect
+def setup_app_loggers(logger, loglevel, **kwargs):
+    """Celery worker 시작 후 앱 로거에 핸들러를 설정.
+
+    Celery는 자체 로거만 설정하고 앱 로거(app.tasks.*)는 건드리지 않아
+    logger.info()가 출력되지 않는 문제를 해결한다.
+    """
+    app_logger = logging.getLogger("app")
+    app_logger.setLevel(loglevel)
+    if not app_logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setLevel(loglevel)
+        formatter = logging.Formatter(
+            "[%(asctime)s: %(levelname)s/%(processName)s] %(message)s"
+        )
+        handler.setFormatter(formatter)
+        app_logger.addHandler(handler)
 
 celery_app = Celery(
     "myfinance",

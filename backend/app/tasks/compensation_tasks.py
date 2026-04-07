@@ -44,7 +44,6 @@ async def _compensate_all():
             results["auto_transfers"] = await _compensate_auto_transfers(db, today)
             results["fixed_expenses"] = await _compensate_fixed_expenses(db, today)
             results["installments"] = await _compensate_installments(db, today)
-            results["parking_principal"] = await _reconcile_parking_principal(db)
             results["parking_interest"] = await _compensate_parking_interest(db, today)
             await db.commit()
     finally:
