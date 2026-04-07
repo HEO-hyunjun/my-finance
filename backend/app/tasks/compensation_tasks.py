@@ -44,6 +44,7 @@ async def _compensate_all():
             results["auto_transfers"] = await _compensate_auto_transfers(db, today)
             results["fixed_expenses"] = await _compensate_fixed_expenses(db, today)
             results["installments"] = await _compensate_installments(db, today)
+            results["parking_principal"] = await _reconcile_parking_principal(db)
             results["parking_interest"] = await _compensate_parking_interest(db, today)
             await db.commit()
     finally:
@@ -268,7 +269,69 @@ async def _compensate_installments(db, today: date) -> dict:
     return {"deducted": deducted}
 
 
-# ── 5. 파킹이자 백필 ──
+# ── 5. principal 정합성 보정 (파킹/예금/적금) ──
+
+async def _reconcile_parking_principal(db) -> dict:
+    """파킹/예금/적금의 principal을 트랜잭션 기반으로 보정.
+
+    태스크 및 서비스에서 principal을 업데이트하지 않던 버그로 인해
+    이체·수입 입금/출금이 principal에 반영되지 않았던 기존 거래를 보정한다.
+    이자 기록(일일이자)은 이미 principal에 반영됐으므로 제외.
+    """
+    from sqlalchemy import select, func, and_
+    from app.models.asset import Asset, AssetType
+    from app.models.transaction import Transaction, TransactionType
+    from app.models.income import Income, IncomeType
+
+    _TARGET_TYPES = [AssetType.PARKING, AssetType.DEPOSIT, AssetType.SAVINGS]
+
+    result = await db.execute(
+        select(Asset).where(Asset.asset_type.in_(_TARGET_TYPES))
+    )
+    assets = result.scalars().all()
+
+    adjusted = 0
+    for asset in assets:
+        # 이자 수입으로 이미 principal에 반영된 금액 (일일이자 Income)
+        interest_stmt = select(func.coalesce(func.sum(Income.amount), 0)).where(
+            and_(
+                Income.target_asset_id == asset.id,
+                Income.type == IncomeType.INVESTMENT,
+                Income.description.like("%일일이자%"),
+            )
+        )
+        interest_total = Decimal(str((await db.execute(interest_stmt)).scalar() or 0))
+
+        # 전체 트랜잭션 기반 net (deposit - withdraw)
+        deposit_stmt = select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
+            Transaction.asset_id == asset.id,
+            Transaction.type == TransactionType.DEPOSIT,
+        )
+        withdraw_stmt = select(func.coalesce(func.sum(Transaction.quantity), 0)).where(
+            Transaction.asset_id == asset.id,
+            Transaction.type == TransactionType.WITHDRAW,
+        )
+        deposit_total = Decimal(str((await db.execute(deposit_stmt)).scalar() or 0))
+        withdraw_total = Decimal(str((await db.execute(withdraw_stmt)).scalar() or 0))
+
+        # 이체로 인한 순변동 = 전체 트랜잭션 net - 이자로 이미 반영된 분
+        transfer_net = (deposit_total - withdraw_total) - interest_total
+
+        if transfer_net == 0:
+            continue
+
+        current = Decimal(str(asset.principal or 0))
+        asset.principal = current + transfer_net
+        adjusted += 1
+        logger.info(
+            f"[보상] principal 보정: {asset.name} ({asset.asset_type.value}) "
+            f"{current} → {asset.principal} (이체 net: {transfer_net})"
+        )
+
+    return {"adjusted": adjusted}
+
+
+# ── 6. 파킹이자 백필 ──
 
 async def _compensate_parking_interest(db, today: date) -> dict:
     """누락된 파킹이자를 마지막 기록일 다음날부터 오늘까지 순차 계산.

@@ -94,6 +94,13 @@ async def execute_transfer(
     )
     db.add(withdraw_tx)
     db.add(deposit_tx)
+
+    # 파킹통장 principal 동기화 (이자 계산에 사용)
+    if source.asset_type.value == "parking" and source.principal is not None:
+        source.principal = Decimal(str(source.principal)) - amount
+    if target.asset_type.value == "parking" and target.principal is not None:
+        target.principal = Decimal(str(target.principal)) + deposit_amount
+
     await db.commit()
 
     result = {

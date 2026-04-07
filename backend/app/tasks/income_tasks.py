@@ -27,9 +27,17 @@ def generate_recurring_incomes():
 
 
 async def _generate_recurring_incomes_async():
+    from datetime import datetime, timezone
+    from decimal import Decimal
+
     from sqlalchemy import select, extract
 
+    from app.models.asset import Asset
     from app.models.income import Income, RecurringIncome
+    from app.models.transaction import Transaction, TransactionType
+
+    # principal 추적 대상 자산 유형
+    _PRINCIPAL_TYPES = {"parking", "deposit", "savings"}
 
     async_session, engine = _get_async_session()
     today = tz_today()
@@ -57,6 +65,7 @@ async def _generate_recurring_incomes_async():
 
                 _, last_day = calendar.monthrange(today.year, today.month)
                 recv_day = min(tmpl.recurring_day, last_day)
+                recv_date = date(today.year, today.month, recv_day)
 
                 new_income = Income(
                     user_id=tmpl.user_id,
@@ -65,9 +74,28 @@ async def _generate_recurring_incomes_async():
                     description=tmpl.description,
                     recurring_income_id=tmpl.id,
                     target_asset_id=tmpl.target_asset_id,
-                    received_at=date(today.year, today.month, recv_day),
+                    received_at=recv_date,
                 )
                 db.add(new_income)
+
+                # target_asset principal 동기화 + DEPOSIT 거래 생성
+                if tmpl.target_asset_id:
+                    asset = await db.get(Asset, tmpl.target_asset_id)
+                    if asset:
+                        if asset.asset_type.value in _PRINCIPAL_TYPES and asset.principal is not None:
+                            asset.principal = Decimal(str(asset.principal)) + Decimal(str(tmpl.amount))
+
+                        db.add(Transaction(
+                            user_id=tmpl.user_id,
+                            asset_id=tmpl.target_asset_id,
+                            type=TransactionType.DEPOSIT,
+                            quantity=tmpl.amount,
+                            unit_price=Decimal("1"),
+                            currency="KRW",
+                            memo=f"[수입] {tmpl.description}",
+                            transacted_at=datetime(recv_date.year, recv_date.month, recv_date.day, tzinfo=timezone.utc),
+                        ))
+
                 created += 1
 
             await db.commit()

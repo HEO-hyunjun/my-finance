@@ -16,6 +16,8 @@ from app.schemas.transaction import (
 
 # 현금성 자산 (입금/출금 가능, 매수 출처로 사용 가능)
 CASH_LIKE_TYPES = {AssetType.CASH_KRW, AssetType.CASH_USD, AssetType.PARKING}
+# principal 추적 대상 (이자 계산에 사용)
+_PRINCIPAL_TYPES = {AssetType.PARKING, AssetType.DEPOSIT, AssetType.SAVINGS}
 
 
 def _to_response(
@@ -108,6 +110,10 @@ async def create_transaction(
         )
         db.add(withdraw_tx)
 
+        # source_asset principal 차감 (파킹/예금/적금)
+        if source_asset.asset_type in _PRINCIPAL_TYPES and source_asset.principal is not None:
+            source_asset.principal = Decimal(str(source_asset.principal)) - withdraw_amount
+
     tx = Transaction(
         user_id=user_id,
         asset_id=data.asset_id,
@@ -122,6 +128,11 @@ async def create_transaction(
         transacted_at=data.transacted_at,
     )
     db.add(tx)
+
+    # target_asset principal 반영 (입금 시 파킹/예금/적금)
+    if data.type == TransactionType.DEPOSIT and asset.asset_type in _PRINCIPAL_TYPES and asset.principal is not None:
+        asset.principal = Decimal(str(asset.principal)) + data.quantity
+
     await db.commit()
     await db.refresh(tx)
     return _to_response(tx, asset, source_asset_name)

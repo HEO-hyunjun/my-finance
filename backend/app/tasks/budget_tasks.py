@@ -1,12 +1,15 @@
 import asyncio
 import logging
-from datetime import date
+from decimal import Decimal
 
 from app.core.tz import today as tz_today
 
 from app.core.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+# principal 추적 대상 자산 유형
+_PRINCIPAL_TYPES = {"parking", "deposit", "savings"}
 
 
 def _get_async_session():
@@ -28,6 +31,7 @@ def initialize_period_fixed_expenses():
 
 async def _initialize_period_fixed_expenses_async():
     from sqlalchemy import select
+    from app.models.asset import Asset
     from app.models.budget import FixedExpense, Expense
     from app.models.user import User
     from app.services.budget_period import get_budget_period
@@ -71,6 +75,13 @@ async def _initialize_period_fixed_expenses_async():
                     spent_at=period_start,
                 )
                 db.add(expense)
+
+                # source_asset principal 차감
+                if fe.source_asset_id:
+                    asset = await db.get(Asset, fe.source_asset_id)
+                    if asset and asset.asset_type.value in _PRINCIPAL_TYPES and asset.principal is not None:
+                        asset.principal = Decimal(str(asset.principal)) - Decimal(str(fe.amount))
+
                 total_count += 1
 
         await db.commit()
@@ -90,6 +101,7 @@ def deduct_installments():
 
 async def _deduct_installments_async():
     from sqlalchemy import select
+    from app.models.asset import Asset
     from app.models.budget import Installment, Expense
 
     async_session, engine = _get_async_session()
@@ -129,6 +141,12 @@ async def _deduct_installments_async():
                 spent_at=today,
             )
             db.add(expense)
+
+            # source_asset principal 차감
+            if inst.source_asset_id:
+                asset = await db.get(Asset, inst.source_asset_id)
+                if asset and asset.asset_type.value in _PRINCIPAL_TYPES and asset.principal is not None:
+                    asset.principal = Decimal(str(asset.principal)) - Decimal(str(inst.monthly_amount))
 
             inst.paid_installments += 1
             if inst.paid_installments >= inst.total_installments:
