@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from datetime import date
 
 from app.core.tz import today as tz_today
 from decimal import Decimal
@@ -75,11 +74,13 @@ async def _record_parking_interest_async():
                 if daily_after_tax <= 0:
                     continue
 
+                after_tax_decimal = Decimal(str(daily_after_tax))
+
                 # 수입 기록 (target_asset_id 연결 → 원금에 이자 반영)
                 income = Income(
                     user_id=asset.user_id,
                     type=IncomeType.INVESTMENT,
-                    amount=Decimal(str(daily_after_tax)),
+                    amount=after_tax_decimal,
                     description=f"{asset.name} 일일이자",
 
                     target_asset_id=asset.id,
@@ -87,8 +88,9 @@ async def _record_parking_interest_async():
                 )
                 db.add(income)
 
-                # 원금에 이자 반영
-                asset.principal = (asset.principal or Decimal("0")) + Decimal(str(daily_after_tax))
+                # 원금에 이자 반영 (asyncmy가 float 반환할 수 있으므로 Decimal 변환)
+                current_principal = Decimal(str(asset.principal or 0))
+                asset.principal = current_principal + after_tax_decimal
                 count += 1
             except Exception as e:
                 logger.warning(f"Parking interest failed for asset {asset.id}: {e}")

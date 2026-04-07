@@ -26,7 +26,6 @@ celery_app.conf.update(
     accept_content=["json"],
     result_serializer="json",
     task_track_started=True,
-    worker_hijack_root_logger=False,
 )
 
 # Celery Beat schedule
