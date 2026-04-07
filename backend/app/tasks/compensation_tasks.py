@@ -8,7 +8,7 @@
 import asyncio
 import calendar
 import logging
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 from app.core.celery_app import celery_app
@@ -44,6 +44,7 @@ async def _compensate_all():
             results["auto_transfers"] = await _compensate_auto_transfers(db, today)
             results["fixed_expenses"] = await _compensate_fixed_expenses(db, today)
             results["installments"] = await _compensate_installments(db, today)
+            results["parking_interest"] = await _compensate_parking_interest(db, today)
             await db.commit()
     finally:
         await engine.dispose()
@@ -265,3 +266,85 @@ async def _compensate_installments(db, today: date) -> dict:
 
     logger.info(f"[보상] 할부: {deducted}건 차감")
     return {"deducted": deducted}
+
+
+# ── 5. 파킹이자 백필 ──
+
+async def _compensate_parking_interest(db, today: date) -> dict:
+    """누락된 파킹이자를 마지막 기록일 다음날부터 오늘까지 순차 계산.
+
+    복리 구조이므로 날짜 순서대로 원금에 이자를 반영해야 한다.
+    다른 보상(자동이체 등)이 원금을 변경할 수 있어 가장 마지막에 실행.
+    """
+    from sqlalchemy import select, func, and_
+    from app.models.asset import Asset, AssetType
+    from app.models.income import Income, IncomeType
+    from app.services.interest_service import calculate_parking_interest
+
+    result = await db.execute(
+        select(Asset).where(
+            Asset.asset_type == AssetType.PARKING,
+            Asset.principal > 0,
+            Asset.interest_rate > 0,
+        )
+    )
+    assets = result.scalars().all()
+
+    total_created = 0
+    for asset in assets:
+        try:
+            # 마지막 이자 기록일 조회
+            last_stmt = select(func.max(Income.received_at)).where(
+                and_(
+                    Income.user_id == asset.user_id,
+                    Income.target_asset_id == asset.id,
+                    Income.type == IncomeType.INVESTMENT,
+                    Income.description.like("%일일이자%"),
+                )
+            )
+            last_date = (await db.execute(last_stmt)).scalar_one_or_none()
+
+            if last_date is None or last_date >= today:
+                continue
+
+            # 마지막 기록 다음날부터 오늘까지 순차 계산
+            current_principal = Decimal(str(asset.principal or 0))
+            current_date = last_date + timedelta(days=1)
+            asset_created = 0
+
+            while current_date <= today:
+                info = calculate_parking_interest(
+                    principal=current_principal,
+                    annual_rate=asset.interest_rate,
+                    tax_rate=asset.tax_rate or Decimal("15.400"),
+                )
+
+                tax_rate_float = float(asset.tax_rate or Decimal("15.400")) / 100
+                daily_after_tax = round(info["daily_interest"] * (1 - tax_rate_float))
+                if daily_after_tax > 0:
+                    after_tax_decimal = Decimal(str(daily_after_tax))
+
+                    db.add(Income(
+                        user_id=asset.user_id,
+                        type=IncomeType.INVESTMENT,
+                        amount=after_tax_decimal,
+                        description=f"{asset.name} 일일이자",
+                        target_asset_id=asset.id,
+                        received_at=current_date,
+                    ))
+
+                    current_principal += after_tax_decimal
+                    asset_created += 1
+
+                current_date += timedelta(days=1)
+
+            # 최종 원금 반영
+            if asset_created > 0:
+                asset.principal = current_principal
+                total_created += asset_created
+
+        except Exception as e:
+            logger.warning(f"[보상] 파킹이자 백필 실패: asset {asset.id}: {e}")
+
+    logger.info(f"[보상] 파킹이자: {total_created}건 백필 ({len(assets)}개 자산)")
+    return {"created": total_created, "assets": len(assets)}
