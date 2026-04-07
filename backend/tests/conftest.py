@@ -3,6 +3,9 @@ import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from app.core.database import Base
 
+import app.models.account  # noqa: F401
+import app.models.security  # noqa: F401
+
 
 @pytest.fixture(scope="session")
 def event_loop():
