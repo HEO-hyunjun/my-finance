@@ -1,8 +1,10 @@
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from app.models.account import Account, AccountType
+from app.models.category import Category, CategoryDirection
+from app.models.entry import Entry, EntryGroup, EntryType, GroupType
 from app.models.security import Security, SecurityPrice, AssetClass, DataSource
 
 
@@ -53,3 +55,95 @@ async def test_create_security_with_price(db):
     db.add(price)
     await db.flush()
     assert price.security_id == sec.id
+
+
+async def test_create_income_entry(db):
+    user_id = uuid.uuid4()
+    account = Account(user_id=user_id, account_type=AccountType.CASH, name="급여통장", currency="KRW")
+    db.add(account)
+    await db.flush()
+
+    entry = Entry(
+        user_id=user_id,
+        account_id=account.id,
+        type=EntryType.INCOME,
+        amount=Decimal("3000000"),
+        currency="KRW",
+        transacted_at=datetime.now(timezone.utc),
+    )
+    db.add(entry)
+    await db.flush()
+    assert entry.amount == Decimal("3000000")
+    assert entry.security_id is None
+
+
+async def test_create_transfer_entry_group(db):
+    user_id = uuid.uuid4()
+    src = Account(user_id=user_id, account_type=AccountType.CASH, name="급여통장", currency="KRW")
+    dst = Account(user_id=user_id, account_type=AccountType.PARKING, name="CMA", currency="KRW")
+    db.add_all([src, dst])
+    await db.flush()
+
+    group = EntryGroup(user_id=user_id, group_type=GroupType.TRANSFER, description="급여통장 → CMA")
+    db.add(group)
+    await db.flush()
+
+    now = datetime.now(timezone.utc)
+    out_entry = Entry(
+        user_id=user_id, account_id=src.id, entry_group_id=group.id,
+        type=EntryType.TRANSFER_OUT, amount=Decimal("-1350000"), currency="KRW",
+        transacted_at=now,
+    )
+    in_entry = Entry(
+        user_id=user_id, account_id=dst.id, entry_group_id=group.id,
+        type=EntryType.TRANSFER_IN, amount=Decimal("1350000"), currency="KRW",
+        transacted_at=now,
+    )
+    db.add_all([out_entry, in_entry])
+    await db.flush()
+
+    assert out_entry.entry_group_id == in_entry.entry_group_id
+    assert out_entry.amount + in_entry.amount == Decimal("0")
+
+
+async def test_create_stock_buy_entry(db):
+    user_id = uuid.uuid4()
+    account = Account(user_id=user_id, account_type=AccountType.INVESTMENT, name="ISA", currency="KRW")
+    db.add(account)
+    await db.flush()
+
+    sec = Security(
+        symbol="005930", name="삼성전자", currency="KRW",
+        asset_class=AssetClass.EQUITY_KR, data_source=DataSource.YAHOO,
+    )
+    db.add(sec)
+    await db.flush()
+
+    entry = Entry(
+        user_id=user_id, account_id=account.id,
+        security_id=sec.id,
+        type=EntryType.BUY,
+        amount=Decimal("-500000"),
+        currency="KRW",
+        quantity=Decimal("10"),
+        unit_price=Decimal("50000"),
+        transacted_at=datetime.now(timezone.utc),
+    )
+    db.add(entry)
+    await db.flush()
+    assert entry.quantity == Decimal("10")
+    assert entry.amount == Decimal("-500000")
+
+
+async def test_create_category(db):
+    cat = Category(
+        user_id=uuid.uuid4(),
+        direction=CategoryDirection.EXPENSE,
+        name="식비",
+        icon="🍽",
+        color="#FF5733",
+    )
+    db.add(cat)
+    await db.flush()
+    assert cat.is_active is True
+    assert cat.direction == CategoryDirection.EXPENSE

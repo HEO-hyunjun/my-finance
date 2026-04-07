@@ -4,7 +4,7 @@ from decimal import Decimal
 from enum import Enum as PyEnum
 
 from sqlalchemy import String, DateTime, Date, Enum, Numeric, Uuid, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -53,5 +53,4 @@ class Account(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    # NOTE: Entry relationship will be added in Task 3 when Entry model is created
-    # entries: Mapped[list["Entry"]] = relationship(back_populates="account", cascade="all, delete-orphan")
+    entries: Mapped[list["Entry"]] = relationship(back_populates="account", cascade="all, delete-orphan")  # noqa: F821

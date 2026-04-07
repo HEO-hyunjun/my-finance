@@ -5,6 +5,8 @@ from app.core.database import Base
 
 import app.models.account  # noqa: F401
 import app.models.security  # noqa: F401
+import app.models.entry  # noqa: F401
+import app.models.category  # noqa: F401
 
 
 @pytest.fixture(scope="session")
