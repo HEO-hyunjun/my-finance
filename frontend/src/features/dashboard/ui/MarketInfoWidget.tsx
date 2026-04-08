@@ -34,7 +34,7 @@ function MarketInfoWidgetInner({ market }: Props) {
             <span className="text-sm text-muted-foreground">USD/KRW</span>
             <div className="flex items-center gap-2 text-right">
               <span className="text-sm font-bold">{formatKRW(exchange_rate.price)}</span>
-              <ChangeIndicator change={exchange_rate.change} />
+              <ChangeIndicator change={exchange_rate.change ?? undefined} />
             </div>
           </div>
 
@@ -43,7 +43,7 @@ function MarketInfoWidgetInner({ market }: Props) {
               <span className="text-sm text-muted-foreground">금 (g)</span>
               <div className="flex items-center gap-2 text-right">
                 <span className="text-sm font-bold">{formatKRW(gold_price.price)}</span>
-                <ChangeIndicator change={gold_price.change} />
+                <ChangeIndicator change={gold_price.change ?? undefined} />
               </div>
             </div>
           )}

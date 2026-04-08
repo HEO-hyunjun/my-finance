@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useCategories } from '@/features/budget/api';
+import { useCategories } from '@/features/categories/api';
 import { useAccounts } from '@/features/accounts/api';
 import { useCarryoverSettings, useUpsertCarryoverSetting } from '../api/carryover';
 import type { CarryoverType, CarryoverSettingCreate as CarryoverSettingRequest } from '@/shared/types/carryover';
@@ -262,10 +262,10 @@ export function CarryoverSection() {
                   categoryId={category.id}
                   categoryName={category.name}
                   currentType={setting?.carryover_type ?? 'expire'}
-                  currentLimit={setting?.carryover_limit}
-                  currentSourceAssetId={setting?.source_asset_id}
-                  currentAssetId={setting?.target_asset_id}
-                  currentAnnualRate={setting?.target_annual_rate}
+                  currentLimit={setting?.carryover_limit ?? undefined}
+                  currentSourceAssetId={setting?.source_asset_id ?? undefined}
+                  currentAssetId={setting?.target_asset_id ?? undefined}
+                  currentAnnualRate={setting?.target_annual_rate ?? undefined}
                   assets={accounts}
                   onSave={(data) => upsertSetting.mutate(data)}
                   isSaving={upsertSetting.isPending}

@@ -25,6 +25,35 @@ export interface CarryoverSettingResponse {
   updated_at: string;
 }
 
+export interface CarryoverPreview {
+  category_id: string;
+  category_name: string;
+  remaining_budget: number;
+  carryover_type: CarryoverType;
+  carryover_limit: number | null;
+  target_asset_id: string | null;
+  target_savings_name: string | null;
+  target_annual_rate: number | null;
+  source_asset_id: string | null;
+  estimated_transfer_amount: number | null;
+}
+
+export interface CarryoverLog {
+  id: string;
+  period_start: string;
+  period_end: string;
+  category_id: string;
+  category_name: string;
+  carryover_type: CarryoverType;
+  remaining_budget: number;
+  transferred_amount: number | null;
+  target_asset_id: string | null;
+  target_savings_name: string | null;
+  status: string;
+  executed_at: string;
+  created_at: string;
+}
+
 // Backwards-compatible aliases (legacy names)
 export type CarryoverSetting = CarryoverSettingResponse;
 export type CarryoverSettingRequest = CarryoverSettingCreate;

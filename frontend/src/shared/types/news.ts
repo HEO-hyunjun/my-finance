@@ -28,7 +28,7 @@ export interface MyAssetNewsResponse {
   asset_queries: string[];
 }
 
-export type NewsCategory = 'all' | 'stocks' | 'crypto' | 'economy' | 'my_assets';
+export type NewsCategory = 'all' | 'stocks' | 'crypto' | 'economy' | 'my_assets' | 'stock_kr' | 'stock_us' | 'gold';
 
 export interface NewsArticleDetail {
   id: string;

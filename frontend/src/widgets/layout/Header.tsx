@@ -1,14 +1,7 @@
-import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Sun, Moon, Menu, Plus, Minus, ArrowLeftRight } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@/shared/ui/button";
 import { useTheme } from "@/app/providers/ThemeProvider";
-import { useCategories, useCreateExpense } from "@/features/budget/api";
-import { AddExpenseModal } from "@/features/budget/ui/AddExpenseModal";
-import { AddIncomeModal } from "@/features/income/ui/AddIncomeModal";
-import { useAssets, useCreateTransaction, useTransfer } from "@/features/assets/api";
-import { AddTransactionModal } from "@/features/assets/ui/AddTransactionModal";
 
 const PAGE_TITLES: Record<string, string> = {
   "/": "대시보드",
@@ -29,16 +22,8 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { resolvedTheme, setTheme } = useTheme();
-  const [showIncomeModal, setShowIncomeModal] = useState(false);
-  const [showExpenseModal, setShowExpenseModal] = useState(false);
-  const [showTxModal, setShowTxModal] = useState(false);
-
-  const { data: categories = [] } = useCategories();
-  const createExpense = useCreateExpense();
-  const { data: assets = [] } = useAssets();
-  const createTx = useCreateTransaction();
-  const transfer = useTransfer();
 
   const title = PAGE_TITLES[location.pathname] || "";
 
@@ -66,7 +51,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowIncomeModal(true)}
+            onClick={() => navigate("/entries?type=income")}
             className="gap-1.5"
           >
             <Plus className="h-4 w-4" />
@@ -76,7 +61,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button
             variant="default"
             size="sm"
-            onClick={() => setShowExpenseModal(true)}
+            onClick={() => navigate("/entries?type=expense")}
             className="gap-1.5"
           >
             <Minus className="h-4 w-4" />
@@ -86,7 +71,7 @@ export function Header({ onMenuClick }: HeaderProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowTxModal(true)}
+            onClick={() => navigate("/entries")}
             className="gap-1.5"
           >
             <ArrowLeftRight className="h-4 w-4" />
@@ -104,27 +89,6 @@ export function Header({ onMenuClick }: HeaderProps) {
         </div>
       </header>
 
-      <AddIncomeModal
-        isOpen={showIncomeModal}
-        onClose={() => setShowIncomeModal(false)}
-      />
-
-      <AddExpenseModal
-        categories={categories}
-        isOpen={showExpenseModal}
-        onClose={() => setShowExpenseModal(false)}
-        onSubmit={(data) => createExpense.mutate(data, { onSuccess: () => toast.success("지출이 저장되었습니다") })}
-        isLoading={createExpense.isPending}
-      />
-
-      <AddTransactionModal
-        isOpen={showTxModal}
-        onClose={() => setShowTxModal(false)}
-        onSubmit={(data) => createTx.mutate(data, { onSuccess: () => { toast.success("거래가 저장되었습니다"); setShowTxModal(false); } })}
-        onTransfer={(data) => transfer.mutate(data, { onSuccess: () => { toast.success("이체가 완료되었습니다"); setShowTxModal(false); } })}
-        assets={assets}
-        isLoading={createTx.isPending || transfer.isPending}
-      />
     </>
   );
 }

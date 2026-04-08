@@ -64,11 +64,11 @@ export function Component() {
           </div>
 
           <AIInsightWidget />
-          <AssetTimelineWidget assetTypeColors={appSettings?.asset_type_colors} />
+          <AssetTimelineWidget assetTypeColors={appSettings?.asset_type_colors ?? undefined} />
 
           <DailyBudgetWidget budget={data.budget_summary} />
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <AssetDistChart breakdown={data.asset_summary.breakdown} assetTypeColors={appSettings?.asset_type_colors} />
+            <AssetDistChart breakdown={data.asset_summary.breakdown} assetTypeColors={appSettings?.asset_type_colors ?? undefined} />
             <BudgetStatusWidget budget={data.budget_summary} />
           </div>
 

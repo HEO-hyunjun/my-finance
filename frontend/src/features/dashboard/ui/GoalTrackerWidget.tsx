@@ -196,7 +196,7 @@ function GoalTrackerWidgetInner() {
           onSubmit={handleSubmit}
           isSubmitting={setGoal.isPending}
           defaultAmount={target_amount}
-          defaultDate={goal.target_date}
+          defaultDate={goal.target_date ?? undefined}
         />
       </CardContent>
     </Card>
