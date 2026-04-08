@@ -1,7 +1,6 @@
 """포트폴리오 관리 API 엔드포인트.
 
-TODO: Phase 2 - asset_service를 새 스키마(Account, Entry) 기반으로 교체 예정.
-현재 asset_service가 삭제되어 자산 요약이 필요한 엔드포인트는 501을 반환합니다.
+Phase 2 완료: portfolio_v2_service 기반으로 자산 요약 제공.
 """
 
 import uuid
@@ -22,6 +21,7 @@ from app.schemas.portfolio import (
     RebalancingAnalysisResponse,
 )
 from app.services import portfolio_service
+from app.services.portfolio_v2_service import get_total_assets
 
 router = APIRouter(prefix="/portfolio", tags=["portfolio"])
 
@@ -43,10 +43,15 @@ async def create_snapshot(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # TODO: Phase 2 - asset_service.get_asset_summary를 새 서비스로 교체
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Snapshot creation is being migrated to new schema. Coming in Phase 2.",
+    total_data = await get_total_assets(db, user.id)
+    breakdown = {}
+    for acc in total_data["accounts"]:
+        atype = acc["account_type"]
+        breakdown[atype] = float(
+            breakdown.get(atype, 0) + float(acc["total_value_krw"])
+        )
+    return await portfolio_service.create_snapshot(
+        db, user.id, total_data["total_krw"], breakdown
     )
 
 
@@ -58,11 +63,9 @@ async def get_goal(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # TODO: Phase 2 - asset_service.get_asset_summary를 새 서비스로 교체
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Goal API requires asset summary which is being migrated. Coming in Phase 2.",
-    )
+    total_data = await get_total_assets(db, user.id)
+    current_amount = float(total_data["total_krw"])
+    return await portfolio_service.get_goal(db, user.id, current_amount)
 
 
 @router.put("/goal", response_model=GoalAssetResponse)
@@ -82,11 +85,14 @@ async def get_targets(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # TODO: Phase 2 - asset_service.get_asset_summary를 새 서비스로 교체
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Targets API requires asset summary which is being migrated. Coming in Phase 2.",
-    )
+    total_data = await get_total_assets(db, user.id)
+    breakdown = {}
+    for acc in total_data["accounts"]:
+        atype = acc["account_type"]
+        breakdown[atype] = float(
+            breakdown.get(atype, 0) + float(acc["total_value_krw"])
+        )
+    return await portfolio_service.get_portfolio_targets(db, user.id, breakdown)
 
 
 @router.put("/targets", response_model=list[PortfolioTargetResponse])
@@ -110,10 +116,15 @@ async def get_rebalancing(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    # TODO: Phase 2 - asset_service.get_asset_summary를 새 서비스로 교체
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Rebalancing API requires asset summary which is being migrated. Coming in Phase 2.",
+    total_data = await get_total_assets(db, user.id)
+    breakdown = {}
+    for acc in total_data["accounts"]:
+        atype = acc["account_type"]
+        breakdown[atype] = float(
+            breakdown.get(atype, 0) + float(acc["total_value_krw"])
+        )
+    return await portfolio_service.get_rebalancing_analysis(
+        db, user.id, breakdown, threshold
     )
 
 

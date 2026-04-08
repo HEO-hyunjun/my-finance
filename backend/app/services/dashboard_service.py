@@ -1,132 +1,78 @@
 """대시보드 서비스.
 
-TODO: Phase 2 - 새 스키마(Account, Entry)에 맞게 전면 재작성 예정.
-현재는 import 오류 방지를 위해 스텁 처리되어 있습니다.
+Phase 2 완료: Account/Entry/Security 기반으로 전면 재작성.
 """
 
 import uuid
-from datetime import date
+from datetime import datetime, timezone
+from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.portfolio import AssetSnapshot
-from app.schemas.dashboard import (
-    DashboardAssetSummary,
-    DashboardBudgetSummary,
-    DashboardMarketInfo,
-    DashboardMarketItem,
-    DashboardSummaryResponse,
-)
-from app.services.market_service import MarketService
-
-# TODO: Phase 2 - rewrite for new schema
-# Old imports removed:
-# from app.services.asset_service import get_asset_summary
-# from app.services.budget_service import get_budget_summary, get_fixed_expenses, get_installments
-# from app.services.transaction_service import get_transactions
+from app.models.entry import Entry, EntryType
+from app.services.portfolio_v2_service import get_total_assets
+from app.services.budget_v2_service import get_budget_overview
+from app.core.tz import today as tz_today
 
 
-async def get_dashboard_summary(
-    db: AsyncSession,
-    user_id: uuid.UUID,
-    market: MarketService,
-    redis=None,
-    salary_day: int = 1,
-) -> DashboardSummaryResponse:
+async def get_dashboard_summary(db: AsyncSession, user_id: uuid.UUID, **kwargs) -> dict:
     """대시보드 통합 데이터 반환.
 
-    TODO: Phase 2 - 새 스키마 기반으로 재작성 필요.
-    현재는 시세 정보와 빈 데이터를 반환합니다.
+    kwargs는 기존 API 시그니처 호환을 위해 수용 (market, redis, salary_day 등).
     """
-    # 시세: 캐시 전용
-    exchange_rate_raw = await market.get_cached_exchange_rate()
-    if not exchange_rate_raw:
-        try:
-            exchange_rate_raw = await market.get_exchange_rate()
-        except Exception:
-            from app.schemas.market import ExchangeRateResponse
+    today = tz_today()
 
-            exchange_rate_raw = ExchangeRateResponse(
-                pair="USD/KRW", rate=0, cached=False
-            )
+    # 1. 전체 자산 현황
+    total_assets = await get_total_assets(db, user_id)
 
-    gold_price_raw = None  # TODO: Phase 2
-
-    # TODO: Phase 2 - 전일대비 등락 계산 복원
-    # yesterday = today - timedelta(days=1)
-    # prev_snapshot = await _get_previous_snapshot(db, user_id, yesterday)
-
-    result = DashboardSummaryResponse(
-        asset_summary=DashboardAssetSummary(
-            total_value_krw=0,
-            total_invested_krw=0,
-            total_profit_loss=0,
-            total_profit_loss_rate=0,
-            daily_change=None,
-            daily_change_rate=None,
-            breakdown={},
-        ),
-        budget_summary=DashboardBudgetSummary(
-            total_budget=0,
-            total_spent=0,
-            total_remaining=0,
-            total_usage_rate=0,
-            total_fixed_expenses=0,
-            total_installments=0,
-            daily_available=0,
-            today_spent=0,
-            remaining_days=0,
-            top_categories=[],
-        ),
-        recent_transactions=[],
-        market_info=_map_market_info(exchange_rate_raw, gold_price_raw),
-        upcoming_payments=[],
-        maturity_alerts=[],
+    # 2. 이번 달 수입/지출 요약
+    month_start = today.replace(day=1)
+    month_start_dt = datetime(
+        month_start.year, month_start.month, month_start.day, tzinfo=timezone.utc
     )
 
-    return result
-
-
-async def _get_previous_snapshot(
-    db: AsyncSession, user_id: uuid.UUID, target_date: date
-) -> AssetSnapshot | None:
-    """최근 스냅샷 조회 (target_date 이하에서 가장 최신)"""
-    stmt = (
-        select(AssetSnapshot)
-        .where(
-            AssetSnapshot.user_id == user_id,
-            AssetSnapshot.snapshot_date <= target_date,
-        )
-        .order_by(AssetSnapshot.snapshot_date.desc())
-        .limit(1)
+    income_stmt = select(func.coalesce(func.sum(Entry.amount), 0)).where(
+        Entry.user_id == user_id,
+        Entry.type == EntryType.INCOME,
+        Entry.transacted_at >= month_start_dt,
     )
-    result = await db.execute(stmt)
-    return result.scalar_one_or_none()
+    monthly_income = Decimal(str((await db.execute(income_stmt)).scalar()))
 
-
-def _map_market_info(exchange_rate_raw, gold_price_raw) -> DashboardMarketInfo:
-    return DashboardMarketInfo(
-        exchange_rate=DashboardMarketItem(
-            symbol="USD/KRW",
-            name="미국 달러",
-            price=exchange_rate_raw.rate if exchange_rate_raw else 0,
-            currency="KRW",
-            change=exchange_rate_raw.change if exchange_rate_raw else None,
-            change_percent=exchange_rate_raw.change_percent
-            if exchange_rate_raw
-            else None,
-        ),
-        gold_price=(
-            DashboardMarketItem(
-                symbol=gold_price_raw.symbol,
-                name="금",
-                price=gold_price_raw.price,
-                currency=gold_price_raw.currency,
-                change=gold_price_raw.change,
-                change_percent=gold_price_raw.change_percent,
-            )
-            if gold_price_raw
-            else None
-        ),
+    expense_stmt = select(func.coalesce(func.sum(Entry.amount), 0)).where(
+        Entry.user_id == user_id,
+        Entry.type == EntryType.EXPENSE,
+        Entry.transacted_at >= month_start_dt,
     )
+    monthly_expense = abs(Decimal(str((await db.execute(expense_stmt)).scalar())))
+
+    # 3. 예산 개요
+    budget = await get_budget_overview(db, user_id, today)
+
+    # 4. 최근 거래 5건
+    recent_stmt = (
+        select(Entry)
+        .where(Entry.user_id == user_id)
+        .order_by(Entry.transacted_at.desc())
+        .limit(5)
+    )
+    recent_entries = (await db.execute(recent_stmt)).scalars().all()
+
+    return {
+        "total_assets_krw": total_assets["total_krw"],
+        "accounts_count": len(total_assets["accounts"]),
+        "monthly_income": monthly_income,
+        "monthly_expense": monthly_expense,
+        "budget_overview": budget,
+        "recent_entries": [
+            {
+                "id": str(e.id),
+                "type": e.type.value,
+                "amount": e.amount,
+                "currency": e.currency,
+                "memo": e.memo,
+                "transacted_at": e.transacted_at.isoformat(),
+            }
+            for e in recent_entries
+        ],
+    }
