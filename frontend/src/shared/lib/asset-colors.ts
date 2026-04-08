@@ -1,6 +1,6 @@
-import type { AssetType } from '@/shared/types';
+import type { AssetType } from '@/shared/types/common';
 
-export const DEFAULT_ASSET_TYPE_COLORS: Record<AssetType, string> = {
+export const DEFAULT_ASSET_TYPE_COLORS: Partial<Record<AssetType, string>> & Record<string, string> = {
   stock_kr: '#3B82F6',
   stock_us: '#8B5CF6',
   gold: '#F59E0B',

@@ -7,8 +7,8 @@ import {
   useDeleteRecurringIncome,
   useToggleRecurringIncome,
 } from '../api/income';
-import type { IncomeType, RecurringIncomeCreateRequest } from '@/shared/types';
-import { INCOME_TYPE_LABELS } from '@/shared/types';
+import type { IncomeType, RecurringIncomeCreateRequest } from '@/shared/types/settings';
+import { INCOME_TYPE_LABELS } from '@/shared/types/settings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Label } from '@/shared/ui/label';

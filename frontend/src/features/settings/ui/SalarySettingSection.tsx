@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';
-import type { Asset } from '@/shared/types';
+import type { Asset } from '@/shared/types/common';
 import { formatKRW } from '@/shared/lib/format';
 
 interface Props {

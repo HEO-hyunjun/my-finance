@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useCategories } from '@/features/budget/api';
-import { useAssets } from '@/features/assets/api';
+import { useAccounts } from '@/features/accounts/api';
 import { useCarryoverSettings, useUpsertCarryoverSetting } from '../api/carryover';
-import type { CarryoverType, CarryoverSettingRequest, Asset } from '@/shared/types';
-import { CARRYOVER_TYPE_LABELS } from '@/shared/types';
+import type { CarryoverType, CarryoverSettingCreate as CarryoverSettingRequest } from '@/shared/types/carryover';
+import { CARRYOVER_TYPE_LABELS } from '@/shared/types/carryover';
+import type { Account } from '@/entities/account/model/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';
@@ -12,8 +13,8 @@ import { Skeleton } from '@/shared/ui/skeleton';
 
 const CARRYOVER_TYPES: CarryoverType[] = ['expire', 'next_month', 'savings', 'transfer', 'deposit'];
 
-const TRANSFER_TARGET_TYPES = new Set(['cash_krw', 'cash_usd', 'parking']);
-const SOURCE_ASSET_TYPES = new Set(['cash_krw', 'cash_usd', 'parking', 'bank_account', 'securities']);
+const TRANSFER_TARGET_TYPES = new Set(['cash', 'parking']);
+const SOURCE_ACCOUNT_TYPES = new Set(['cash', 'parking', 'investment']);
 
 interface CategoryRowProps {
   categoryId: string;
@@ -23,7 +24,7 @@ interface CategoryRowProps {
   currentSourceAssetId?: string;
   currentAssetId?: string;
   currentAnnualRate?: number;
-  assets: Asset[];
+  assets: Account[];
   onSave: (data: CarryoverSettingRequest) => void;
   isSaving: boolean;
 }
@@ -56,12 +57,12 @@ function CategoryRow({
   }, [currentType, currentLimit, currentSourceAssetId, currentAssetId, currentAnnualRate]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  const sourceAssets = assets.filter((a) => SOURCE_ASSET_TYPES.has(a.asset_type));
+  const sourceAssets = assets.filter((a) => SOURCE_ACCOUNT_TYPES.has(a.account_type));
 
   const filteredAssets = assets.filter((a) => {
-    if (type === 'savings') return a.asset_type === 'savings';
-    if (type === 'deposit') return a.asset_type === 'deposit';
-    if (type === 'transfer') return TRANSFER_TARGET_TYPES.has(a.asset_type);
+    if (type === 'savings') return a.account_type === 'savings';
+    if (type === 'deposit') return a.account_type === 'deposit';
+    if (type === 'transfer') return TRANSFER_TARGET_TYPES.has(a.account_type);
     return false;
   });
 
@@ -159,7 +160,7 @@ function CategoryRow({
               <option value="">선택하세요</option>
               {sourceAssets.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name}{a.bank_name ? ` (${a.bank_name})` : ''}
+                  {a.name}{a.institution ? ` (${a.institution})` : ''}
                 </option>
               ))}
             </select>
@@ -182,7 +183,7 @@ function CategoryRow({
               <option value="">선택하세요</option>
               {filteredAssets.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.name}{a.bank_name ? ` (${a.bank_name})` : ''}
+                  {a.name}{a.institution ? ` (${a.institution})` : ''}
                 </option>
               ))}
             </select>
@@ -215,7 +216,7 @@ function CategoryRow({
 export function CarryoverSection() {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { data: settings, isLoading: settingsLoading } = useCarryoverSettings();
-  const { data: assets = [], isLoading: assetsLoading } = useAssets();
+  const { data: accounts = [], isLoading: assetsLoading } = useAccounts();
   const upsertSetting = useUpsertCarryoverSetting();
 
   const isLoading = categoriesLoading || settingsLoading || assetsLoading;
@@ -265,7 +266,7 @@ export function CarryoverSection() {
                   currentSourceAssetId={setting?.source_asset_id}
                   currentAssetId={setting?.target_asset_id}
                   currentAnnualRate={setting?.target_annual_rate}
-                  assets={assets}
+                  assets={accounts}
                   onSave={(data) => upsertSetting.mutate(data)}
                   isSaving={upsertSetting.isPending}
                 />

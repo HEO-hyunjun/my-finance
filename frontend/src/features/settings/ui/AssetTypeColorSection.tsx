@@ -1,6 +1,6 @@
 import { useAppSettings, useUpdateAppSettings } from '../api/settings-api';
-import { ASSET_TYPE_LABELS } from '@/shared/types';
-import type { AssetType } from '@/shared/types';
+import { ASSET_TYPE_LABELS } from '@/shared/types/common';
+import type { AssetType } from '@/shared/types/common';
 import { DEFAULT_ASSET_TYPE_COLORS } from '@/shared/lib/asset-colors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Button } from '@/shared/ui/button';

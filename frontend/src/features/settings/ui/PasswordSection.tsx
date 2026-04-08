@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PasswordChangeRequest } from '@/shared/types';
+import type { PasswordChangeRequest } from '@/shared/types/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Label } from '@/shared/ui/label';
 import { Input } from '@/shared/ui/input';

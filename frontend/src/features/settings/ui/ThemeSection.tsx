@@ -1,5 +1,5 @@
 import { useAppSettings, useUpdateAppSettings } from '../api/settings-api';
-import type { ThemeMode } from '@/shared/types';
+import type { ThemeMode } from '@/shared/types/settings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { cn } from '@/shared/lib/utils';

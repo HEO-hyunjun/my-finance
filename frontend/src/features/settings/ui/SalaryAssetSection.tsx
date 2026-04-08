@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Label } from '@/shared/ui/label';
 import { Button } from '@/shared/ui/button';
-import type { Asset } from '@/shared/types';
+import type { Asset } from '@/shared/types/common';
 
 interface Props {
   currentAssetId?: string;

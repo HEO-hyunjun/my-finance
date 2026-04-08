@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
-import type { AppSettings, AppSettingsUpdateRequest, ApiKeyCreateRequest, ApiKeyInfo, LlmSettings, LlmSettingsUpdateRequest, InvestmentPromptResponse } from '@/shared/types';
+import type {
+  AppSettingsResponse as AppSettings,
+  AppSettingsUpdate as AppSettingsUpdateRequest,
+  ApiKeyCreate as ApiKeyCreateRequest,
+  ApiKeyResponse as ApiKeyInfo,
+  LlmSettingResponse as LlmSettings,
+  LlmSettingUpdate as LlmSettingsUpdateRequest,
+  InvestmentPromptResponse,
+} from '@/shared/types/settings';
 
 export const settingsKeys = {
   all: ['settings'] as const,
