@@ -1,6 +1,6 @@
 import { useState, memo, useMemo } from 'react';
 import { useAssetTimeline } from '../api/portfolio';
-import { ASSET_TYPE_LABELS } from '@/shared/types';
+import { ASSET_TYPE_LABELS } from '@/shared/types/common';
 import { formatKRW } from '@/shared/lib/format';
 import { getAssetTypeColors } from '@/shared/lib/asset-colors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';

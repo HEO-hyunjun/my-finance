@@ -4,7 +4,7 @@ import { TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
 import { formatKRW, formatPercent } from '@/shared/lib/format';
-import type { DashboardAssetSummary } from '@/shared/types';
+import type { DashboardAssetSummary } from '@/shared/types/dashboard';
 
 interface Props {
   summary: DashboardAssetSummary;

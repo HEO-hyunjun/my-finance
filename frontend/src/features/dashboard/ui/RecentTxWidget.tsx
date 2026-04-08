@@ -1,6 +1,6 @@
 import { memo } from 'react';
-import type { DashboardTransaction } from '@/shared/types';
-import { TRANSACTION_TYPE_LABELS } from '@/shared/types';
+import type { DashboardTransaction } from '@/shared/types/dashboard';
+import { TRANSACTION_TYPE_LABELS } from '@/shared/types/common';
 import { formatKRW, formatDate } from '@/shared/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';

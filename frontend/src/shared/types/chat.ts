@@ -35,3 +35,7 @@ export interface ChatErrorEvent { type: 'error'; message: string; }
 export type ChatSSEEvent =
   | ChatTokenEvent | ChatDoneEvent | ChatAgentEvent
   | ChatToolEvent | ChatGeneratingEvent | ChatErrorEvent;
+
+export interface ConversationListResponse {
+  conversations: ConversationSummary[];
+}

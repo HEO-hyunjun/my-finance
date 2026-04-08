@@ -34,3 +34,5 @@ export interface CalendarEventsResponse {
   day_summaries: DaySummary[];
   month_summary: MonthSummary;
 }
+
+export type CalendarEventType = 'fixed_expense' | 'installment' | 'maturity' | 'expense' | 'income';

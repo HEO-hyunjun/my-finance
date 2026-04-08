@@ -59,3 +59,12 @@ export interface RebalancingAlertResponse {
   is_read: boolean;
   created_at: string;
 }
+
+// Backwards-compatible aliases (legacy names)
+export type AssetTimeline = AssetTimelineResponse;
+export type GoalAsset = GoalAssetResponse;
+export type GoalAssetRequest = GoalAssetCreate;
+export type PortfolioTarget = PortfolioTargetResponse;
+export type PortfolioTargetRequest = PortfolioTargetCreate;
+export type RebalancingAnalysis = RebalancingAnalysisResponse;
+export type RebalancingAlert = RebalancingAlertResponse;

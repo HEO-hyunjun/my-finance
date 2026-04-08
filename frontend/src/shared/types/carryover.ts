@@ -24,3 +24,14 @@ export interface CarryoverSettingResponse {
   created_at: string;
   updated_at: string;
 }
+
+// Backwards-compatible aliases (legacy names)
+export type CarryoverSetting = CarryoverSettingResponse;
+export type CarryoverSettingRequest = CarryoverSettingCreate;
+export const CARRYOVER_TYPE_LABELS: Record<CarryoverType, string> = {
+  expire: '소멸',
+  next_month: '다음달 이월',
+  savings: '적금 저축',
+  transfer: '계좌 이체',
+  deposit: '예금 저축',
+};

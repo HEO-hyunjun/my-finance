@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { DashboardMarketInfo } from '@/shared/types';
+import type { DashboardMarketInfo } from '@/shared/types/dashboard';
 import { formatKRW } from '@/shared/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';

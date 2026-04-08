@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import type { DashboardMaturityAlert } from '@/shared/types';
+import type { DashboardMaturityAlert } from '@/shared/types/dashboard';
 import { formatKRW } from '@/shared/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { AlertCircle } from 'lucide-react';

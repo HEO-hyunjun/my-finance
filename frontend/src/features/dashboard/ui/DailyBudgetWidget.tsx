@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import type { DashboardBudgetSummary } from '@/shared/types';
+import type { DashboardBudgetSummary } from '@/shared/types/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Wallet, Calendar } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';

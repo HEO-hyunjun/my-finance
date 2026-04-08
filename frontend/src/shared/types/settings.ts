@@ -34,3 +34,64 @@ export interface AppSettingsUpdate {
   news_refresh_interval?: number | null;
   asset_type_colors?: Record<string, string> | null;
 }
+
+// Backwards-compatible aliases (legacy names)
+export type AppSettings = AppSettingsResponse;
+export type AppSettingsUpdateRequest = AppSettingsUpdate;
+export type ApiKeyCreateRequest = ApiKeyCreate;
+export type ApiKeyInfo = ApiKeyResponse;
+export type LlmSettings = LlmSettingResponse;
+export type LlmSettingsUpdateRequest = LlmSettingUpdate;
+
+export type ThemeMode = 'light' | 'dark' | 'system';
+export type ApiServiceType = string;
+export const API_SERVICE_LABELS: Record<string, string> = {
+  serpapi: 'SerpAPI',
+  openai: 'OpenAI',
+};
+
+export interface RecurringIncome {
+  id: string;
+  name: string;
+  amount: number;
+  currency: string;
+  day: number;
+  is_active: boolean;
+  income_type: string;
+  asset_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringIncomeCreateRequest {
+  name: string;
+  amount: number;
+  currency?: string;
+  day: number;
+  income_type: string;
+  asset_id?: string | null;
+}
+
+export interface RecurringIncomeUpdateRequest {
+  name?: string;
+  amount?: number;
+  currency?: string;
+  day?: number;
+  income_type?: string;
+  asset_id?: string | null;
+}
+
+export interface IncomeSummary {
+  total_income: number;
+  incomes: Array<{ name: string; amount: number; currency: string; income_type: string }>;
+}
+
+export type IncomeType = string;
+export const INCOME_TYPE_LABELS: Record<string, string> = {
+  salary: '급여',
+  bonus: '보너스',
+  dividend: '배당금',
+  interest: '이자',
+  rental: '임대수입',
+  other: '기타',
+};
