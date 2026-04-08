@@ -15,7 +15,6 @@ import {
   useBudgetAnalysis,
   useCreateAllocation,
   useUpdateAllocation,
-  useDeleteAllocation,
   useUpdateBudgetPeriod,
 } from '@/features/budget/api';
 import {

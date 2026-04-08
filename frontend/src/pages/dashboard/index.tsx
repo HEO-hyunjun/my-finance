@@ -6,9 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip as RechartsTooltip,
-  PieChart,
-  Pie,
-  Cell,
   ResponsiveContainer,
 } from 'recharts';
 import {
@@ -61,23 +58,6 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
   investment_sell: '매도',
 };
 
-const ASSET_TYPE_LABELS: Record<string, string> = {
-  cash: '원화',
-  deposit: '예금',
-  savings: '적금',
-  parking: '파킹',
-  investment: '주식/투자',
-};
-
-const PIE_COLORS = [
-  '#6366f1',
-  '#22d3ee',
-  '#f59e0b',
-  '#10b981',
-  '#f43f5e',
-  '#8b5cf6',
-  '#14b8a6',
-];
 
 // ─── widget error boundary helper ─────────────────────────────────────────────
 
@@ -418,11 +398,6 @@ function AssetDistributionWidget() {
 
   // DashboardSummaryResponse에 자산 breakdown 정보가 없으므로
   // accounts_count 와 total_assets_krw 로 간단한 정보 표시
-  const pieData = [
-    { name: '총 자산', value: summary?.total_assets_krw ?? 0 },
-  ];
-
-  // 더미 분포 - 실제 계좌별 잔액 없음 → 안내 문구 표시
   const hasPieData = (summary?.total_assets_krw ?? 0) > 0;
 
   return (
