@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.asset import Asset
+from app.models.account import Account
 from app.models.settings import ApiKey, ApiServiceType, LlmSetting
 from app.models.user import User
 from app.schemas.settings import (
@@ -252,14 +252,14 @@ async def get_app_settings(
 
     prefs = user.notification_preferences or {}
 
-    # 월급 자산 이름 조회
+    # 월급 계좌 이름 조회
     salary_asset_name = None
     if user.salary_asset_id:
-        asset = (await db.execute(
-            select(Asset).where(Asset.id == user.salary_asset_id)
+        account = (await db.execute(
+            select(Account).where(Account.id == user.salary_asset_id)
         )).scalar_one_or_none()
-        if asset:
-            salary_asset_name = asset.name
+        if account:
+            salary_asset_name = account.name
 
     return AppSettingsResponse(
         api_keys=api_keys,

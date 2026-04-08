@@ -7,7 +7,7 @@ import httpx
 import redis.asyncio as redis
 
 from app.core.config import settings
-from app.models.asset import AssetType
+from app.models.security import AssetClass
 from app.schemas.market import (
     PriceResponse, ExchangeRateResponse,
     MarketTrendItem, MarketTrendsResponse,
@@ -19,11 +19,11 @@ logger = logging.getLogger(__name__)
 CACHE_TTL = 86400  # 시세 캐시 24시간 (Celery Beat가 장 마감/자정에 갱신)
 KRX_GOLD_CACHE_TTL = 86400  # KRX 금 시세 캐시 24시간
 
-# yfinance 티커 변환: asset_type → suffix
+# yfinance 티커 변환: asset_class → suffix
 YF_SUFFIX_MAP = {
-    AssetType.STOCK_KR: ".KS",
-    AssetType.STOCK_US: "",
-    AssetType.GOLD: "",
+    AssetClass.EQUITY_KR: ".KS",
+    AssetClass.EQUITY_US: "",
+    AssetClass.COMMODITY: "",
 }
 
 # 주요 지수 티커 (yfinance)
@@ -36,9 +36,9 @@ MARKET_INDEX_TICKERS = [
 ]
 
 
-def _to_yf_ticker(symbol: str, asset_type: AssetType | None = None) -> str:
+def _to_yf_ticker(symbol: str, asset_type: AssetClass | None = None) -> str:
     """종목 코드를 yfinance 티커 형식으로 변환"""
-    if asset_type == AssetType.GOLD:
+    if asset_type == AssetClass.COMMODITY:
         return "GC=F"
     # Yahoo 검색 결과에 이미 거래소 접미사(.KS, .KQ 등)가 포함된 경우 그대로 사용
     if "." in symbol:
@@ -181,10 +181,10 @@ class MarketService:
     # ─── 시세 (yfinance) ────────────────────────
 
     async def get_cached_price(
-        self, symbol: str, asset_type: AssetType | None = None
+        self, symbol: str, asset_type: AssetClass | None = None
     ) -> PriceResponse | None:
         """캐시된 시세만 반환. 캐시 미스 시 None."""
-        if symbol == "KRX:GOLD" or (asset_type == AssetType.GOLD and symbol in ("KRX:GOLD", "")):
+        if symbol == "KRX:GOLD" or (asset_type == AssetClass.COMMODITY and symbol in ("KRX:GOLD", "")):
             cached = await self._get_cached("market:krx_gold")
         else:
             ticker_symbol = _to_yf_ticker(symbol, asset_type)
@@ -204,7 +204,7 @@ class MarketService:
         return None
 
     async def warm_cache_for_symbols(
-        self, symbols: list[tuple[str, AssetType | None]]
+        self, symbols: list[tuple[str, AssetClass | None]]
     ) -> dict[str, bool]:
         """심볼 목록의 시세를 일괄 fetch하여 캐시에 저장."""
         results: dict[str, bool] = {}
@@ -224,10 +224,10 @@ class MarketService:
         return results
 
     async def get_price(
-        self, symbol: str, asset_type: AssetType | None = None
+        self, symbol: str, asset_type: AssetClass | None = None
     ) -> PriceResponse:
         # KRX 금 현물은 전용 조회 사용
-        if symbol == "KRX:GOLD" or (asset_type == AssetType.GOLD and symbol in ("KRX:GOLD", "")):
+        if symbol == "KRX:GOLD" or (asset_type == AssetClass.COMMODITY and symbol in ("KRX:GOLD", "")):
             return await self.get_krx_gold_price()
 
         ticker_symbol = _to_yf_ticker(symbol, asset_type)

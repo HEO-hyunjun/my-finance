@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
-from app.models.asset import Asset
+from app.models.account import Account
 from app.models.user import User
 from app.schemas.user import (
     AccountDeleteRequest,
@@ -20,14 +20,14 @@ async def get_profile(
     user: User,
 ) -> UserProfileResponse:
     """사용자 프로필 조회"""
-    # 급여 자산 이름 조회
+    # 급여 계좌 이름 조회
     salary_asset_name = None
     if user.salary_asset_id:
-        asset = (await db.execute(
-            select(Asset).where(Asset.id == user.salary_asset_id)
+        account = (await db.execute(
+            select(Account).where(Account.id == user.salary_asset_id)
         )).scalar_one_or_none()
-        if asset:
-            salary_asset_name = asset.name
+        if account:
+            salary_asset_name = account.name
 
     return UserProfileResponse(
         id=str(user.id),

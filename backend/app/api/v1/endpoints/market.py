@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, distinct
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.redis import get_redis
-from app.models.asset import Asset, AssetType
+from app.models.entry import Entry
+from app.models.security import AssetClass, Security
 from app.models.user import User
 from app.schemas.market import (
     PriceResponse, ExchangeRateResponse,
@@ -14,11 +15,13 @@ from app.schemas.market import (
 )
 from app.services.market_service import MarketService
 
-ASSET_TYPE_MAP = {
-    "stock_kr": AssetType.STOCK_KR,
-    "stock_us": AssetType.STOCK_US,
-    "gold": AssetType.GOLD,
-    "cash_usd": AssetType.CASH_USD,
+ASSET_CLASS_MAP = {
+    "stock_kr": AssetClass.EQUITY_KR,
+    "stock_us": AssetClass.EQUITY_US,
+    "gold": AssetClass.COMMODITY,
+    "equity_kr": AssetClass.EQUITY_KR,
+    "equity_us": AssetClass.EQUITY_US,
+    "commodity": AssetClass.COMMODITY,
 }
 
 
@@ -41,14 +44,14 @@ async def get_price(
 ):
     market = MarketService(redis)
 
-    # exchange → AssetType 매핑 (힌트)
-    asset_type_map = {
-        "KRX": AssetType.STOCK_KR,
-        "NASDAQ": AssetType.STOCK_US,
-        "NYSE": AssetType.STOCK_US,
-        "NYSEARCA": AssetType.GOLD,
+    # exchange → AssetClass 매핑 (힌트)
+    asset_class_map = {
+        "KRX": AssetClass.EQUITY_KR,
+        "NASDAQ": AssetClass.EQUITY_US,
+        "NYSE": AssetClass.EQUITY_US,
+        "NYSEARCA": AssetClass.COMMODITY,
     }
-    asset_type = asset_type_map.get(exchange) if exchange else None
+    asset_type = asset_class_map.get(exchange) if exchange else None
 
     try:
         return await market.get_price(symbol, asset_type)
@@ -101,11 +104,11 @@ async def refresh_price(
 ):
     """특정 심볼의 시세를 강제로 새로고침하여 캐시에 저장."""
     market = MarketService(redis)
-    asset_type = ASSET_TYPE_MAP.get(body.asset_type) if body.asset_type else None
+    asset_type = ASSET_CLASS_MAP.get(body.asset_type) if body.asset_type else None
 
     try:
-        # 미국주식/달러 자산이면 환율도 함께 갱신
-        if asset_type in (AssetType.STOCK_US, AssetType.CASH_USD):
+        # 미국주식이면 환율도 함께 갱신
+        if asset_type in (AssetClass.EQUITY_US,):
             await market.get_exchange_rate()
 
         return await market.get_price(body.symbol, asset_type)
@@ -132,19 +135,18 @@ async def refresh_all_prices(
     db: AsyncSession = Depends(get_db),
     redis=Depends(get_redis),
 ):
-    """현재 유저의 모든 자산 시세 + 환율을 일괄 새로고침."""
+    """현재 유저의 모든 보유 증권 시세 + 환율을 일괄 새로고침."""
     market = MarketService(redis)
 
     stmt = (
-        select(distinct(Asset.symbol), Asset.asset_type)
-        .where(
-            Asset.user_id == current_user.id,
-            Asset.symbol.isnot(None),
-            Asset.symbol != "",
-        )
+        select(Security)
+        .join(Entry, Entry.security_id == Security.id)
+        .where(Entry.user_id == current_user.id)
+        .group_by(Security.id)
     )
     result = await db.execute(stmt)
-    symbol_pairs = [(row[0], row[1]) for row in result.all()]
+    securities = result.scalars().all()
+    symbol_pairs = [(s.symbol, s.asset_class) for s in securities]
 
     results = await market.warm_cache_for_symbols(symbol_pairs)
 
