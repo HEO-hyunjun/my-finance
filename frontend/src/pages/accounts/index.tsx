@@ -535,8 +535,7 @@ function TotalAssetsSummary({ accounts, summaries, isLoading }: TotalAssetsSumma
   // 계좌별로 잔액 집계
   const totalKRW = summaries.reduce((sum, s) => {
     if (!s) return sum;
-    // USD 계좌는 근사 환율 적용 없이 그냥 합산 (KRW 기준 balance)
-    return sum + s.balance;
+    return sum + (s.balance ?? 0);
   }, 0);
 
   // 수익/손실 — 투자 계좌의 profit_loss 합
@@ -545,8 +544,8 @@ function TotalAssetsSummary({ accounts, summaries, isLoading }: TotalAssetsSumma
   summaries.forEach((s) => {
     if (!s?.holdings) return;
     s.holdings.forEach((h) => {
-      totalProfitLoss += h.profit_loss;
-      totalCost += h.value - h.profit_loss;
+      totalProfitLoss += h.profit_loss ?? 0;
+      totalCost += h.value - (h.profit_loss ?? 0);
     });
   });
   const profitLossRate = totalCost > 0 ? (totalProfitLoss / totalCost) * 100 : 0;
