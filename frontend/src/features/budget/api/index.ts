@@ -1,386 +1,113 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { apiClient } from '@/shared/api/client';
-import type { AxiosError } from 'axios';
 import type {
-  BudgetCategory,
-  BudgetCategoryCreateRequest,
-  BudgetCategoryUpdateRequest,
-  BudgetSummaryResponse,
-  Expense,
-  ExpenseCreateRequest,
-  ExpenseUpdateRequest,
-  PaginatedResponse,
-  FixedExpense,
-  FixedExpenseCreateRequest,
-  FixedExpenseUpdateRequest,
-  Installment,
-  InstallmentCreateRequest,
-  InstallmentUpdateRequest,
-} from '@/shared/types';
+  BudgetOverview, CategoryBudget, AllocationCreate, AllocationUpdate,
+  PeriodSettingUpdate, BudgetAnalysis,
+} from '@/entities/budget/model/types';
 
-function getErrorMsg(error: unknown): string {
-  const e = error as AxiosError<{ detail?: string }>;
-  return e?.response?.data?.detail || '요청 처리 중 오류가 발생했습니다.';
+function getErrorMsg(error: unknown, fallback: string): string {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const resp = (error as { response?: { data?: { detail?: string } } }).response;
+    return resp?.data?.detail || fallback;
+  }
+  return fallback;
 }
 
-// Query Keys
-
-export const budgetKeys = {
+const budgetKeys = {
   all: ['budget'] as const,
+  overview: () => [...budgetKeys.all, 'overview'] as const,
   categories: () => [...budgetKeys.all, 'categories'] as const,
-  summary: (start?: string, end?: string) =>
-    [...budgetKeys.all, 'summary', start, end] as const,
-  expenses: () => [...budgetKeys.all, 'expenses'] as const,
-  expenseList: (filters: Record<string, unknown>) =>
-    [...budgetKeys.expenses(), filters] as const,
-  fixedExpenses: () => [...budgetKeys.all, 'fixedExpenses'] as const,
-  installments: () => [...budgetKeys.all, 'installments'] as const,
+  period: () => [...budgetKeys.all, 'period'] as const,
+  analysis: (start?: string, end?: string) => [...budgetKeys.all, 'analysis', start, end] as const,
 };
 
-// --- Category Hooks ---
+export function useBudgetOverview() {
+  return useQuery({
+    queryKey: budgetKeys.overview(),
+    queryFn: async () => {
+      const { data } = await apiClient.get<BudgetOverview>('/v1/budget/overview');
+      return data;
+    },
+  });
+}
 
-export function useCategories() {
+export function useBudgetCategories() {
   return useQuery({
     queryKey: budgetKeys.categories(),
     queryFn: async () => {
-      const { data } = await apiClient.get<BudgetCategory[]>(
-        '/v1/budget/categories',
-      );
+      const { data } = await apiClient.get<CategoryBudget[]>('/v1/budget/categories');
       return data;
     },
   });
 }
 
-export function useCreateCategory() {
-  const queryClient = useQueryClient();
+export function useCreateAllocation() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (data: BudgetCategoryCreateRequest) => {
-      const { data: result } = await apiClient.post<BudgetCategory>(
-        '/v1/budget/categories',
-        data,
-      );
-      return result;
+    mutationFn: async (payload: AllocationCreate) => {
+      const { data } = await apiClient.post('/v1/budget/allocations', payload);
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: budgetKeys.categories() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: budgetKeys.all }); toast.success('예산이 배분되었습니다'); },
+    onError: (e) => { toast.error(getErrorMsg(e, '예산 배분 실패')); },
   });
 }
 
-export function useUpdateCategory() {
-  const queryClient = useQueryClient();
+export function useUpdateAllocation() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: BudgetCategoryUpdateRequest;
-    }) => {
-      const { data: result } = await apiClient.put<BudgetCategory>(
-        `/v1/budget/categories/${id}`,
-        data,
-      );
-      return result;
+    mutationFn: async ({ id, ...payload }: AllocationUpdate & { id: string }) => {
+      const { data } = await apiClient.patch(`/v1/budget/allocations/${id}`, payload);
+      return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: budgetKeys.categories() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: budgetKeys.all }); toast.success('배분이 수정되었습니다'); },
+    onError: (e) => { toast.error(getErrorMsg(e, '배분 수정 실패')); },
   });
 }
 
-export function useDeleteCategory() {
-  const queryClient = useQueryClient();
+export function useDeleteAllocation() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.put(`/v1/budget/categories/${id}`, { is_active: false });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: budgetKeys.categories() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-    },
+    mutationFn: async (id: string) => { await apiClient.delete(`/v1/budget/allocations/${id}`); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: budgetKeys.all }); toast.success('배분이 삭제되었습니다'); },
+    onError: (e) => { toast.error(getErrorMsg(e, '배분 삭제 실패')); },
   });
 }
 
-// --- Summary Hook ---
-
-export interface BudgetSummaryFilters {
-  start?: string;
-  end?: string;
-}
-
-export function useBudgetSummary(filters: BudgetSummaryFilters = {}) {
+export function useBudgetPeriod() {
   return useQuery({
-    queryKey: budgetKeys.summary(filters.start, filters.end),
+    queryKey: budgetKeys.period(),
+    queryFn: async () => {
+      const { data } = await apiClient.get<{ period_start_day: number }>('/v1/budget/period');
+      return data;
+    },
+  });
+}
+
+export function useUpdateBudgetPeriod() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: PeriodSettingUpdate) => {
+      const { data } = await apiClient.patch('/v1/budget/period', payload);
+      return data;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: budgetKeys.all }); toast.success('예산 기간이 변경되었습니다'); },
+    onError: (e) => { toast.error(getErrorMsg(e, '기간 변경 실패')); },
+  });
+}
+
+export function useBudgetAnalysis(startDate?: string, endDate?: string) {
+  return useQuery({
+    queryKey: budgetKeys.analysis(startDate, endDate),
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (filters.start) params.append('start', filters.start);
-      if (filters.end) params.append('end', filters.end);
-      const { data } = await apiClient.get<BudgetSummaryResponse>(
-        `/v1/budget/summary?${params.toString()}`,
-      );
+      if (startDate) params.set('start_date', startDate);
+      if (endDate) params.set('end_date', endDate);
+      const { data } = await apiClient.get<BudgetAnalysis>('/v1/budget/analysis', { params });
       return data;
     },
   });
 }
 
-// --- Expense Hooks ---
-
-export interface ExpenseFilters {
-  category_id?: string;
-  start?: string;
-  end?: string;
-  page?: number;
-  per_page?: number;
-}
-
-export function useExpenses(filters: ExpenseFilters = {}) {
-  return useQuery({
-    queryKey: budgetKeys.expenseList(filters as Record<string, unknown>),
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          params.append(key, String(value));
-        }
-      });
-      const { data } = await apiClient.get<PaginatedResponse<Expense>>(
-        `/v1/expenses?${params.toString()}`,
-      );
-      return data;
-    },
-  });
-}
-
-export function useCreateExpense() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: ExpenseCreateRequest) => {
-      const { data: result } = await apiClient.post<Expense>(
-        '/v1/expenses',
-        data,
-      );
-      return result;
-    },
-    onSuccess: () => {
-      toast.success('지출이 추가되었습니다.');
-      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar'] });
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-    },
-    onError: (error) => toast.error(getErrorMsg(error)),
-  });
-}
-
-export function useUpdateExpense() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: ExpenseUpdateRequest;
-    }) => {
-      const { data: result } = await apiClient.put<Expense>(
-        `/v1/expenses/${id}`,
-        data,
-      );
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar'] });
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-    },
-  });
-}
-
-export function useDeleteExpense() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/v1/expenses/${id}`);
-    },
-    onSuccess: () => {
-      toast.success('지출이 삭제되었습니다.');
-      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      queryClient.invalidateQueries({ queryKey: ['calendar'] });
-      queryClient.invalidateQueries({ queryKey: ['assets'] });
-    },
-    onError: (error) => toast.error(getErrorMsg(error)),
-  });
-}
-
-// --- Fixed Expense Hooks ---
-
-export function useFixedExpenses() {
-  return useQuery({
-    queryKey: budgetKeys.fixedExpenses(),
-    queryFn: async () => {
-      const { data } = await apiClient.get<FixedExpense[]>(
-        '/v1/fixed-expenses',
-      );
-      return data;
-    },
-  });
-}
-
-export function useCreateFixedExpense() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: FixedExpenseCreateRequest) => {
-      const { data: result } = await apiClient.post<FixedExpense>(
-        '/v1/fixed-expenses',
-        data,
-      );
-      return result;
-    },
-    onSuccess: () => {
-      toast.success('고정비가 추가되었습니다.');
-      queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    },
-    onError: (error) => toast.error(getErrorMsg(error)),
-  });
-}
-
-export function useUpdateFixedExpense() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: FixedExpenseUpdateRequest;
-    }) => {
-      const { data: result } = await apiClient.put<FixedExpense>(
-        `/v1/fixed-expenses/${id}`,
-        data,
-      );
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    },
-  });
-}
-
-export function useDeleteFixedExpense() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/v1/fixed-expenses/${id}`);
-    },
-    onSuccess: () => {
-      toast.success('고정비가 삭제되었습니다.');
-      queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    },
-    onError: (error) => toast.error(getErrorMsg(error)),
-  });
-}
-
-export function useToggleFixedExpense() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { data: result } = await apiClient.patch<FixedExpense>(
-        `/v1/fixed-expenses/${id}/toggle`,
-      );
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: budgetKeys.fixedExpenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.expenses() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-    },
-  });
-}
-
-// --- Installment Hooks ---
-
-export function useInstallments() {
-  return useQuery({
-    queryKey: budgetKeys.installments(),
-    queryFn: async () => {
-      const { data } = await apiClient.get<Installment[]>('/v1/installments');
-      return data;
-    },
-  });
-}
-
-export function useCreateInstallment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (data: InstallmentCreateRequest) => {
-      const { data: result } = await apiClient.post<Installment>(
-        '/v1/installments',
-        data,
-      );
-      return result;
-    },
-    onSuccess: () => {
-      toast.success('할부금이 추가되었습니다.');
-      queryClient.invalidateQueries({ queryKey: budgetKeys.installments() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-    },
-    onError: (error) => toast.error(getErrorMsg(error)),
-  });
-}
-
-export function useUpdateInstallment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: InstallmentUpdateRequest;
-    }) => {
-      const { data: result } = await apiClient.put<Installment>(
-        `/v1/installments/${id}`,
-        data,
-      );
-      return result;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: budgetKeys.installments() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-    },
-  });
-}
-
-export function useDeleteInstallment() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/v1/installments/${id}`);
-    },
-    onSuccess: () => {
-      toast.success('할부금이 삭제되었습니다.');
-      queryClient.invalidateQueries({ queryKey: budgetKeys.installments() });
-      queryClient.invalidateQueries({ queryKey: budgetKeys.all });
-    },
-    onError: (error) => toast.error(getErrorMsg(error)),
-  });
-}
+export { budgetKeys };
