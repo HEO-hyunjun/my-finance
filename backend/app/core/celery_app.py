@@ -34,6 +34,7 @@ celery_app = Celery(
         "app.tasks.snapshot_tasks",
         "app.tasks.market_tasks",
         "app.tasks.insight_tasks",
+        "app.tasks.price_tasks",
     ],
 )
 
@@ -79,5 +80,9 @@ celery_app.conf.beat_schedule = {
     "generate-daily-insights": {
         "task": "app.tasks.insight_tasks.generate_all_user_insights",
         "schedule": crontab(hour=6, minute=0),
+    },
+    "collect-daily-prices": {
+        "task": "app.tasks.price_tasks.collect_daily_prices",
+        "schedule": crontab(hour=16, minute=0),
     },
 }
