@@ -1,8 +1,7 @@
 """예산 관리 API 엔드포인트.
 
-TODO: Phase 2 - budget_service를 새 스키마(Entry, Category) 기반으로 교체 예정.
-현재 budget_service가 삭제되어 카테고리/요약 관련 엔드포인트는 501을 반환합니다.
-budget_analysis_service는 유지됩니다.
+Budget v2: top-down 방식 (수입 - 고정지출 - 자동이체 = 가용예산 → 카테고리 배분)
+기존 budget_analysis_service는 유지합니다.
 """
 
 import uuid
@@ -13,81 +12,150 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.tz import today as tz_today
 from app.models.user import User
 from app.schemas.budget import (
-    BudgetCategoryCreate,
-    BudgetCategoryResponse,
-    BudgetCategoryUpdate,
-    BudgetSummaryResponse,
+    AllocationCreate,
+    AllocationUpdate,
+    BudgetOverviewResponse,
+    CategoryBudgetResponse,
+    PeriodSettingUpdate,
 )
 from app.schemas.budget_analysis import BudgetAnalysisResponse
-from app.services import budget_analysis_service
+from app.services import budget_analysis_service, budget_v2_service
 
 router = APIRouter(prefix="/budget", tags=["budget"])
 
 
-# --- Categories ---
-# TODO: Phase 2 - budget_service 재구현 후 복원
+# --- Overview ---
 
 
-@router.get("/categories", response_model=list[BudgetCategoryResponse])
-async def list_categories(
+@router.get("/overview", response_model=BudgetOverviewResponse)
+async def get_budget_overview(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Budget categories API is being migrated to new schema. Coming in Phase 2.",
+    """Top-down 예산 개요: 수입 - 고정지출 - 자동이체 = 가용예산"""
+    today = tz_today()
+    return await budget_v2_service.get_budget_overview(db, current_user.id, today)
+
+
+# --- Category Budgets ---
+
+
+@router.get("/categories", response_model=list[CategoryBudgetResponse])
+async def list_category_budgets(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """카테고리별 배분 + 실제 지출 + 잔여"""
+    today = tz_today()
+    return await budget_v2_service.get_category_budgets(db, current_user.id, today)
+
+
+# --- Allocations ---
+
+
+@router.post("/allocations", status_code=status.HTTP_201_CREATED)
+async def create_allocation(
+    data: AllocationCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """예산 카테고리 배분 생성 (이미 존재하면 업데이트)"""
+    today = tz_today()
+    alloc = await budget_v2_service.create_or_update_allocation(
+        db, current_user.id, data.category_id, data.amount, today,
     )
+    return {
+        "allocation_id": str(alloc.id),
+        "category_id": str(alloc.category_id),
+        "amount": alloc.amount,
+        "period_start": alloc.period_start.isoformat(),
+        "period_end": alloc.period_end.isoformat(),
+    }
 
 
-@router.post(
-    "/categories",
-    response_model=BudgetCategoryResponse,
-    status_code=status.HTTP_201_CREATED,
+@router.patch("/allocations/{allocation_id}")
+async def update_allocation(
+    allocation_id: uuid.UUID,
+    data: AllocationUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """예산 배분 금액 수정"""
+    # 기존 allocation 조회하여 category_id를 가져옴
+    from sqlalchemy import select
+    from app.models.budget_v2 import BudgetAllocation
+
+    stmt = select(BudgetAllocation).where(
+        BudgetAllocation.id == allocation_id,
+        BudgetAllocation.user_id == current_user.id,
+    )
+    existing = (await db.execute(stmt)).scalar_one_or_none()
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Allocation not found",
+        )
+
+    today = tz_today()
+    alloc = await budget_v2_service.create_or_update_allocation(
+        db, current_user.id, existing.category_id, data.amount, today,
+    )
+    return {
+        "allocation_id": str(alloc.id),
+        "category_id": str(alloc.category_id),
+        "amount": alloc.amount,
+        "period_start": alloc.period_start.isoformat(),
+        "period_end": alloc.period_end.isoformat(),
+    }
+
+
+@router.delete(
+    "/allocations/{allocation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
 )
-async def create_category(
-    data: BudgetCategoryCreate,
+async def delete_allocation(
+    allocation_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Budget categories API is being migrated to new schema. Coming in Phase 2.",
-    )
+    """예산 배분 삭제"""
+    await budget_v2_service.delete_allocation(db, current_user.id, allocation_id)
 
 
-@router.put("/categories/{category_id}", response_model=BudgetCategoryResponse)
-async def update_category(
-    category_id: uuid.UUID,
-    data: BudgetCategoryUpdate,
+# --- Period ---
+
+
+@router.get("/period")
+async def get_period(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Budget categories API is being migrated to new schema. Coming in Phase 2.",
-    )
+    """사용자의 예산 기간 설정 조회"""
+    period = await budget_v2_service.get_or_create_period(db, current_user.id)
+    return {
+        "period_start_day": period.period_start_day,
+    }
 
 
-# --- Summary ---
-# TODO: Phase 2 - budget_service.get_budget_summary 재구현 후 복원
-
-
-@router.get("/summary", response_model=BudgetSummaryResponse)
-async def get_budget_summary(
-    start: date | None = Query(default=None),
-    end: date | None = Query(default=None),
+@router.patch("/period")
+async def update_period(
+    data: PeriodSettingUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Budget summary API is being migrated to new schema. Coming in Phase 2.",
+    """예산 기간 시작일 변경 (1-28)"""
+    period = await budget_v2_service.update_period_start_day(
+        db, current_user.id, data.period_start_day,
     )
+    return {
+        "period_start_day": period.period_start_day,
+    }
 
 
-# --- Analysis ---
+# --- Analysis (기존 유지) ---
 
 
 @router.get("/analysis", response_model=BudgetAnalysisResponse)
