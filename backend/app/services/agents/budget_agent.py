@@ -1,19 +1,23 @@
 """가계부 분석 서브에이전트.
 
 예산, 지출, 수입, 고정비, 할부금을 분석합니다.
-
-TODO: Phase 2 - budget_service, income_service를
-새 스키마(Entry, Category) 기반 서비스로 교체 예정.
+신규 스키마(Entry, Category) 기반.
 """
 
 import json
 import uuid
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tz import today as get_today
+from app.models.entry import Entry, EntryType
+from app.models.recurring_schedule import ScheduleType
 from app.services.agents.sub_agent import SubAgent
+from app.services.budget_v2_service import get_budget_overview, get_category_budgets
 from app.services.market_service import MarketService
+from app.services.schedule_service import get_schedules
 
 
 class BudgetAgent(SubAgent):
@@ -133,9 +137,20 @@ class BudgetAgent(SubAgent):
         market: MarketService,
     ) -> Any:
         if tool_name == "get_budget_status":
-            # TODO: Phase 2 - rewrite for new schema (Entry, Category)
+            today_ = get_today()
+            overview = await get_budget_overview(db, user_id, today_)
+            categories = await get_category_budgets(db, user_id, today_)
+            # Decimal → float for JSON serialization
+            for k, v in overview.items():
+                if hasattr(v, "as_tuple"):
+                    overview[k] = float(v)
+            for cat in categories:
+                for k, v in cat.items():
+                    if hasattr(v, "as_tuple"):
+                        cat[k] = float(v)
             return {
-                "message": "예산 현황 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
+                "overview": overview,
+                "categories": categories,
             }
 
         if tool_name == "get_budget_analysis":
@@ -145,27 +160,87 @@ class BudgetAgent(SubAgent):
             return json.loads(analysis.model_dump_json())
 
         if tool_name == "get_expense_list":
-            # TODO: Phase 2 - rewrite for new schema (Entry)
-            return {
-                "message": "지출 내역 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
-            }
+            per_page = min(args.get("per_page", 20), 50)
+            stmt = (
+                select(Entry)
+                .where(Entry.user_id == user_id, Entry.type == EntryType.EXPENSE)
+                .order_by(Entry.transacted_at.desc())
+            )
+            if args.get("start_date"):
+                stmt = stmt.where(Entry.transacted_at >= args["start_date"])
+            if args.get("end_date"):
+                stmt = stmt.where(Entry.transacted_at <= args["end_date"])
+            stmt = stmt.limit(per_page)
+            result = await db.execute(stmt)
+            entries = result.scalars().all()
+            return [
+                {
+                    "id": str(e.id),
+                    "amount": float(e.amount),
+                    "currency": e.currency,
+                    "memo": e.memo,
+                    "category_id": str(e.category_id) if e.category_id else None,
+                    "transacted_at": e.transacted_at.isoformat(),
+                }
+                for e in entries
+            ]
 
         if tool_name == "get_income_list":
-            # TODO: Phase 2 - rewrite for new schema (Entry)
-            return {
-                "message": "수입 내역 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
-            }
+            stmt = (
+                select(Entry)
+                .where(Entry.user_id == user_id, Entry.type == EntryType.INCOME)
+                .order_by(Entry.transacted_at.desc())
+            )
+            if args.get("start_date"):
+                stmt = stmt.where(Entry.transacted_at >= args["start_date"])
+            if args.get("end_date"):
+                stmt = stmt.where(Entry.transacted_at <= args["end_date"])
+            stmt = stmt.limit(20)
+            result = await db.execute(stmt)
+            entries = result.scalars().all()
+            return [
+                {
+                    "id": str(e.id),
+                    "amount": float(e.amount),
+                    "currency": e.currency,
+                    "memo": e.memo,
+                    "category_id": str(e.category_id) if e.category_id else None,
+                    "transacted_at": e.transacted_at.isoformat(),
+                }
+                for e in entries
+            ]
 
         if tool_name == "get_fixed_expenses":
-            # TODO: Phase 2 - rewrite for new schema
-            return {
-                "message": "고정비 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
-            }
+            schedules = await get_schedules(db, user_id)
+            fixed = [s for s in schedules if s.type == ScheduleType.EXPENSE and s.is_active]
+            return [
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "amount": float(s.amount),
+                    "currency": s.currency,
+                    "schedule_day": s.schedule_day,
+                    "is_active": s.is_active,
+                }
+                for s in fixed
+            ]
 
         if tool_name == "get_installments":
-            # TODO: Phase 2 - rewrite for new schema
-            return {
-                "message": "할부금 조회 기능이 새 스키마로 마이그레이션 중입니다. Phase 2에서 복원 예정입니다."
-            }
+            schedules = await get_schedules(db, user_id)
+            installments = [s for s in schedules if s.total_count is not None and s.is_active]
+            return [
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "amount": float(s.amount),
+                    "currency": s.currency,
+                    "schedule_day": s.schedule_day,
+                    "total_count": s.total_count,
+                    "executed_count": s.executed_count,
+                    "remaining_count": (s.total_count - s.executed_count) if s.total_count else None,
+                    "remaining_amount": float(s.amount * (s.total_count - s.executed_count)) if s.total_count else None,
+                }
+                for s in installments
+            ]
 
         return {"error": f"Unknown tool: {tool_name}"}

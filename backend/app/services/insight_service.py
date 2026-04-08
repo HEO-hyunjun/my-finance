@@ -1,12 +1,12 @@
 """AI 인사이트 서비스.
 
-TODO: Phase 2 - 새 스키마(Account, Entry)에 맞게 재작성 예정.
-현재는 import 오류 방지를 위해 LLM 기반 생성은 스텁 처리되어 있습니다.
+LLM 기반 재무 인사이트 생성. 신규 스키마(Account, Entry) 기반.
 """
 
 import json
 import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from litellm import acompletion
 from sqlalchemy import select, delete
@@ -14,15 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.tz import today
+from app.models.entry import Entry
 from app.models.insight import AIInsightRecord
 from app.services.budget_analysis_service import get_budget_analysis
+from app.services.budget_v2_service import get_budget_overview
 from app.services.market_service import MarketService
-
-# TODO: Phase 2 - rewrite for new schema
-# Old imports removed:
-# from app.services.asset_service import get_asset_summary
-# from app.services.budget_service import get_budget_summary
-# from app.services.transaction_service import get_transactions
+from app.services.portfolio_v2_service import get_total_assets
 
 logger = logging.getLogger(__name__)
 
@@ -75,28 +72,39 @@ async def generate_daily_insights(
         )
     )
 
-    # 재무 데이터 수집 (Phase 2에서 새 서비스로 교체)
+    # 재무 데이터 수집
     context_parts: list[str] = []
 
-    # TODO: Phase 2 - get_asset_summary를 새 account/entry 기반으로 교체
-    # try:
-    #     asset_summary = await get_asset_summary(db, user_id, market)
-    #     context_parts.append(...)
-    # except Exception:
-    #     pass
+    # 자산 현황 (portfolio_v2_service)
+    try:
+        assets = await get_total_assets(db, user_id)
+        total_krw = assets["total_krw"]
+        account_lines = []
+        for acc in assets["accounts"]:
+            account_lines.append(f"  - {acc['name']} ({acc['account_type']}): ₩{acc['total_value_krw']:,.0f}")
+        context_parts.append(f"총 자산: ₩{total_krw:,.0f}\n" + "\n".join(account_lines))
+    except Exception:
+        pass
 
-    # TODO: Phase 2 - get_budget_summary를 새 entry 기반으로 교체
-    # try:
-    #     budget = await get_budget_summary(db, user_id, salary_day=salary_day)
-    #     context_parts.append(...)
-    # except Exception:
-    #     pass
+    # 예산 현황 (budget_v2_service)
+    try:
+        overview = await get_budget_overview(db, user_id, today_)
+        context_parts.append(
+            f"예산 기간: {overview['period_start']} ~ {overview['period_end']}, "
+            f"수입: ₩{overview['total_income']:,.0f}, "
+            f"고정지출: ₩{overview['total_fixed_expense']:,.0f}, "
+            f"가용예산: ₩{overview['available_budget']:,.0f}, "
+            f"미배분: ₩{overview['unallocated']:,.0f}"
+        )
+    except Exception:
+        pass
 
+    # 예산 분석 (budget_analysis_service — 기존 유지)
     try:
         analysis = await get_budget_analysis(db, user_id, salary_day=salary_day)
         context_parts.append(
-            f"일일 가용: \u20a9{analysis.daily_budget.daily_available:,.0f}, "
-            f"오늘 지출: \u20a9{analysis.daily_budget.today_spent:,.0f}, "
+            f"일일 가용: ₩{analysis.daily_budget.daily_available:,.0f}, "
+            f"오늘 지출: ₩{analysis.daily_budget.today_spent:,.0f}, "
             f"남은 일수: {analysis.daily_budget.remaining_days}일"
         )
         if analysis.alerts:
@@ -104,12 +112,30 @@ async def generate_daily_insights(
     except Exception:
         pass
 
-    # TODO: Phase 2 - get_transactions를 새 entry 기반으로 교체
-    # try:
-    #     recent_tx = await get_transactions(db, user_id, page=1, per_page=10)
-    #     ...
-    # except Exception:
-    #     pass
+    # 최근 거래 내역 (직접 Entry 쿼리, 최근 30일)
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        stmt = (
+            select(Entry)
+            .where(
+                Entry.user_id == user_id,
+                Entry.transacted_at >= cutoff,
+            )
+            .order_by(Entry.transacted_at.desc())
+            .limit(10)
+        )
+        result = await db.execute(stmt)
+        recent_entries = result.scalars().all()
+        if recent_entries:
+            tx_lines = []
+            for e in recent_entries:
+                tx_lines.append(
+                    f"  - {e.transacted_at.strftime('%m/%d')} {e.type.value} ₩{e.amount:,.0f}"
+                    + (f" ({e.memo})" if e.memo else "")
+                )
+            context_parts.append("최근 거래:\n" + "\n".join(tx_lines))
+    except Exception:
+        pass
 
     if not context_parts:
         return []
