@@ -9,6 +9,7 @@ import app.models.entry  # noqa: F401
 import app.models.category  # noqa: F401
 import app.models.recurring_schedule  # noqa: F401
 import app.models.portfolio  # noqa: F401
+import app.models.budget_v2  # noqa: F401
 
 
 @pytest.fixture(scope="session")
