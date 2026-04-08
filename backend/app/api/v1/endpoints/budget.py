@@ -170,5 +170,4 @@ async def get_budget_analysis(
         current_user.id,
         start,
         end,
-        salary_day=current_user.salary_day,
     )

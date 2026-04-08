@@ -55,7 +55,6 @@ async def generate_daily_insights(
     db: AsyncSession,
     user_id: uuid.UUID,
     market: MarketService,
-    salary_day: int = 1,
 ) -> list[dict]:
     """LLM을 호출하여 인사이트를 생성하고 DB에 저장. 이미 있으면 재생성.
 
@@ -101,7 +100,7 @@ async def generate_daily_insights(
 
     # 예산 분석 (budget_analysis_service — 기존 유지)
     try:
-        analysis = await get_budget_analysis(db, user_id, salary_day=salary_day)
+        analysis = await get_budget_analysis(db, user_id)
         context_parts.append(
             f"일일 가용: ₩{analysis.daily_budget.daily_available:,.0f}, "
             f"오늘 지출: ₩{analysis.daily_budget.today_spent:,.0f}, "

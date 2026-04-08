@@ -6,7 +6,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.account import Account
 from app.models.settings import ApiKey, ApiServiceType, LlmSetting
 from app.models.user import User
 from app.schemas.settings import (
@@ -252,15 +251,6 @@ async def get_app_settings(
 
     prefs = user.notification_preferences or {}
 
-    # 월급 계좌 이름 조회
-    salary_asset_name = None
-    if user.salary_asset_id:
-        account = (await db.execute(
-            select(Account).where(Account.id == user.salary_asset_id)
-        )).scalar_one_or_none()
-        if account:
-            salary_asset_name = account.name
-
     return AppSettingsResponse(
         api_keys=api_keys,
         llm=llm,
@@ -268,8 +258,6 @@ async def get_app_settings(
         default_currency=user.default_currency,
         news_refresh_interval=prefs.get("news_refresh_interval", 30),
         investment_prompt=user.investment_prompt,
-        salary_asset_id=user.salary_asset_id,
-        salary_asset_name=salary_asset_name,
         asset_type_colors=prefs.get("asset_type_colors"),
     )
 
@@ -285,8 +273,6 @@ async def update_app_settings(
         user.default_currency = data.default_currency
     if data.news_refresh_interval is not None:
         prefs["news_refresh_interval"] = data.news_refresh_interval
-    if "salary_asset_id" in data.model_fields_set:
-        user.salary_asset_id = data.salary_asset_id
     if data.asset_type_colors is not None:
         prefs["asset_type_colors"] = data.asset_type_colors
 
