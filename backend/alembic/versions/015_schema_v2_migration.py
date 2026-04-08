@@ -29,9 +29,22 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _table_exists(conn, table_name: str) -> bool:
+    """Check if a table exists in the current database."""
+    return bool(
+        conn.execute(
+            sa.text(
+                "SELECT COUNT(*) FROM information_schema.TABLES "
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :tbl"
+            ),
+            {"tbl": table_name},
+        ).scalar()
+    )
+
+
 def _uuid() -> str:
-    """Generate a new UUID string suitable for MySQL Uuid column."""
-    return str(uuid.uuid4())
+    """Generate a new UUID hex string (no hyphens) suitable for MySQL CHAR(32) column."""
+    return uuid.uuid4().hex
 
 
 # ===================================================================
@@ -47,8 +60,8 @@ def upgrade() -> None:
     _create_security_prices_table()
     _create_categories_table()
     _create_entry_groups_table()
-    _create_entries_table()
     _create_recurring_schedules_table()
+    _create_entries_table()
     _create_account_snapshots_table()
 
     # ------------------------------------------------------------------
@@ -837,11 +850,15 @@ def _migrate_data(conn):
     # ---------------------------------------------------------------
     # Step 8: Migrate expenses -> entries
     # ---------------------------------------------------------------
-    old_expenses = conn.execute(sa.text(
-        "SELECT id, user_id, category_id, amount, memo, source_asset_id, "
-        "spent_at, created_at "
-        "FROM expenses ORDER BY spent_at"
-    )).fetchall()
+    old_expenses = (
+        conn.execute(sa.text(
+            "SELECT id, user_id, category_id, amount, memo, source_asset_id, "
+            "spent_at, created_at "
+            "FROM expenses ORDER BY spent_at"
+        )).fetchall()
+        if _table_exists(conn, "expenses")
+        else []
+    )
 
     for exp in old_expenses:
         exp_id = str(exp[0])
@@ -886,11 +903,15 @@ def _migrate_data(conn):
     # ---------------------------------------------------------------
     # Step 9: Migrate fixed_expenses -> recurring_schedules (type=expense)
     # ---------------------------------------------------------------
-    old_fixed = conn.execute(sa.text(
-        "SELECT id, user_id, category_id, name, amount, payment_day, "
-        "source_asset_id, is_active, created_at, updated_at "
-        "FROM fixed_expenses"
-    )).fetchall()
+    old_fixed = (
+        conn.execute(sa.text(
+            "SELECT id, user_id, category_id, name, amount, payment_day, "
+            "source_asset_id, is_active, created_at, updated_at "
+            "FROM fixed_expenses"
+        )).fetchall()
+        if _table_exists(conn, "fixed_expenses")
+        else []
+    )
 
     for fe in old_fixed:
         fe_id = str(fe[0])
@@ -976,11 +997,15 @@ def _migrate_data(conn):
     # ---------------------------------------------------------------
     # Step 11: Migrate auto_transfers -> recurring_schedules (type=transfer)
     # ---------------------------------------------------------------
-    old_at = conn.execute(sa.text(
-        "SELECT id, user_id, source_asset_id, target_asset_id, name, amount, "
-        "transfer_day, is_active, created_at "
-        "FROM auto_transfers"
-    )).fetchall()
+    old_at = (
+        conn.execute(sa.text(
+            "SELECT id, user_id, source_asset_id, target_asset_id, name, amount, "
+            "transfer_day, is_active, created_at "
+            "FROM auto_transfers"
+        )).fetchall()
+        if _table_exists(conn, "auto_transfers")
+        else []
+    )
 
     for at_row in old_at:
         at_id = str(at_row[0])
@@ -1100,24 +1125,46 @@ def _migrate_data(conn):
 
 def _drop_old_tables():
     """Drop old tables in reverse FK dependency order."""
-    # First drop FKs from users table that reference assets
-    op.drop_constraint("users_ibfk_1", "users", type_="foreignkey")
-    op.drop_column("users", "salary_asset_id")
+    conn = op.get_bind()
 
-    # Drop tables in reverse dependency order
-    op.drop_table("auto_transfers")
-    op.drop_table("installments")
-    op.drop_table("fixed_expenses")
-    op.drop_table("recurring_incomes")
-    op.drop_table("incomes")
-    op.drop_table("budget_carryover_logs")
-    op.drop_table("budget_carryover_settings")
-    op.drop_table("expenses")
-    op.drop_table("transactions")
-    op.drop_table("news_clusters")
-    op.drop_table("news_articles")
-    op.drop_table("budget_categories")
-    op.drop_table("assets")
+    # First drop FKs from users table that reference assets (if they still exist)
+    has_salary_col = conn.execute(sa.text(
+        "SELECT COUNT(*) FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' "
+        "AND COLUMN_NAME = 'salary_asset_id'"
+    )).scalar()
+    if has_salary_col:
+        # Drop FK first, then column
+        has_fk = conn.execute(sa.text(
+            "SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS "
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' "
+            "AND CONSTRAINT_NAME = 'users_ibfk_1' AND CONSTRAINT_TYPE = 'FOREIGN KEY'"
+        )).scalar()
+        if has_fk:
+            op.drop_constraint("users_ibfk_1", "users", type_="foreignkey")
+        op.drop_column("users", "salary_asset_id")
+
+    # Disable FK checks to avoid dependency-order issues, then drop all old tables
+    conn.execute(sa.text("SET FOREIGN_KEY_CHECKS = 0"))
+    old_tables = [
+        "auto_transfers",
+        "installments",
+        "expenses",
+        "fixed_expenses",
+        "recurring_incomes",
+        "incomes",
+        "budget_carryover_logs",
+        "budget_carryover_settings",
+        "transactions",
+        "news_clusters",
+        "news_articles",
+        "budget_categories",
+        "asset_snapshots",
+        "assets",
+    ]
+    for table_name in old_tables:
+        conn.execute(sa.text(f"DROP TABLE IF EXISTS `{table_name}`"))
+    conn.execute(sa.text("SET FOREIGN_KEY_CHECKS = 1"))
 
 
 # ===================================================================
