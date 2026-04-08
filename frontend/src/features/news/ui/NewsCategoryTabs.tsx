@@ -1,4 +1,4 @@
-import type { NewsCategory } from '@/shared/types';
+import type { NewsCategory } from '@/shared/types/news';
 import { NEWS_CATEGORIES } from '../lib/constants';
 import { Button } from '@/shared/ui/button';
 

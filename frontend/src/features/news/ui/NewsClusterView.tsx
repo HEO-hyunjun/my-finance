@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNewsClusters, useTriggerClustering } from '@/features/news/api';
-import type { NewsCluster } from '@/shared/types';
+import type { NewsCluster } from '@/shared/types/news';
 
 const SENTIMENT_COLORS: Record<string, string> = {
   positive: 'text-green-600 bg-green-50',

@@ -1,4 +1,4 @@
-import type { NewsCategory } from '@/shared/types';
+import type { NewsCategory } from '@/shared/types/news';
 
 export const NEWS_CATEGORIES: { value: NewsCategory; label: string }[] = [
   { value: 'all', label: '전체' },

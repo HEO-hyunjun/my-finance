@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
-import type { NewsListResponse, MyAssetNewsResponse, NewsCategory, NewsClustersResponse, NewsArticleDetail } from '@/shared/types';
+import type { NewsListResponse, MyAssetNewsResponse, NewsCategory, NewsClustersResponse, NewsArticleDetail } from '@/shared/types/news';
 
 export const newsKeys = {
   all: ['news'] as const,

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { NewsArticle } from '@/shared/types';
+import type { NewsArticle } from '@/shared/types/news';
 
 interface Props {
   article: NewsArticle;

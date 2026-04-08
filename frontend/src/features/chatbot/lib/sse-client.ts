@@ -1,4 +1,4 @@
-import type { ChatSSEEvent } from '@/shared/types';
+import type { ChatSSEEvent } from '@/shared/types/chat';
 
 interface SSEOptions {
   onToken: (content: string) => void;

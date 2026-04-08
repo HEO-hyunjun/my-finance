@@ -8,7 +8,7 @@ import { NewsCardSkeleton } from '@/features/news/ui/NewsCardSkeleton';
 import { NewsClusterView } from '@/features/news/ui/NewsClusterView';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs';
 import { Card, CardContent } from '@/shared/ui/card';
-import type { NewsCategory } from '@/shared/types';
+import type { NewsCategory } from '@/shared/types/news';
 
 type NewsViewTab = 'latest' | 'clusters';
 
