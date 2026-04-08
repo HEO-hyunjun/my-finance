@@ -13,7 +13,7 @@ from app.schemas.recurring_schedule import (
 )
 from app.services import schedule_service
 
-router = APIRouter(prefix="/schedules", tags=["schedules"])
+router = APIRouter(tags=["schedules"])
 
 
 @router.get("", response_model=list[ScheduleResponse])

@@ -16,7 +16,7 @@ from app.schemas.account import (
 from app.schemas.entry import EntryResponse
 from app.services import account_service, entry_service
 
-router = APIRouter(prefix="/accounts", tags=["accounts"])
+router = APIRouter(tags=["accounts"])
 
 
 @router.get("", response_model=list[AccountResponse])

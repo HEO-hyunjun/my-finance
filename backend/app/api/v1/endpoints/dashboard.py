@@ -8,7 +8,7 @@ from app.schemas.dashboard import AIInsightsResponse
 from app.services.dashboard_service import get_dashboard_summary
 from app.services.insight_service import get_ai_insights
 
-router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+router = APIRouter(tags=["Dashboard"])
 
 
 @router.get("/summary")

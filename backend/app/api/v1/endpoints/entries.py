@@ -19,7 +19,7 @@ from app.schemas.entry import (
 )
 from app.services import entry_service
 
-router = APIRouter(prefix="/entries", tags=["entries"])
+router = APIRouter(tags=["entries"])
 
 
 @router.get("", response_model=EntryListResponse)

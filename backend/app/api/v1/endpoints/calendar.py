@@ -7,7 +7,7 @@ from app.models.user import User
 from app.schemas.calendar import CalendarEventsResponse
 from app.services.calendar_service import get_calendar_events
 
-router = APIRouter(prefix="/calendar", tags=["Calendar"])
+router = APIRouter(tags=["Calendar"])
 
 
 @router.get("/events", response_model=CalendarEventsResponse)

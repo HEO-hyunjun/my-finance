@@ -16,7 +16,7 @@ from app.schemas.settings import (
 )
 from app.services import settings_service
 
-router = APIRouter(prefix="/settings", tags=["settings"])
+router = APIRouter(tags=["settings"])
 
 
 @router.get("", response_model=AppSettingsResponse)

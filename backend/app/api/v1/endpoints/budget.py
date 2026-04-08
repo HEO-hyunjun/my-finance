@@ -24,7 +24,7 @@ from app.schemas.budget import (
 from app.schemas.budget_analysis import BudgetAnalysisResponse
 from app.services import budget_analysis_service, budget_v2_service
 
-router = APIRouter(prefix="/budget", tags=["budget"])
+router = APIRouter(tags=["budget"])
 
 
 # --- Overview ---

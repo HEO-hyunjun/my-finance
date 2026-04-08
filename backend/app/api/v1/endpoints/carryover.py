@@ -12,7 +12,7 @@ from app.schemas.carryover import (
 )
 from app.services import carryover_service
 
-router = APIRouter(prefix="/budget/carryover", tags=["budget-carryover"])
+router = APIRouter(tags=["budget-carryover"])
 
 
 @router.get("/settings", response_model=list[CarryoverSettingResponse])

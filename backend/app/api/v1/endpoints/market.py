@@ -29,7 +29,7 @@ class RefreshPriceRequest(BaseModel):
     symbol: str
     asset_type: str | None = None
 
-router = APIRouter(prefix="/market", tags=["market"])
+router = APIRouter(tags=["market"])
 
 
 @router.get("/price", response_model=PriceResponse)

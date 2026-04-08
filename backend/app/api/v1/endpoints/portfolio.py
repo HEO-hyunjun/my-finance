@@ -23,7 +23,7 @@ from app.schemas.portfolio import (
 from app.services import portfolio_service
 from app.services.portfolio_v2_service import get_total_assets
 
-router = APIRouter(prefix="/portfolio", tags=["portfolio"])
+router = APIRouter(tags=["portfolio"])
 
 
 # --- Asset Timeline ---
