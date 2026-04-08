@@ -71,18 +71,6 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
   adjustment: '조정',
 };
 
-const ENTRY_TYPE_COLORS: Record<string, string> = {
-  income: 'text-green-600',
-  expense: 'text-red-600',
-  transfer_in: 'text-blue-600',
-  transfer_out: 'text-blue-400',
-  buy: 'text-purple-600',
-  sell: 'text-orange-600',
-  dividend: 'text-green-500',
-  interest: 'text-green-400',
-  fee: 'text-red-400',
-  adjustment: 'text-gray-500',
-};
 
 const ENTRY_TYPE_BG: Record<string, string> = {
   income: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
@@ -759,9 +747,7 @@ interface EntryRowProps {
 function EntryRow({ entry, accountName, onEdit, onDelete }: EntryRowProps) {
   const typeLabel = ENTRY_TYPE_LABELS[entry.type] ?? entry.type;
   const typeBg = ENTRY_TYPE_BG[entry.type] ?? 'bg-gray-100 text-gray-600';
-  const amountColor = ENTRY_TYPE_COLORS[entry.type] ?? 'text-foreground';
-
-  const isPositive = ['income', 'transfer_in', 'dividend', 'interest', 'sell'].includes(entry.type);
+  const amountColor = entry.amount >= 0 ? 'text-green-600' : 'text-red-600';
 
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 hover:bg-muted/30 transition-colors">
@@ -790,7 +776,7 @@ function EntryRow({ entry, accountName, onEdit, onDelete }: EntryRowProps) {
 
       {/* 금액 */}
       <div className={`shrink-0 text-right font-semibold tabular-nums ${amountColor}`}>
-        {isPositive ? '+' : '-'}{formatCurrency(entry.amount, entry.currency)}
+        {entry.amount >= 0 ? '+' : '-'}{formatCurrency(Math.abs(entry.amount), entry.currency)}
       </div>
 
       {/* 액션 */}

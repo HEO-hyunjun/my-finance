@@ -58,7 +58,11 @@ async def get_account_summary(db: AsyncSession, user_id: uuid.UUID, account_id: 
     }
 
     if account.account_type == AccountType.INVESTMENT:
-        result["cash_balance"] = await get_account_cash_balance(db, account_id)
-        result["holdings"] = await get_holdings(db, account_id)
+        cash_balance = await get_account_cash_balance(db, account_id)
+        holdings = await get_holdings(db, account_id)
+        holdings_value = sum(h.get("value", 0) for h in holdings)
+        result["cash_balance"] = cash_balance
+        result["holdings"] = holdings
+        result["balance"] = cash_balance + holdings_value  # 현금 + 평가액
 
     return result

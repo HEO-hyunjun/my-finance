@@ -7,7 +7,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.entry import Entry, EntryGroup, EntryType, GroupType
-from app.models.security import Security
+from app.models.security import Security, SecurityPrice
 
 
 async def get_account_balance(db: AsyncSession, account_id: uuid.UUID) -> Decimal:
@@ -66,12 +66,57 @@ async def get_holdings(
     holdings = []
     for row in rows:
         security = await db.get(Security, row.security_id)
+        quantity = Decimal(str(row.total_quantity))
+
+        # 평균 매수 단가 계산: SUM(quantity * unit_price) / SUM(quantity) for BUY entries
+        avg_stmt = select(
+            func.sum(Entry.quantity * Entry.unit_price).label("total_cost"),
+            func.sum(Entry.quantity).label("total_qty"),
+        ).where(
+            Entry.account_id == account_id,
+            Entry.security_id == row.security_id,
+            Entry.type == EntryType.BUY,
+        )
+        avg_result = (await db.execute(avg_stmt)).one()
+        avg_price = (
+            Decimal(str(avg_result.total_cost)) / Decimal(str(avg_result.total_qty))
+            if avg_result.total_qty and avg_result.total_qty > 0
+            else Decimal("0")
+        )
+
+        # 최신 시세 조회
+        price_stmt = (
+            select(SecurityPrice.close_price, SecurityPrice.currency)
+            .where(SecurityPrice.security_id == row.security_id)
+            .order_by(SecurityPrice.price_date.desc())
+            .limit(1)
+        )
+        price_row = (await db.execute(price_stmt)).one_or_none()
+        current_price = Decimal(str(price_row.close_price)) if price_row else None
+
+        # 평가액 및 수익/손실
+        if current_price is not None:
+            value = quantity * current_price
+            cost_basis = quantity * avg_price
+            profit_loss = value - cost_basis
+            profit_loss_rate = float(profit_loss / cost_basis * 100) if cost_basis > 0 else 0.0
+        else:
+            value = quantity * avg_price  # 시세 없으면 매수가 기준
+            profit_loss = Decimal("0")
+            profit_loss_rate = 0.0
+
         holdings.append(
             {
                 "security_id": str(row.security_id),
                 "symbol": security.symbol if security else None,
                 "name": security.name if security else None,
-                "quantity": Decimal(str(row.total_quantity)),
+                "quantity": quantity,
+                "avg_price": avg_price,
+                "current_price": current_price,
+                "currency": security.currency if security else "KRW",
+                "value": value,
+                "profit_loss": profit_loss,
+                "profit_loss_rate": round(profit_loss_rate, 2),
             }
         )
     return holdings
