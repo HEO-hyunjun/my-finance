@@ -75,13 +75,34 @@ export interface DashboardMaturityAlert {
   bank_name: string | null;
 }
 
+export interface DashboardBudgetOverview {
+  period_start: string;
+  period_end: string;
+  period_start_day: number;
+  total_income: number;
+  total_fixed_expense: number;
+  total_transfer: number;
+  available_budget: number;
+  total_allocated: number;
+  unallocated: number;
+}
+
+export interface DashboardRecentEntry {
+  id: string;
+  type: string;
+  amount: number;
+  currency: string;
+  memo: string | null;
+  transacted_at: string;
+}
+
 export interface DashboardSummaryResponse {
-  asset_summary: DashboardAssetSummary;
-  budget_summary: DashboardBudgetSummary;
-  recent_transactions: DashboardTransaction[];
-  market_info: DashboardMarketInfo;
-  upcoming_payments: DashboardPayment[];
-  maturity_alerts: DashboardMaturityAlert[];
+  total_assets_krw: number;
+  accounts_count: number;
+  monthly_income: number;
+  monthly_expense: number;
+  budget_overview: DashboardBudgetOverview;
+  recent_entries: DashboardRecentEntry[];
 }
 
 export interface AIInsight {

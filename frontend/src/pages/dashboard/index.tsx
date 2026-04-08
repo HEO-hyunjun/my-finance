@@ -1,34 +1,46 @@
 import { useDashboardSummary } from '@/features/dashboard/api';
-import { useAppSettings } from '@/features/settings/api/settings-api';
-import { TotalAssetWidget } from '@/features/dashboard/ui/TotalAssetWidget';
-import { AssetDistChart } from '@/features/dashboard/ui/AssetDistChart';
-import { BudgetStatusWidget } from '@/features/dashboard/ui/BudgetStatusWidget';
-import { RecentTxWidget } from '@/features/dashboard/ui/RecentTxWidget';
-import { MarketInfoWidget } from '@/features/dashboard/ui/MarketInfoWidget';
-import { PaymentScheduleWidget } from '@/features/dashboard/ui/PaymentScheduleWidget';
-import { MaturityAlertWidget } from '@/features/dashboard/ui/MaturityAlertWidget';
-import { GoalTrackerWidget } from '@/features/dashboard/ui/GoalTrackerWidget';
-import { AssetTimelineWidget } from '@/features/dashboard/ui/AssetTimelineWidget';
-import { DailyBudgetWidget } from '@/features/dashboard/ui/DailyBudgetWidget';
-import { AIInsightWidget } from '@/features/dashboard/ui/AIInsightWidget';
-import { Card, CardContent } from '@/shared/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Button } from '@/shared/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { Badge } from '@/shared/ui/badge';
+import { AlertCircle, Wallet, CreditCard, TrendingUp, TrendingDown } from 'lucide-react';
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function formatKRW(amount: number): string {
+  return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: 'KRW' }).format(amount);
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+const ENTRY_TYPE_LABELS: Record<string, string> = {
+  income: '수입',
+  expense: '지출',
+  transfer: '이체',
+  adjustment: '잔액조정',
+  investment_buy: '매수',
+  investment_sell: '매도',
+};
+
+// ─── skeleton / error ─────────────────────────────────────────────────────────
 
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-28 w-full rounded-xl" />
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <Skeleton className="h-72 rounded-xl" />
-        <Skeleton className="h-72 rounded-xl" />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-28 rounded-xl" />
+        ))}
       </div>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Skeleton className="h-64 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
-      </div>
+      <Skeleton className="h-48 w-full rounded-xl" />
+      <Skeleton className="h-64 w-full rounded-xl" />
     </div>
   );
 }
@@ -47,43 +59,166 @@ function DashboardError({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+// ─── sub-components ───────────────────────────────────────────────────────────
+
+function SummaryCard({
+  title,
+  value,
+  icon: Icon,
+  sub,
+}: {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  sub?: string;
+}) {
+  return (
+    <Card>
+      <CardContent className="pt-5">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">{title}</p>
+          <Icon className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <p className="mt-1 text-xl font-bold">{value}</p>
+        {sub && <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── main component ───────────────────────────────────────────────────────────
+
 export function Component() {
   const { data, isLoading, isError, refetch } = useDashboardSummary();
-  const { data: appSettings } = useAppSettings();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 p-6">
+        <DashboardSkeleton />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-6">
+        <DashboardError onRetry={() => refetch()} />
+      </div>
+    );
+  }
+
+  const budget = data?.budget_overview;
+  const entries = data?.recent_entries ?? [];
 
   return (
     <div className="space-y-6 p-6">
-      {isLoading && <DashboardSkeleton />}
-      {isError && <DashboardError onRetry={() => refetch()} />}
+      {/* ── 요약 카드 4개 ── */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <SummaryCard
+          title="총 자산"
+          value={formatKRW(data?.total_assets_krw ?? 0)}
+          icon={Wallet}
+          sub={`계좌 ${data?.accounts_count ?? 0}개`}
+        />
+        <SummaryCard
+          title="이번 달 수입"
+          value={formatKRW(data?.monthly_income ?? 0)}
+          icon={TrendingUp}
+        />
+        <SummaryCard
+          title="이번 달 지출"
+          value={formatKRW(data?.monthly_expense ?? 0)}
+          icon={TrendingDown}
+        />
+        <SummaryCard
+          title="사용 가능 예산"
+          value={formatKRW(budget?.available_budget ?? 0)}
+          icon={CreditCard}
+          sub={budget ? `${budget.period_start} ~ ${budget.period_end}` : undefined}
+        />
+      </div>
 
-      {data && (
-        <>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <TotalAssetWidget summary={data.asset_summary} />
-            <GoalTrackerWidget />
-          </div>
-
-          <AIInsightWidget />
-          <AssetTimelineWidget assetTypeColors={appSettings?.asset_type_colors ?? undefined} />
-
-          <DailyBudgetWidget budget={data.budget_summary} />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <AssetDistChart breakdown={data.asset_summary.breakdown} assetTypeColors={appSettings?.asset_type_colors ?? undefined} />
-            <BudgetStatusWidget budget={data.budget_summary} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <RecentTxWidget transactions={data.recent_transactions} />
-            <div className="space-y-6">
-              <MarketInfoWidget market={data.market_info} />
-              <PaymentScheduleWidget payments={data.upcoming_payments} />
+      {/* ── 예산 개요 ── */}
+      {budget && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">예산 개요</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm md:grid-cols-3">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">수입 합계</span>
+                <span className="font-medium">{formatKRW(budget.total_income)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">고정 지출</span>
+                <span className="font-medium">{formatKRW(budget.total_fixed_expense)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">이체 합계</span>
+                <span className="font-medium">{formatKRW(budget.total_transfer)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">배분 완료</span>
+                <span className="font-medium">{formatKRW(budget.total_allocated)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">미배분</span>
+                <span
+                  className={`font-medium ${budget.unallocated < 0 ? 'text-destructive' : 'text-green-600'}`}
+                >
+                  {formatKRW(budget.unallocated)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">가용 예산</span>
+                <span
+                  className={`font-semibold ${budget.available_budget < 0 ? 'text-destructive' : 'text-green-600'}`}
+                >
+                  {formatKRW(budget.available_budget)}
+                </span>
+              </div>
             </div>
-            {data.maturity_alerts.length > 0 && (
-              <MaturityAlertWidget alerts={data.maturity_alerts} />
-            )}
-          </div>
-        </>
+          </CardContent>
+        </Card>
       )}
+
+      {/* ── 최근 내역 ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">최근 내역</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {entries.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">최근 내역이 없습니다.</p>
+          ) : (
+            <ul className="divide-y">
+              {entries.map((entry) => (
+                <li key={entry.id} className="flex items-center justify-between py-3">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary">
+                      {ENTRY_TYPE_LABELS[entry.type] ?? entry.type}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {entry.memo ?? '메모 없음'}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <p
+                      className={`text-sm font-semibold ${
+                        entry.amount < 0 ? 'text-destructive' : 'text-green-600'
+                      }`}
+                    >
+                      {formatKRW(entry.amount)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{formatDate(entry.transacted_at)}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
