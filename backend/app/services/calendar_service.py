@@ -58,7 +58,9 @@ async def get_calendar_events(
     # ──────────────────────────────────────────────
     budget_period = await get_or_create_period(db, user_id)
     # 해당 연월의 1일을 기준으로 예산 기간을 계산
-    reference_day = date(year, month, budget_period.period_start_day)
+    from calendar import monthrange as _mr
+    _, _max_day = _mr(year, month)
+    reference_day = date(year, month, min(budget_period.period_start_day, _max_day))
     # 해당 달에 기간 시작일이 있으면 그 기간, 없으면 이전달 시작일 기간
     period_start, period_end = get_period_dates(budget_period.period_start_day, reference_day)
     # 보정: reference_day가 기간 시작일과 같으면 OK, 아니면 한달 후로 이동
@@ -153,7 +155,7 @@ async def get_calendar_events(
         )
 
     for s in pending_schedules:
-        sched_day = min(s.schedule_day, last_day_of_month)
+        sched_day = last_day_of_month if s.schedule_day <= 0 else min(s.schedule_day, last_day_of_month)
         cal_type = _schedule_to_calendar_type(s.type)
         color = EVENT_COLOR_MAP.get(cal_type, "#6B7280")
         events.append(
