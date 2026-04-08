@@ -1,4 +1,4 @@
-import type { DaySummary, CalendarEventType } from '@/shared/types';
+import type { DaySummary, CalendarEventType } from '@/shared/types/calendar';
 import { EVENT_TYPE_CONFIG } from '../lib/constants';
 import { formatAmount } from '../lib/utils';
 

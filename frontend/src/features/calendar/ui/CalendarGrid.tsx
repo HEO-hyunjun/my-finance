@@ -1,4 +1,4 @@
-import type { DaySummary } from '@/shared/types';
+import type { DaySummary } from '@/shared/types/calendar';
 import { WEEKDAYS } from '../lib/constants';
 import { getCalendarDays, toDateString } from '../lib/utils';
 import { CalendarDayCell } from './CalendarDayCell';

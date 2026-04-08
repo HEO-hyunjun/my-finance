@@ -1,4 +1,4 @@
-import type { MonthSummary } from '@/shared/types';
+import type { MonthSummary } from '@/shared/types/calendar';
 import { Card, CardContent } from '@/shared/ui/card';
 
 interface Props {
