@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useQueries } from '@tanstack/react-query';
 import {
   Plus,
   ChevronDown,
@@ -9,16 +10,18 @@ import {
   AlertCircle,
   TrendingUp,
   TrendingDown,
+  RefreshCw,
 } from 'lucide-react';
 import {
   useAccounts,
-  useAccountSummary,
   useCreateAccount,
   useUpdateAccount,
   useDeleteAccount,
   useAdjustBalance,
 } from '@/features/accounts/api';
-import type { Account, AccountType, InterestType } from '@/entities/account/model/types';
+import { useRefreshAll } from '@/features/market/api';
+import { apiClient } from '@/shared/api/client';
+import type { Account, AccountType, AccountSummary, InterestType } from '@/entities/account/model/types';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -69,7 +72,7 @@ const NEEDS_INTEREST = new Set<AccountType>(['deposit', 'savings', 'parking']);
 
 // ─── 유틸 ─────────────────────────────────────────────────────────────────────
 
-function formatCurrency(amount: number, currency: string): string {
+function formatCurrency(amount: number, currency = 'KRW'): string {
   try {
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
@@ -83,6 +86,20 @@ function formatCurrency(amount: number, currency: string): string {
 
 function formatPercent(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+/** 만기일까지 개월 수 */
+function monthsBetween(from: string, to: string): number {
+  const a = new Date(from);
+  const b = new Date(to);
+  return (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+}
+
+/** 시작일부터 현재까지 경과 개월 수 */
+function elapsedMonths(startDate: string): number {
+  const start = new Date(startDate);
+  const now = new Date();
+  return Math.max(0, (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth()));
 }
 
 // ─── 초기 폼 상태 ─────────────────────────────────────────────────────────────
@@ -491,129 +508,394 @@ function AdjustBalanceDialog({ account, currentBalance, isOpen, onClose }: Adjus
   );
 }
 
+// ─── 총 자산 요약 카드 ────────────────────────────────────────────────────────
+
+interface TotalAssetsSummaryProps {
+  accounts: Account[];
+  summaries: (AccountSummary | undefined)[];
+  isLoading: boolean;
+}
+
+function TotalAssetsSummary({ accounts, summaries, isLoading }: TotalAssetsSummaryProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="p-5 space-y-3">
+          <Skeleton className="h-8 w-40" />
+          <div className="flex flex-wrap gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-5 w-28" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // 계좌별로 잔액 집계
+  const totalKRW = summaries.reduce((sum, s) => {
+    if (!s) return sum;
+    // USD 계좌는 근사 환율 적용 없이 그냥 합산 (KRW 기준 balance)
+    return sum + s.balance;
+  }, 0);
+
+  // 수익/손실 — 투자 계좌의 profit_loss 합
+  let totalProfitLoss = 0;
+  let totalCost = 0;
+  summaries.forEach((s) => {
+    if (!s?.holdings) return;
+    s.holdings.forEach((h) => {
+      totalProfitLoss += h.profit_loss;
+      totalCost += h.value - h.profit_loss;
+    });
+  });
+  const profitLossRate = totalCost > 0 ? (totalProfitLoss / totalCost) * 100 : 0;
+
+  // 유형별 합산
+  const byType: Partial<Record<AccountType, number>> = {};
+  accounts.forEach((acc, i) => {
+    const s = summaries[i];
+    if (!s) return;
+    byType[acc.account_type] = (byType[acc.account_type] ?? 0) + s.balance;
+  });
+
+  const typeEntries = ACCOUNT_TYPE_ORDER.filter((t) => (byType[t] ?? 0) > 0).map((t) => ({
+    type: t,
+    amount: byType[t] ?? 0,
+  }));
+
+  return (
+    <Card className="border-0 shadow-sm bg-gradient-to-br from-slate-900 to-slate-800 text-white dark:from-slate-800 dark:to-slate-700">
+      <CardContent className="p-5">
+        <p className="text-sm text-slate-400 mb-1">총 자산</p>
+        <div className="flex items-end gap-3 mb-1">
+          <p className="text-3xl font-bold tracking-tight">
+            {formatCurrency(totalKRW, 'KRW')}
+          </p>
+          {totalCost > 0 && (
+            <span
+              className={`mb-0.5 flex items-center gap-0.5 text-sm font-medium ${
+                profitLossRate >= 0 ? 'text-emerald-400' : 'text-rose-400'
+              }`}
+            >
+              {profitLossRate >= 0 ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )}
+              {formatPercent(profitLossRate)}
+            </span>
+          )}
+        </div>
+
+        {typeEntries.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">
+            {typeEntries.map(({ type, amount }) => (
+              <span key={type} className="text-xs text-slate-300">
+                <span className="text-slate-400">{ACCOUNT_TYPE_LABELS[type]}</span>{' '}
+                {formatCurrency(amount, 'KRW')}
+              </span>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── 파킹통장 상세 카드 ───────────────────────────────────────────────────────
+
+interface ParkingDetailProps {
+  account: Account;
+  summary: AccountSummary;
+}
+
+function ParkingDetail({ account, summary }: ParkingDetailProps) {
+  const rate = account.interest_rate ?? 0;
+  const taxRate = account.tax_rate ?? 15.4;
+  const balance = summary.balance;
+  const dailyInterest = (balance * rate) / 100 / 365;
+  const monthlyAfterTax = dailyInterest * 30 * (1 - taxRate / 100);
+
+  return (
+    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm mt-2">
+      {account.institution && (
+        <>
+          <span className="text-muted-foreground">기관</span>
+          <span>{account.institution}</span>
+        </>
+      )}
+      <span className="text-muted-foreground">금리</span>
+      <span>{rate}%{account.interest_type && <span className="ml-1 text-xs text-muted-foreground">({INTEREST_TYPE_LABELS[account.interest_type]})</span>}</span>
+      <span className="text-muted-foreground">잔액</span>
+      <span className="font-medium">{formatCurrency(balance, account.currency)}</span>
+      <span className="text-muted-foreground">일일 이자</span>
+      <span>{formatCurrency(Math.floor(dailyInterest), 'KRW')}</span>
+      <span className="text-muted-foreground">월 예상이자(세후)</span>
+      <span className="font-medium text-amber-600 dark:text-amber-400">
+        {formatCurrency(Math.floor(monthlyAfterTax), 'KRW')}
+      </span>
+    </div>
+  );
+}
+
+// ─── 적금 상세 카드 ───────────────────────────────────────────────────────────
+
+interface SavingsDetailProps {
+  account: Account;
+  summary: AccountSummary;
+}
+
+function SavingsDetail({ account, summary }: SavingsDetailProps) {
+  const rate = account.interest_rate ?? 0;
+  const taxRate = account.tax_rate ?? 15.4;
+  const monthlyAmount = account.monthly_amount ?? 0;
+  const startDate = account.start_date;
+  const maturityDate = account.maturity_date;
+
+  const elapsed = startDate ? elapsedMonths(startDate) : 0;
+  const totalMonths = startDate && maturityDate ? monthsBetween(startDate, maturityDate) : 0;
+  const totalPaid = elapsed * monthlyAmount;
+
+  // 단리 기준 이자 추정 (월별 납입액 누적)
+  // 각 회차 납입액 × (잔여개월 × rate/12)
+  let estimatedInterest = 0;
+  if (startDate && maturityDate && rate > 0 && monthlyAmount > 0) {
+    for (let i = 0; i < elapsed; i++) {
+      const remaining = totalMonths - i;
+      estimatedInterest += monthlyAmount * (rate / 100) * (remaining / 12);
+    }
+  }
+  const interestAfterTax = estimatedInterest * (1 - taxRate / 100);
+
+  const maturityExpected = totalPaid + estimatedInterest;
+  const progressPct = totalMonths > 0 ? Math.min(100, Math.round((elapsed / totalMonths) * 100)) : 0;
+
+  return (
+    <div className="space-y-3 mt-2">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+        {account.institution && (
+          <>
+            <span className="text-muted-foreground">기관</span>
+            <span>{account.institution}</span>
+          </>
+        )}
+        <span className="text-muted-foreground">금리</span>
+        <span>{rate}%{account.interest_type && <span className="ml-1 text-xs text-muted-foreground">({INTEREST_TYPE_LABELS[account.interest_type]})</span>}</span>
+        <span className="text-muted-foreground">월 납입액</span>
+        <span>{formatCurrency(monthlyAmount, account.currency)}</span>
+        <span className="text-muted-foreground">총 납입액</span>
+        <span className="font-medium">{formatCurrency(totalPaid, account.currency)}</span>
+        <span className="text-muted-foreground">경과이자(세후)</span>
+        <span className="text-violet-600 dark:text-violet-400 font-medium">
+          {formatCurrency(Math.floor(interestAfterTax), 'KRW')}
+        </span>
+        <span className="text-muted-foreground">평가금액</span>
+        <span className="font-medium">{formatCurrency(summary.balance, account.currency)}</span>
+        <span className="text-muted-foreground">만기예상</span>
+        <span className="font-medium">{formatCurrency(Math.floor(maturityExpected), 'KRW')}</span>
+        {maturityDate && (
+          <>
+            <span className="text-muted-foreground">만기일</span>
+            <span>{maturityDate}</span>
+          </>
+        )}
+      </div>
+      {totalMonths > 0 && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{elapsed}개월 경과</span>
+            <span>총 {totalMonths}개월</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-violet-500 transition-all"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+          <p className="text-xs text-right text-muted-foreground">{progressPct}%</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── 투자 계좌 보유종목 ────────────────────────────────────────────────────────
+
+interface InvestmentHoldingsProps {
+  summary: AccountSummary;
+}
+
+function InvestmentHoldings({ summary }: InvestmentHoldingsProps) {
+  if (!summary.holdings || summary.holdings.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground mt-2">보유 종목이 없습니다.</p>
+    );
+  }
+
+  return (
+    <div className="space-y-2 mt-2">
+      {summary.holdings.map((h) => (
+        <div
+          key={h.security_id}
+          className="flex items-center justify-between rounded-md border px-3 py-2.5 text-sm"
+        >
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium">{h.name}</span>
+              <span className="text-xs text-muted-foreground">{h.symbol}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {h.quantity.toLocaleString('ko-KR')}주 · 평균단가 {formatCurrency(h.avg_price, h.currency)}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="font-medium">{formatCurrency(h.value, h.currency)}</p>
+            <p
+              className={`flex items-center justify-end gap-0.5 text-xs mt-0.5 ${
+                h.profit_loss >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              {h.profit_loss >= 0 ? (
+                <TrendingUp className="h-3 w-3" />
+              ) : (
+                <TrendingDown className="h-3 w-3" />
+              )}
+              {formatCurrency(Math.abs(h.profit_loss), h.currency)} ({formatPercent(h.profit_loss_rate)})
+            </p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── AccountDetailPanel ───────────────────────────────────────────────────────
 
 interface AccountDetailPanelProps {
   account: Account;
+  summary: AccountSummary | undefined;
+  isLoading: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function AccountDetailPanel({ account, onEdit, onDelete }: AccountDetailPanelProps) {
+function AccountDetailPanel({ account, summary, isLoading, onEdit, onDelete }: AccountDetailPanelProps) {
   const [showAdjust, setShowAdjust] = useState(false);
-  const { data: summary, isLoading } = useAccountSummary(account.id);
 
   return (
     <div className="mt-3 border-t pt-3 space-y-4">
       {/* 잔액 섹션 */}
       {isLoading ? (
-        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-16 w-full" />
       ) : summary ? (
-        <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
-          <div>
-            <p className="text-xs text-muted-foreground">잔액</p>
-            <p className="text-xl font-bold">
-              {formatCurrency(summary.balance, summary.currency)}
-            </p>
-            {summary.cash_balance != null && summary.cash_balance !== summary.balance && (
-              <p className="text-xs text-muted-foreground">
-                현금: {formatCurrency(summary.cash_balance, summary.currency)}
-              </p>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowAdjust(true)}
-          >
-            <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
-            잔액 조정
-          </Button>
-        </div>
-      ) : null}
-
-      {/* 계좌 상세 정보 */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        {account.institution && (
-          <>
-            <span className="text-muted-foreground">금융기관</span>
-            <span>{account.institution}</span>
-          </>
-        )}
-        {account.interest_rate != null && (
-          <>
-            <span className="text-muted-foreground">금리</span>
-            <span>
-              {account.interest_rate}%
-              {account.interest_type && (
-                <span className="ml-1 text-xs text-muted-foreground">
-                  ({INTEREST_TYPE_LABELS[account.interest_type]})
-                </span>
-              )}
-            </span>
-          </>
-        )}
-        {account.tax_rate != null && (
-          <>
-            <span className="text-muted-foreground">세율</span>
-            <span>{account.tax_rate}%</span>
-          </>
-        )}
-        {account.start_date && (
-          <>
-            <span className="text-muted-foreground">시작일</span>
-            <span>{account.start_date}</span>
-          </>
-        )}
-        {account.maturity_date && (
-          <>
-            <span className="text-muted-foreground">만기일</span>
-            <span>{account.maturity_date}</span>
-          </>
-        )}
-        {account.monthly_amount != null && (
-          <>
-            <span className="text-muted-foreground">월 납입액</span>
-            <span>{formatCurrency(account.monthly_amount, account.currency)}</span>
-          </>
-        )}
-      </div>
-
-      {/* 보유 종목 (투자 계좌) */}
-      {account.account_type === 'investment' && summary?.holdings && summary.holdings.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-sm font-medium">보유 종목</p>
-          <div className="space-y-1.5">
-            {summary.holdings.map((h) => (
-              <div
-                key={h.security_id}
-                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-              >
-                <div>
-                  <span className="font-medium">{h.name}</span>
-                  <span className="ml-1.5 text-xs text-muted-foreground">{h.symbol}</span>
+        <>
+          {/* 현금/예금 계좌: 잔액 + 조정 버튼 */}
+          {(account.account_type === 'cash' || account.account_type === 'deposit') && (
+            <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+              <div>
+                <p className="text-xs text-muted-foreground">잔액</p>
+                <p className="text-xl font-bold">
+                  {formatCurrency(summary.balance, summary.currency)}
+                </p>
+                {summary.cash_balance != null && summary.cash_balance !== summary.balance && (
                   <p className="text-xs text-muted-foreground">
-                    {h.quantity.toLocaleString('ko-KR')}주 · 평균 {formatCurrency(h.avg_price, h.currency)}
+                    현금: {formatCurrency(summary.cash_balance, summary.currency)}
                   </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-medium">{formatCurrency(h.value, h.currency)}</p>
-                  <p
-                    className={`flex items-center justify-end gap-0.5 text-xs ${
-                      h.profit_loss >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                    }`}
-                  >
-                    {h.profit_loss >= 0 ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    {formatPercent(h.profit_loss_rate)}
-                  </p>
-                </div>
+                )}
               </div>
-            ))}
-          </div>
+              <Button variant="outline" size="sm" onClick={() => setShowAdjust(true)}>
+                <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                잔액 조정
+              </Button>
+            </div>
+          )}
+
+          {/* 파킹통장 상세 */}
+          {account.account_type === 'parking' && (
+            <div className="rounded-lg bg-muted/50 px-4 py-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-muted-foreground">파킹통장 상세</p>
+                <Button variant="outline" size="sm" onClick={() => setShowAdjust(true)}>
+                  <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                  잔액 조정
+                </Button>
+              </div>
+              <ParkingDetail account={account} summary={summary} />
+            </div>
+          )}
+
+          {/* 적금 상세 */}
+          {account.account_type === 'savings' && (
+            <div className="rounded-lg bg-muted/50 px-4 py-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-muted-foreground">적금 상세</p>
+                <Button variant="outline" size="sm" onClick={() => setShowAdjust(true)}>
+                  <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                  잔액 조정
+                </Button>
+              </div>
+              <SavingsDetail account={account} summary={summary} />
+            </div>
+          )}
+
+          {/* 투자 계좌 보유종목 */}
+          {account.account_type === 'investment' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">평가금액</p>
+                  <p className="text-xl font-bold">
+                    {formatCurrency(summary.balance, summary.currency)}
+                  </p>
+                  {summary.cash_balance != null && summary.cash_balance > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      예수금: {formatCurrency(summary.cash_balance, summary.currency)}
+                    </p>
+                  )}
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowAdjust(true)}>
+                  <SlidersHorizontal className="mr-1.5 h-3.5 w-3.5" />
+                  잔액 조정
+                </Button>
+              </div>
+              <p className="text-sm font-medium px-1">보유 종목</p>
+              <InvestmentHoldings summary={summary} />
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-muted-foreground">데이터를 불러올 수 없습니다.</p>
+      )}
+
+      {/* 기본 정보 (현금/예금/파킹에서 금리 외 추가 정보) */}
+      {account.account_type !== 'parking' && account.account_type !== 'savings' && account.account_type !== 'investment' && (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          {account.institution && (
+            <>
+              <span className="text-muted-foreground">금융기관</span>
+              <span>{account.institution}</span>
+            </>
+          )}
+          {account.interest_rate != null && (
+            <>
+              <span className="text-muted-foreground">금리</span>
+              <span>
+                {account.interest_rate}%
+                {account.interest_type && (
+                  <span className="ml-1 text-xs text-muted-foreground">
+                    ({INTEREST_TYPE_LABELS[account.interest_type]})
+                  </span>
+                )}
+              </span>
+            </>
+          )}
+          {account.tax_rate != null && (
+            <>
+              <span className="text-muted-foreground">세율</span>
+              <span>{account.tax_rate}%</span>
+            </>
+          )}
         </div>
       )}
 
@@ -645,12 +927,17 @@ function AccountDetailPanel({ account, onEdit, onDelete }: AccountDetailPanelPro
 
 interface AccountCardProps {
   account: Account;
+  summary: AccountSummary | undefined;
+  isSummaryLoading: boolean;
   onDelete: (id: string) => void;
 }
 
-function AccountCard({ account, onDelete }: AccountCardProps) {
+function AccountCard({ account, summary, isSummaryLoading, onDelete }: AccountCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+
+  // 상단에 간략 잔액 표시
+  const balanceDisplay = summary ? formatCurrency(summary.balance, summary.currency) : null;
 
   return (
     <div className="rounded-lg border bg-card">
@@ -673,6 +960,11 @@ function AccountCard({ account, onDelete }: AccountCardProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isSummaryLoading ? (
+            <Skeleton className="h-4 w-20" />
+          ) : balanceDisplay ? (
+            <span className="text-sm font-medium">{balanceDisplay}</span>
+          ) : null}
           <span className="rounded border px-1.5 py-0.5 text-xs text-muted-foreground">
             {account.currency}
           </span>
@@ -688,6 +980,8 @@ function AccountCard({ account, onDelete }: AccountCardProps) {
         <div className="px-4 pb-4">
           <AccountDetailPanel
             account={account}
+            summary={summary}
+            isLoading={isSummaryLoading}
             onEdit={() => setShowEdit(true)}
             onDelete={() => onDelete(account.id)}
           />
@@ -708,10 +1002,12 @@ function AccountCard({ account, onDelete }: AccountCardProps) {
 interface AccountTypeSectionProps {
   type: AccountType;
   accounts: Account[];
+  summaryMap: Map<string, AccountSummary | undefined>;
+  loadingIds: Set<string>;
   onDelete: (id: string) => void;
 }
 
-function AccountTypeSection({ type, accounts, onDelete }: AccountTypeSectionProps) {
+function AccountTypeSection({ type, accounts, summaryMap, loadingIds, onDelete }: AccountTypeSectionProps) {
   if (accounts.length === 0) return null;
 
   return (
@@ -724,7 +1020,13 @@ function AccountTypeSection({ type, accounts, onDelete }: AccountTypeSectionProp
       </div>
       <div className="space-y-2">
         {accounts.map((account) => (
-          <AccountCard key={account.id} account={account} onDelete={onDelete} />
+          <AccountCard
+            key={account.id}
+            account={account}
+            summary={summaryMap.get(account.id)}
+            isSummaryLoading={loadingIds.has(account.id)}
+            onDelete={onDelete}
+          />
         ))}
       </div>
     </section>
@@ -736,6 +1038,7 @@ function AccountTypeSection({ type, accounts, onDelete }: AccountTypeSectionProp
 export function Component() {
   const { data: accounts = [], isLoading, isError, refetch } = useAccounts();
   const deleteAccount = useDeleteAccount();
+  const refreshAll = useRefreshAll();
 
   const [showCreate, setShowCreate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -753,6 +1056,33 @@ export function Component() {
       setConfirmDelete(null);
     }
   }, [confirmDelete, deleteAccount]);
+
+  // 모든 계좌의 summary를 병렬 패치
+  const summaryQueries = useQueries({
+    queries: accounts.map((acc) => ({
+      queryKey: ['accounts', 'summary', acc.id],
+      queryFn: async (): Promise<AccountSummary> => {
+        const { data } = await apiClient.get<AccountSummary>(`/v1/accounts/${acc.id}/summary`);
+        return data;
+      },
+      enabled: !!acc.id && !isLoading,
+    })),
+  });
+
+  // id -> summary 맵 & 로딩 중인 id 집합
+  const summaryMap = new Map<string, AccountSummary | undefined>();
+  const loadingIds = new Set<string>();
+
+  accounts.forEach((acc, i) => {
+    const q = summaryQueries[i];
+    summaryMap.set(acc.id, q?.data);
+    if (q?.isLoading || q?.isFetching) {
+      loadingIds.add(acc.id);
+    }
+  });
+
+  const summariesArray = accounts.map((acc) => summaryMap.get(acc.id));
+  const allSummariesLoading = summaryQueries.some((q) => q.isLoading);
 
   // 계좌 유형별 그룹화
   const grouped = ACCOUNT_TYPE_ORDER.reduce<Record<AccountType, Account[]>>(
@@ -777,6 +1107,7 @@ export function Component() {
       {/* 로딩 */}
       {isLoading && (
         <div className="space-y-4">
+          <Skeleton className="h-28 w-full rounded-xl" />
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="space-y-2">
               <Skeleton className="h-5 w-20" />
@@ -814,16 +1145,44 @@ export function Component() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-6">
-              {ACCOUNT_TYPE_ORDER.map((type) => (
-                <AccountTypeSection
-                  key={type}
-                  type={type}
-                  accounts={grouped[type]}
-                  onDelete={handleDeleteRequest}
-                />
-              ))}
-            </div>
+            <>
+              {/* 총 자산 요약 */}
+              <TotalAssetsSummary
+                accounts={accounts}
+                summaries={summariesArray}
+                isLoading={allSummariesLoading}
+              />
+
+              {/* 전체 새로고침 버튼 */}
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-semibold text-muted-foreground">보유 자산</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => refreshAll.mutate()}
+                  disabled={refreshAll.isPending}
+                >
+                  <RefreshCw
+                    className={`mr-1.5 h-3.5 w-3.5 ${refreshAll.isPending ? 'animate-spin' : ''}`}
+                  />
+                  {refreshAll.isPending ? '갱신 중...' : '전체 새로고침'}
+                </Button>
+              </div>
+
+              {/* 유형별 계좌 목록 */}
+              <div className="space-y-6">
+                {ACCOUNT_TYPE_ORDER.map((type) => (
+                  <AccountTypeSection
+                    key={type}
+                    type={type}
+                    accounts={grouped[type]}
+                    summaryMap={summaryMap}
+                    loadingIds={loadingIds}
+                    onDelete={handleDeleteRequest}
+                  />
+                ))}
+              </div>
+            </>
           )}
         </>
       )}
