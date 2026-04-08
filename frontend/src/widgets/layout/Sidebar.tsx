@@ -2,17 +2,16 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Wallet,
-  Receipt,
-  Calendar,
+  ArrowLeftRight,
+  CalendarRange,
+  PiggyBank,
   Newspaper,
   Bot,
-  ArrowLeftRight,
-  CreditCard,
-  TrendingUp,
   Settings,
   ChevronLeft,
   ChevronRight,
   LogOut,
+  Repeat,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -21,15 +20,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useAuthStore } from "@/features/auth/model/auth-store";
 
 const NAV_ITEMS = [
-  { to: "/", icon: LayoutDashboard, label: "대시보드" },
-  { to: "/assets", icon: Wallet, label: "자산 관리" },
-  { to: "/budget", icon: Receipt, label: "예산 관리" },
-  { to: "/calendar", icon: Calendar, label: "캘린더" },
-  { to: "/expenses", icon: CreditCard, label: "지출 내역" },
-  { to: "/transactions", icon: ArrowLeftRight, label: "거래 내역" },
-  { to: "/income", icon: TrendingUp, label: "수입 내역" },
-  { to: "/news", icon: Newspaper, label: "뉴스" },
-  { to: "/chatbot", icon: Bot, label: "AI 챗봇" },
+  { to: '/', icon: LayoutDashboard, label: '대시보드' },
+  { to: '/accounts', icon: Wallet, label: '계좌' },
+  { to: '/entries', icon: ArrowLeftRight, label: '거래내역' },
+  { to: '/budget', icon: PiggyBank, label: '예산' },
+  { to: '/schedules', icon: Repeat, label: '반복일정' },
+  { to: '/calendar', icon: CalendarRange, label: '캘린더' },
+  { to: '/news', icon: Newspaper, label: '뉴스' },
+  { to: '/chatbot', icon: Bot, label: 'AI 챗봇' },
+  { to: '/settings', icon: Settings, label: '설정' },
 ] as const;
 
 const navLinkClass = (isActive: boolean, collapsed?: boolean) =>
@@ -120,22 +119,6 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
       <div
         className={cn("flex flex-col py-3", collapsed ? "items-center gap-2 px-3" : "gap-1.5 px-2")}
       >
-        {collapsed ? (
-          <Tooltip delayDuration={0}>
-            <TooltipTrigger asChild>
-              <NavLink to="/settings" className={({ isActive }) => navLinkClass(isActive, true)} onClick={onNavigate}>
-                <Settings className="h-6 w-6 shrink-0" aria-hidden="true" />
-              </NavLink>
-            </TooltipTrigger>
-            <TooltipContent side="right">설정</TooltipContent>
-          </Tooltip>
-        ) : (
-          <NavLink to="/settings" className={({ isActive }) => navLinkClass(isActive)} onClick={onNavigate}>
-            <Settings className="h-5 w-5 shrink-0" aria-hidden="true" />
-            <span className="truncate">설정</span>
-          </NavLink>
-        )}
-
         {user &&
           (collapsed ? (
             <Tooltip delayDuration={0}>
