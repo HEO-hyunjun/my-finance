@@ -102,8 +102,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 function StatusBadge({ status }: { status: string | null }) {
-  if (!status) {
-    return <span className="text-xs text-muted-foreground">—</span>;
+  if (!status || status === 'normal') {
+    return null;
   }
   return (
     <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${STATUS_COLORS[status] ?? ''}`}>
