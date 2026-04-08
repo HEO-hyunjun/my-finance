@@ -72,15 +72,16 @@ const NEEDS_INTEREST = new Set<AccountType>(['deposit', 'savings', 'parking']);
 
 // ─── 유틸 ─────────────────────────────────────────────────────────────────────
 
-function formatCurrency(amount: number, currency = 'KRW'): string {
+function formatCurrency(amount: number | string, currency = 'KRW'): string {
+  const num = Number(amount);
   try {
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
-    }).format(amount);
+    }).format(num);
   } catch {
-    return `${amount.toLocaleString('ko-KR')} ${currency}`;
+    return `${num.toLocaleString('ko-KR')} ${currency}`;
   }
 }
 
@@ -535,7 +536,7 @@ function TotalAssetsSummary({ accounts, summaries, isLoading }: TotalAssetsSumma
   // 계좌별로 잔액 집계
   const totalKRW = summaries.reduce((sum, s) => {
     if (!s) return sum;
-    return sum + (s.balance ?? 0);
+    return sum + Number(s.balance ?? 0);
   }, 0);
 
   // 수익/손실 — 투자 계좌의 profit_loss 합
@@ -544,8 +545,8 @@ function TotalAssetsSummary({ accounts, summaries, isLoading }: TotalAssetsSumma
   summaries.forEach((s) => {
     if (!s?.holdings) return;
     s.holdings.forEach((h) => {
-      totalProfitLoss += h.profit_loss ?? 0;
-      totalCost += h.value - (h.profit_loss ?? 0);
+      totalProfitLoss += Number(h.profit_loss ?? 0);
+      totalCost += Number(h.value ?? 0) - Number(h.profit_loss ?? 0);
     });
   });
   const profitLossRate = totalCost > 0 ? (totalProfitLoss / totalCost) * 100 : 0;
@@ -555,7 +556,7 @@ function TotalAssetsSummary({ accounts, summaries, isLoading }: TotalAssetsSumma
   accounts.forEach((acc, i) => {
     const s = summaries[i];
     if (!s) return;
-    byType[acc.account_type] = (byType[acc.account_type] ?? 0) + s.balance;
+    byType[acc.account_type] = (byType[acc.account_type] ?? 0) + Number(s.balance ?? 0);
   });
 
   const typeEntries = ACCOUNT_TYPE_ORDER.filter((t) => (byType[t] ?? 0) > 0).map((t) => ({
