@@ -40,9 +40,11 @@ def warm_market_cache():
 
 
 async def _warm_market_cache_async():
-    from sqlalchemy import distinct, select
+    from datetime import date
 
-    from app.models.security import Security
+    from sqlalchemy import select
+
+    from app.models.security import AssetClass, DataSource, Security, SecurityPrice
     from app.services.market_service import MarketService
 
     async_session, engine = _get_async_session()
@@ -50,15 +52,88 @@ async def _warm_market_cache_async():
 
     try:
         async with async_session() as db:
-            # Security 모델에서 고유 심볼 추출
-            stmt = select(distinct(Security.ticker)).where(
-                Security.ticker.isnot(None), Security.ticker != ""
+            # Security 모델에서 심볼 + asset_class 추출
+            stmt = select(Security).where(
+                Security.symbol.isnot(None), Security.symbol != ""
             )
             result = await db.execute(stmt)
-            symbols = [(row[0], None) for row in result.all()]
+            securities = result.scalars().all()
+            symbol_pairs = [(s.symbol, s.asset_class) for s in securities]
 
-        market = MarketService(redis_client)
-        results = await market.warm_cache_for_symbols(symbols)
+            market = MarketService(redis_client)
+            results = await market.warm_cache_for_symbols(symbol_pairs)
+
+            # 캐시된 시세를 security_prices DB에도 저장
+            today = date.today()
+            for sec in securities:
+                try:
+                    price_data = await market.get_price(sec.symbol, sec.asset_class)
+                    if price_data and price_data.price > 0:
+                        existing = (
+                            await db.execute(
+                                select(SecurityPrice).where(
+                                    SecurityPrice.security_id == sec.id,
+                                    SecurityPrice.price_date == today,
+                                )
+                            )
+                        ).scalar_one_or_none()
+                        if existing:
+                            existing.close_price = price_data.price
+                            existing.currency = price_data.currency
+                        else:
+                            db.add(
+                                SecurityPrice(
+                                    security_id=sec.id,
+                                    price_date=today,
+                                    close_price=price_data.price,
+                                    currency=price_data.currency,
+                                )
+                            )
+                except Exception:
+                    pass
+
+            # 환율도 저장
+            try:
+                fx_data = await market.get_exchange_rate()
+                if fx_data and fx_data.rate > 0:
+                    fx_sec = (
+                        await db.execute(
+                            select(Security).where(Security.symbol == "USDKRW=X")
+                        )
+                    ).scalar_one_or_none()
+                    if not fx_sec:
+                        fx_sec = Security(
+                            symbol="USDKRW=X",
+                            name="USD/KRW",
+                            currency="KRW",
+                            asset_class=AssetClass.CURRENCY_PAIR,
+                            data_source=DataSource.YAHOO,
+                        )
+                        db.add(fx_sec)
+                        await db.flush()
+                    fx_existing = (
+                        await db.execute(
+                            select(SecurityPrice).where(
+                                SecurityPrice.security_id == fx_sec.id,
+                                SecurityPrice.price_date == today,
+                            )
+                        )
+                    ).scalar_one_or_none()
+                    if fx_existing:
+                        fx_existing.close_price = fx_data.rate
+                    else:
+                        db.add(
+                            SecurityPrice(
+                                security_id=fx_sec.id,
+                                price_date=today,
+                                close_price=fx_data.rate,
+                                currency="KRW",
+                            )
+                        )
+            except Exception:
+                pass
+
+            await db.commit()
 
         success = sum(1 for v in results.values() if v)
         failed = sum(1 for v in results.values() if not v)
