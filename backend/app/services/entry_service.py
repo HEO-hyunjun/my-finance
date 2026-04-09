@@ -19,15 +19,30 @@ async def get_account_balance(db: AsyncSession, account_id: uuid.UUID) -> Decima
 
 
 async def get_account_cash_balance(db: AsyncSession, account_id: uuid.UUID) -> Decimal:
-    """투자 계좌 현금 잔액 = SUM(amount).
-
-    amount는 항상 현금 흐름을 나타냅니다 (BUY=-cost, SELL=+proceeds).
-    주식 보유량은 quantity 필드로 별도 추적되므로 amount 합계 = 현금 잔액입니다.
-    """
+    """투자 계좌 현금 잔액 = SUM(amount) (전체, 하위호환)"""
     stmt = select(func.coalesce(func.sum(Entry.amount), 0)).where(
         Entry.account_id == account_id,
     )
     return Decimal(str((await db.execute(stmt)).scalar()))
+
+
+async def get_cash_balances_by_currency(
+    db: AsyncSession, account_id: uuid.UUID
+) -> dict[str, Decimal]:
+    """투자 계좌 현금 잔액을 통화별로 분리 집계.
+
+    security_id가 NULL인 엔트리(현금 이동)와
+    security_id가 있는 엔트리(매수/매도 현금 흐름) 모두 포함.
+    """
+    stmt = (
+        select(Entry.currency, func.coalesce(func.sum(Entry.amount), 0))
+        .where(Entry.account_id == account_id)
+        .group_by(Entry.currency)
+    )
+    result = await db.execute(stmt)
+    return {
+        row[0]: Decimal(str(row[1])) for row in result.all()
+    }
 
 
 async def get_holding_quantity(

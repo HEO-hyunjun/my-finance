@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.account import Account, AccountType
 from app.models.security import Security, SecurityPrice
-from app.services.entry_service import get_account_balance, get_account_cash_balance, get_holdings
+from app.services.entry_service import get_account_balance, get_cash_balances_by_currency, get_holdings
 
 
 async def create_account(db: AsyncSession, user_id: uuid.UUID, data: dict) -> Account:
@@ -60,10 +60,11 @@ async def get_account_summary(db: AsyncSession, user_id: uuid.UUID, account_id: 
     }
 
     if account.account_type == AccountType.INVESTMENT:
-        cash_balance = await get_account_cash_balance(db, account_id)
+        # 통화별 현금 잔액
+        cash_by_currency = await get_cash_balances_by_currency(db, account_id)
         holdings = await get_holdings(db, account_id)
 
-        # USD→KRW 환율 조회 (USDKRW=X 심볼)
+        # USD→KRW 환율 조회
         fx_rate = Decimal("1")
         fx_stmt = (
             select(Security.id)
@@ -82,19 +83,32 @@ async def get_account_summary(db: AsyncSession, user_id: uuid.UUID, account_id: 
             if fx_price:
                 fx_rate = Decimal(str(fx_price))
 
-        # 보유종목 평가액 합산 (USD → KRW 환산)
+        # 현금 KRW 환산 합계
+        cash_krw = Decimal("0")
+        cash_positions = []
+        for currency, amount in cash_by_currency.items():
+            if currency == "KRW":
+                cash_krw += amount
+                cash_positions.append({"currency": currency, "amount": float(amount), "amount_krw": float(amount)})
+            else:
+                converted = amount * fx_rate
+                cash_krw += converted
+                cash_positions.append({"currency": currency, "amount": float(amount), "amount_krw": float(converted)})
+
+        # 보유종목 평가액 (통화별 KRW 환산)
         holdings_value_krw = Decimal("0")
         for h in holdings:
             value = Decimal(str(h.get("value", 0)))
-            if h.get("currency", "KRW") == "USD":
-                value = value * fx_rate
-                h["value_krw"] = float(value)
+            if h.get("currency", "KRW") != "KRW":
+                value_krw = value * fx_rate
             else:
-                h["value_krw"] = float(value)
-            holdings_value_krw += value
+                value_krw = value
+            h["value_krw"] = float(value_krw)
+            holdings_value_krw += value_krw
 
-        result["cash_balance"] = cash_balance
+        result["cash_balance"] = float(cash_krw)
+        result["cash_positions"] = cash_positions  # 통화별 현금 상세
         result["holdings"] = holdings
-        result["balance"] = cash_balance + holdings_value_krw  # 현금(KRW) + 평가액(KRW 환산)
+        result["balance"] = float(cash_krw + holdings_value_krw)
 
     return result
