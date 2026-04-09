@@ -6,8 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.core.redis import get_redis
+from datetime import date
+
 from app.models.entry import Entry
-from app.models.security import AssetClass, Security
+from app.models.security import AssetClass, Security, SecurityPrice
 from app.models.user import User
 from app.schemas.market import (
     PriceResponse, ExchangeRateResponse,
@@ -149,6 +151,37 @@ async def refresh_all_prices(
     symbol_pairs = [(s.symbol, s.asset_class) for s in securities]
 
     results = await market.warm_cache_for_symbols(symbol_pairs)
+
+    # 캐시된 시세를 security_prices DB에도 저장
+    today = date.today()
+    for sec in securities:
+        try:
+            price_data = await market.get_price(sec.symbol, sec.asset_class)
+            if price_data and price_data.price > 0:
+                # upsert: 오늘 날짜 + security_id 기준
+                existing = (
+                    await db.execute(
+                        select(SecurityPrice).where(
+                            SecurityPrice.security_id == sec.id,
+                            SecurityPrice.price_date == today,
+                        )
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    existing.close_price = price_data.price
+                    existing.currency = price_data.currency
+                else:
+                    db.add(
+                        SecurityPrice(
+                            security_id=sec.id,
+                            price_date=today,
+                            close_price=price_data.price,
+                            currency=price_data.currency,
+                        )
+                    )
+        except Exception:
+            pass
+    await db.commit()
 
     success = sum(1 for v in results.values() if v)
     failed = sum(1 for v in results.values() if not v)

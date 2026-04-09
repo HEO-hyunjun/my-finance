@@ -1,10 +1,12 @@
 import uuid
+from decimal import Decimal
 
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.account import Account, AccountType
+from app.models.security import Security, SecurityPrice
 from app.services.entry_service import get_account_balance, get_account_cash_balance, get_holdings
 
 
@@ -60,9 +62,39 @@ async def get_account_summary(db: AsyncSession, user_id: uuid.UUID, account_id: 
     if account.account_type == AccountType.INVESTMENT:
         cash_balance = await get_account_cash_balance(db, account_id)
         holdings = await get_holdings(db, account_id)
-        holdings_value = sum(h.get("value", 0) for h in holdings)
+
+        # USD→KRW 환율 조회 (USDKRW=X 심볼)
+        fx_rate = Decimal("1")
+        fx_stmt = (
+            select(Security.id)
+            .where(Security.symbol.in_(["USDKRW=X", "KRW=X"]))
+            .limit(1)
+        )
+        fx_sec = (await db.execute(fx_stmt)).scalar_one_or_none()
+        if fx_sec:
+            fx_price_stmt = (
+                select(SecurityPrice.close_price)
+                .where(SecurityPrice.security_id == fx_sec)
+                .order_by(SecurityPrice.price_date.desc())
+                .limit(1)
+            )
+            fx_price = (await db.execute(fx_price_stmt)).scalar_one_or_none()
+            if fx_price:
+                fx_rate = Decimal(str(fx_price))
+
+        # 보유종목 평가액 합산 (USD → KRW 환산)
+        holdings_value_krw = Decimal("0")
+        for h in holdings:
+            value = Decimal(str(h.get("value", 0)))
+            if h.get("currency", "KRW") == "USD":
+                value = value * fx_rate
+                h["value_krw"] = float(value)
+            else:
+                h["value_krw"] = float(value)
+            holdings_value_krw += value
+
         result["cash_balance"] = cash_balance
         result["holdings"] = holdings
-        result["balance"] = cash_balance + holdings_value  # 현금 + 평가액
+        result["balance"] = cash_balance + holdings_value_krw  # 현금(KRW) + 평가액(KRW 환산)
 
     return result
