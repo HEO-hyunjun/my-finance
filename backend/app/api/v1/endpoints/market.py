@@ -181,6 +181,50 @@ async def refresh_all_prices(
                     )
         except Exception:
             pass
+
+    # 환율(USDKRW=X)도 securities + security_prices에 저장
+    try:
+        fx_data = await market.get_exchange_rate()
+        if fx_data and fx_data.rate > 0:
+            fx_sec = (
+                await db.execute(
+                    select(Security).where(Security.symbol == "USDKRW=X")
+                )
+            ).scalar_one_or_none()
+            if not fx_sec:
+                from app.models.security import AssetClass as AC, DataSource as DS
+
+                fx_sec = Security(
+                    symbol="USDKRW=X",
+                    name="USD/KRW",
+                    currency="KRW",
+                    asset_class=AC.CURRENCY_PAIR,
+                    data_source=DS.YAHOO,
+                )
+                db.add(fx_sec)
+                await db.flush()
+            fx_existing = (
+                await db.execute(
+                    select(SecurityPrice).where(
+                        SecurityPrice.security_id == fx_sec.id,
+                        SecurityPrice.price_date == today,
+                    )
+                )
+            ).scalar_one_or_none()
+            if fx_existing:
+                fx_existing.close_price = fx_data.rate
+            else:
+                db.add(
+                    SecurityPrice(
+                        security_id=fx_sec.id,
+                        price_date=today,
+                        close_price=fx_data.rate,
+                        currency="KRW",
+                    )
+                )
+    except Exception:
+        pass
+
     await db.commit()
 
     success = sum(1 for v in results.values() if v)
