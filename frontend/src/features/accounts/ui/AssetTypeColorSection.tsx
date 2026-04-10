@@ -1,4 +1,4 @@
-import { useAppSettings, useUpdateAppSettings } from '../api/settings-api';
+import { useAppSettings, useUpdateAppSettings } from '@/features/settings/api/settings-api';
 import { ASSET_TYPE_LABELS } from '@/shared/types/common';
 import type { AssetType } from '@/shared/types/common';
 import { DEFAULT_ASSET_TYPE_COLORS } from '@/shared/lib/asset-colors';
