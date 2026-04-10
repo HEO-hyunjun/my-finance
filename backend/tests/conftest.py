@@ -1,6 +1,14 @@
 import asyncio
+import os
+
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+
+# 테스트용 고정 Fernet 키 (settings 임포트 전에 설정)
+os.environ.setdefault(
+    "ENCRYPTION_KEY", "U-KEBJXtxkC53JHAcAPbU3IgxHLtnq3qNPa2asVT5Xs="
+)
+
 from app.core.database import Base
 
 import app.models.account  # noqa: F401
@@ -10,6 +18,7 @@ import app.models.category  # noqa: F401
 import app.models.recurring_schedule  # noqa: F401
 import app.models.portfolio  # noqa: F401
 import app.models.budget_v2  # noqa: F401
+import app.models.user  # noqa: F401
 
 
 @pytest.fixture(scope="session")

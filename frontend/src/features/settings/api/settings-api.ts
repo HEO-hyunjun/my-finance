@@ -8,6 +8,9 @@ import type {
   LlmSettingResponse as LlmSettings,
   LlmSettingUpdate as LlmSettingsUpdateRequest,
   InvestmentPromptResponse,
+  PersonalApiKeyStatus,
+  PersonalApiKeyCreated,
+  PersonalApiKeyRevealed,
 } from '@/shared/types/settings';
 
 export const settingsKeys = {
@@ -16,6 +19,7 @@ export const settingsKeys = {
   apiKeys: () => [...settingsKeys.all, 'api-keys'] as const,
   llm: () => [...settingsKeys.all, 'llm'] as const,
   investmentPrompt: () => [...settingsKeys.all, 'investment-prompt'] as const,
+  personalApiKey: () => [...settingsKeys.all, 'personal-api-key'] as const,
 };
 
 export function useAppSettings() {
@@ -121,5 +125,52 @@ export function useDeleteInvestmentPrompt() {
       return data;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: settingsKeys.investmentPrompt() }); qc.invalidateQueries({ queryKey: settingsKeys.app() }); },
+  });
+}
+
+// --- Personal API Key ---
+
+export function usePersonalApiKeyStatus() {
+  return useQuery({
+    queryKey: settingsKeys.personalApiKey(),
+    queryFn: async (): Promise<PersonalApiKeyStatus> => {
+      const { data } = await apiClient.get('/v1/settings/personal-api-key');
+      return data;
+    },
+  });
+}
+
+export function useGeneratePersonalApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<PersonalApiKeyCreated> => {
+      const { data } = await apiClient.post('/v1/settings/personal-api-key');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: settingsKeys.personalApiKey() });
+    },
+  });
+}
+
+export function useRevealPersonalApiKey() {
+  return useMutation({
+    mutationFn: async (password: string): Promise<PersonalApiKeyRevealed> => {
+      const { data } = await apiClient.post('/v1/settings/personal-api-key/reveal', { password });
+      return data;
+    },
+  });
+}
+
+export function useRevokePersonalApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.delete('/v1/settings/personal-api-key');
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: settingsKeys.personalApiKey() });
+    },
   });
 }

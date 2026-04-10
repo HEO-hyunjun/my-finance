@@ -33,3 +33,17 @@ class User(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    # --- Personal API Key ---
+    api_key_hash: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, default=None, index=True
+    )
+    api_key_encrypted: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None
+    )
+    api_key_prefix: Mapped[str | None] = mapped_column(
+        String(12), nullable=True, default=None
+    )
+    api_key_created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
+    )

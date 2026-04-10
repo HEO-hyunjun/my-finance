@@ -15,6 +15,7 @@ import { PasswordSection } from '@/features/settings/ui/PasswordSection';
 import { NotificationSection } from '@/features/settings/ui/NotificationSection';
 import { ThemeSection } from '@/features/settings/ui/ThemeSection';
 import { InvestmentPromptSection } from '@/features/settings/ui/InvestmentPromptSection';
+import { PersonalApiKeySection } from '@/features/settings/ui/PersonalApiKeySection';
 import { DangerZone } from '@/features/settings/ui/DangerZone';
 import { DeleteAccountModal } from '@/features/settings/ui/DeleteAccountModal';
 import { Separator } from '@/shared/ui/separator';
@@ -162,6 +163,10 @@ export function Component() {
       <Separator />
 
       <InvestmentPromptSection />
+
+      <Separator />
+
+      <PersonalApiKeySection />
 
       <Separator />
 

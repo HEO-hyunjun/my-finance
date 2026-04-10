@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -8,14 +10,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.settings import ApiKey, ApiServiceType, LlmSetting
 from app.models.user import User
+from app.core.security import verify_password
 from app.schemas.settings import (
     ApiKeyCreate,
     ApiKeyResponse,
-    LlmSettingResponse,
-    LlmSettingUpdate,
     AppSettingsResponse,
     AppSettingsUpdate,
     InvestmentPromptResponse,
+    LlmSettingResponse,
+    LlmSettingUpdate,
+    PersonalApiKeyCreated,
+    PersonalApiKeyRevealed,
+    PersonalApiKeyStatus,
 )
 
 
@@ -284,3 +290,68 @@ async def update_app_settings(
     await db.refresh(user)
 
     return await get_app_settings(db, user)
+
+
+# --- Personal API Key ---
+
+
+def _hash_api_key(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.encode()).hexdigest()
+
+
+async def generate_personal_api_key(
+    db: AsyncSession, user: User
+) -> PersonalApiKeyCreated:
+    raw = "myf_" + secrets.token_urlsafe(32)
+    user.api_key_hash = _hash_api_key(raw)
+    user.api_key_encrypted = _encrypt(raw)
+    user.api_key_prefix = raw[:12]
+    user.api_key_created_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(user)
+
+    return PersonalApiKeyCreated(
+        api_key=raw,
+        prefix=raw[:12],
+        created_at=user.api_key_created_at,
+    )
+
+
+async def get_personal_api_key_status(
+    db: AsyncSession, user: User
+) -> PersonalApiKeyStatus:
+    return PersonalApiKeyStatus(
+        is_set=user.api_key_hash is not None,
+        prefix=user.api_key_prefix,
+        created_at=user.api_key_created_at,
+    )
+
+
+async def revoke_personal_api_key(
+    db: AsyncSession, user: User
+) -> None:
+    user.api_key_hash = None
+    user.api_key_encrypted = None
+    user.api_key_prefix = None
+    user.api_key_created_at = None
+    await db.commit()
+
+
+async def reveal_personal_api_key(
+    db: AsyncSession, user: User, password: str
+) -> PersonalApiKeyRevealed | None:
+    if not verify_password(password, user.hashed_password):
+        return None
+    if not user.api_key_encrypted:
+        return None
+
+    raw = _decrypt(user.api_key_encrypted)
+    return PersonalApiKeyRevealed(api_key=raw)
+
+
+async def authenticate_by_api_key(
+    db: AsyncSession, raw_key: str
+) -> User | None:
+    key_hash = _hash_api_key(raw_key)
+    stmt = select(User).where(User.api_key_hash == key_hash)
+    return (await db.execute(stmt)).scalar_one_or_none()

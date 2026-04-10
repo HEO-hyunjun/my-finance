@@ -64,3 +64,26 @@ class AppSettingsUpdate(BaseModel):
     news_refresh_interval: int | None = Field(default=None, ge=5, le=1440)
     asset_type_colors: dict[str, str] | None = None
     dashboard_widgets: dict[str, bool] | None = None
+
+
+# --- Personal API Key ---
+
+
+class PersonalApiKeyStatus(BaseModel):
+    is_set: bool
+    prefix: str | None = None
+    created_at: datetime | None = None
+
+
+class PersonalApiKeyCreated(BaseModel):
+    api_key: str
+    prefix: str
+    created_at: datetime
+
+
+class PersonalApiKeyRevealRequest(BaseModel):
+    password: str = Field(min_length=1)
+
+
+class PersonalApiKeyRevealed(BaseModel):
+    api_key: str

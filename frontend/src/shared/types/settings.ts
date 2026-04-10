@@ -95,3 +95,21 @@ export const INCOME_TYPE_LABELS: Record<string, string> = {
   rental: '임대수입',
   other: '기타',
 };
+
+// --- Personal API Key ---
+
+export interface PersonalApiKeyStatus {
+  is_set: boolean;
+  prefix: string | null;
+  created_at: string | null;
+}
+
+export interface PersonalApiKeyCreated {
+  api_key: string;
+  prefix: string;
+  created_at: string;
+}
+
+export interface PersonalApiKeyRevealed {
+  api_key: string;
+}
