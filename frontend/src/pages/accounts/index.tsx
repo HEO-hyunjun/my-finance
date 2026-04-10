@@ -42,7 +42,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-import { AssetTypeColorSection } from '@/features/accounts/ui/AssetTypeColorSection';
 
 // ─── 상수 ────────────────────────────────────────────────────────────────────
 
@@ -1049,7 +1048,6 @@ export function Component() {
   const { data: accounts = [], isLoading, isError, refetch } = useAccounts();
   const deleteAccount = useDeleteAccount();
   const refreshAll = useRefreshAll();
-
   const [showCreate, setShowCreate] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
@@ -1196,9 +1194,6 @@ export function Component() {
           )}
         </>
       )}
-
-      {/* 차트 색상 설정 */}
-      <AssetTypeColorSection />
 
       {/* 계좌 추가 모달 */}
       <CreateAccountDialog isOpen={showCreate} onClose={handleCloseCreate} />
