@@ -197,16 +197,34 @@ function ScheduleFormFields({ form, isCreate, onChange }: ScheduleFormFieldsProp
 
       {/* 결제일 */}
       <div className="space-y-1.5">
-        <Label htmlFor="schedule_day">매월 결제일 *</Label>
-        <Input
-          id="schedule_day"
-          type="number"
-          min="1"
-          max="31"
-          value={form.schedule_day}
-          onChange={(e) => onChange('schedule_day', e.target.value)}
-          placeholder="1~31"
-        />
+        <Label>매월 결제일 *</Label>
+        <div className="flex items-center gap-3">
+          {form.schedule_day === '0' ? (
+            <span className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              말일
+            </span>
+          ) : (
+            <Input
+              id="schedule_day"
+              type="number"
+              min="1"
+              max="31"
+              value={form.schedule_day}
+              onChange={(e) => onChange('schedule_day', e.target.value)}
+              placeholder="1~31"
+              className="flex-1"
+            />
+          )}
+          <label className="flex items-center gap-1.5 text-sm cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={form.schedule_day === '0'}
+              onChange={(e) => onChange('schedule_day', e.target.checked ? '0' : '1')}
+              className="h-4 w-4 rounded"
+            />
+            말일
+          </label>
+        </div>
       </div>
 
       {/* 시작일 / 종료일 */}
@@ -487,7 +505,7 @@ function ScheduleCard({ schedule, onEdit, onDelete }: ScheduleCardProps) {
         <span className="font-semibold text-base">
           {formatCurrency(schedule.amount, schedule.currency)}
         </span>
-        <span className="text-muted-foreground">매월 {schedule.schedule_day}일</span>
+        <span className="text-muted-foreground">매월 {schedule.schedule_day === 0 ? '말일' : `${schedule.schedule_day}일`}</span>
       </div>
 
       {/* 할부 진행바 */}

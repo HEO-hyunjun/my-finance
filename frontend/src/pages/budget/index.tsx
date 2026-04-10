@@ -1189,7 +1189,7 @@ function AnalysisSection() {
                       className={`inline-block h-1.5 w-1.5 rounded-full ${item.is_paid ? 'bg-green-500' : 'bg-amber-400'}`}
                     />
                     {item.name}
-                    <span className="text-xs text-muted-foreground">({item.payment_day}일)</span>
+                    <span className="text-xs text-muted-foreground">({item.payment_day === 0 ? '말일' : `${item.payment_day}일`})</span>
                   </span>
                   <span className={item.is_paid ? 'text-muted-foreground line-through' : ''}>
                     {formatCurrency(item.amount)}
