@@ -259,6 +259,7 @@ async def get_app_settings(
         news_refresh_interval=prefs.get("news_refresh_interval", 30),
         investment_prompt=user.investment_prompt,
         asset_type_colors=prefs.get("asset_type_colors"),
+        dashboard_widgets=prefs.get("dashboard_widgets"),
     )
 
 
@@ -275,6 +276,8 @@ async def update_app_settings(
         prefs["news_refresh_interval"] = data.news_refresh_interval
     if data.asset_type_colors is not None:
         prefs["asset_type_colors"] = data.asset_type_colors
+    if data.dashboard_widgets is not None:
+        prefs["dashboard_widgets"] = data.dashboard_widgets
 
     user.notification_preferences = prefs
     await db.commit()

@@ -25,12 +25,14 @@ export interface AppSettingsResponse {
   default_currency: string;
   investment_prompt: string | null;
   asset_type_colors: Record<string, string> | null;
+  dashboard_widgets: Record<string, boolean> | null;
 }
 
 export interface AppSettingsUpdate {
   theme?: string | null;
   default_currency?: string | null;
   asset_type_colors?: Record<string, string> | null;
+  dashboard_widgets?: Record<string, boolean> | null;
 }
 
 // Backwards-compatible aliases (legacy names)
