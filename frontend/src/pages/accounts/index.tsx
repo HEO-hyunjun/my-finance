@@ -85,6 +85,15 @@ function formatCurrency(amount: number | string, currency = 'KRW'): string {
   }
 }
 
+function formatQuantity(qty: number | string): string {
+  const n = Number(qty);
+  if (Number.isInteger(n)) return n.toLocaleString('ko-KR');
+  // 소수점 이하 유효 자릿수만 표시 (최대 8자리)
+  const s = n.toFixed(8).replace(/0+$/, '');
+  const [int, dec] = s.split('.');
+  return dec ? `${Number(int).toLocaleString('ko-KR')}.${dec}` : Number(int).toLocaleString('ko-KR');
+}
+
 function formatPercent(value: number): string {
   return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
 }
@@ -746,7 +755,7 @@ function InvestmentHoldings({ summary }: InvestmentHoldingsProps) {
               <span className="text-xs text-muted-foreground">{h.symbol}</span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {h.quantity.toLocaleString('ko-KR')}주 · 평균단가 {formatCurrency(h.avg_price, h.currency)}
+              {formatQuantity(h.quantity)}주 · 평균단가 {formatCurrency(h.avg_price, h.currency)}
             </p>
           </div>
           <div className="text-right">

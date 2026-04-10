@@ -23,7 +23,6 @@ export interface AppSettingsResponse {
   llm: LlmSettingResponse;
   theme: string;
   default_currency: string;
-  news_refresh_interval: number;
   investment_prompt: string | null;
   asset_type_colors: Record<string, string> | null;
 }
@@ -31,7 +30,6 @@ export interface AppSettingsResponse {
 export interface AppSettingsUpdate {
   theme?: string | null;
   default_currency?: string | null;
-  news_refresh_interval?: number | null;
   asset_type_colors?: Record<string, string> | null;
 }
 

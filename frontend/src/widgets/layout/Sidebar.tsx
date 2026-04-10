@@ -5,7 +5,6 @@ import {
   ArrowLeftRight,
   CalendarRange,
   PiggyBank,
-  Newspaper,
   Bot,
   Settings,
   ChevronLeft,
@@ -26,7 +25,6 @@ const NAV_ITEMS = [
   { to: '/budget', icon: PiggyBank, label: '예산' },
   { to: '/schedules', icon: Repeat, label: '반복일정' },
   { to: '/calendar', icon: CalendarRange, label: '캘린더' },
-  { to: '/news', icon: Newspaper, label: '뉴스' },
   { to: '/chatbot', icon: Bot, label: 'AI 챗봇' },
   { to: '/settings', icon: Settings, label: '설정' },
 ] as const;

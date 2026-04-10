@@ -34,9 +34,6 @@ class Settings(BaseSettings):
     FIRECRAWL_BASE_URL: str = ""
 
     # 검색 캐시
-    NEWS_CACHE_TTL: int = 25200       # 뉴스 캐시 7시간
-    NEWS_BATCH_HOUR: int = 8           # 뉴스 배치 수집 시작 시각 (시)
-    NEWS_BATCH_MINUTE: int = 50        # 뉴스 배치 수집 시작 시각 (분)
     WEB_SEARCH_CACHE_TTL: int = 7200  # 웹 검색 캐시 2시간
 
     # LLM API Keys
@@ -53,11 +50,6 @@ class Settings(BaseSettings):
     CHATBOT_TEMPERATURE: float = 0.7
     CHATBOT_MAX_HISTORY: int = 20
 
-    # 뉴스 LLM - 기사 요약/클러스터링
-    NEWS_LLM_MODEL: str = ""
-    NEWS_LLM_MAX_TOKENS: int = 1024
-    NEWS_LLM_TEMPERATURE: float = 0.3
-
     # AI 인사이트 - 대시보드 AI 위젯
     INSIGHT_MODEL: str = ""
     INSIGHT_MAX_TOKENS: int = 4096
@@ -66,10 +58,6 @@ class Settings(BaseSettings):
     @property
     def chatbot_model(self) -> str:
         return self.CHATBOT_MODEL or self.LITELLM_MODEL
-
-    @property
-    def news_llm_model(self) -> str:
-        return self.NEWS_LLM_MODEL or self.LITELLM_MODEL
 
     @property
     def insight_model(self) -> str:

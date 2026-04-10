@@ -11,7 +11,6 @@ const PAGE_TITLES: Record<string, string> = {
   "/income": "수입 내역",
   "/calendar": "캘린더",
   "/transactions": "거래 내역",
-  "/news": "뉴스",
   "/chatbot": "AI 챗봇",
   "/settings": "설정",
 };

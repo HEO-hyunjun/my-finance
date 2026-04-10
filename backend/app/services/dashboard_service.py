@@ -58,12 +58,36 @@ async def get_dashboard_summary(db: AsyncSession, user_id: uuid.UUID, **kwargs) 
     )
     recent_entries = (await db.execute(recent_stmt)).scalars().all()
 
+    # 5. 계좌 유형별 자산 분포
+    type_labels = {
+        "cash": "현금",
+        "deposit": "예금",
+        "savings": "적금",
+        "parking": "파킹",
+        "investment": "투자",
+    }
+    type_totals: dict[str, Decimal] = {}
+    for acc in total_assets["accounts"]:
+        at = acc["account_type"]
+        type_totals[at] = type_totals.get(at, Decimal("0")) + acc["total_value_krw"]
+
+    asset_distribution = [
+        {
+            "type": t,
+            "label": type_labels.get(t, t),
+            "amount": v,
+        }
+        for t, v in type_totals.items()
+        if v > 0
+    ]
+
     return {
         "total_assets_krw": total_assets["total_krw"],
         "accounts_count": len(total_assets["accounts"]),
         "monthly_income": monthly_income,
         "monthly_expense": monthly_expense,
         "budget_overview": budget,
+        "asset_distribution": asset_distribution,
         "recent_entries": [
             {
                 "id": str(e.id),

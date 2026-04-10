@@ -15,20 +15,19 @@ class FetcherAgent(BaseAgent):
     """
 
     name = "fetcher"
-    description = "실시간 시세, 뉴스, 웹 검색 데이터 수집"
+    description = "실시간 시세, 웹 검색 데이터 수집"
     system_prompt = """당신은 실시간 금융 데이터 수집 전문가입니다.
 
 ## 역할
-- 사용자가 요청한 시세, 뉴스, 정보를 실시간으로 검색합니다.
+- 사용자가 요청한 시세, 정보를 실시간으로 검색합니다.
 - 검색 결과를 깔끔하게 정리하여 제공합니다.
 - 정보의 출처와 시점을 명확히 표시합니다.
 
-## 도구 사용 전략 (DB-first 필수!)
+## 도구 사용 전략
 1. 시세 관련 질문 → get_market_price (yfinance, 쿼터 무관)
-2. 뉴스 관련 질문 → **query_news_db를 항상 먼저!** → DB에 없을 때만 search_news
-3. 일반 정보 질문 → **query_news_db 먼저** → 없으면 web_search
-4. 환율 질문 → get_exchange_rate (yfinance, 쿼터 무관)
-5. 복합 질문 → 여러 도구 조합 (API 쿼터 절약 우선)
+2. 일반 정보 질문 → web_search
+3. 환율 질문 → get_exchange_rate (yfinance, 쿼터 무관)
+4. 복합 질문 → 여러 도구 조합
 
 ## 응답 규칙
 - 검색 결과를 마크다운 테이블로 정리합니다.
@@ -57,25 +56,8 @@ class FetcherAgent(BaseAgent):
         {
             "type": "function",
             "function": {
-                "name": "search_news",
-                "description": "금융 관련 최신 뉴스를 실시간 검색합니다 (⚠️ 쿼터 제한: 월 100건! query_news_db에 정보가 없을 때만 사용)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "query": {
-                            "type": "string",
-                            "description": "검색 키워드",
-                        },
-                    },
-                    "required": ["query"],
-                },
-            },
-        },
-        {
-            "type": "function",
-            "function": {
                 "name": "web_search",
-                "description": "웹에서 실시간 정보를 검색합니다 (⚠️ 쿼터 제한: 월 100건! query_news_db에 정보가 없을 때만 사용)",
+                "description": "웹에서 실시간 정보를 검색합니다",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -99,22 +81,6 @@ class FetcherAgent(BaseAgent):
                 },
             },
         },
-        {
-            "type": "function",
-            "function": {
-                "name": "query_news_db",
-                "description": "DB에 저장된 LLM 분석 완료 뉴스를 검색합니다 (Layer 1 - 항상 먼저 사용! 빠르고 요약/감성 포함)",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "category": {
-                            "type": "string",
-                            "description": "뉴스 카테고리 (all, stock_kr, stock_us, gold, economy)",
-                        },
-                    },
-                },
-            },
-        },
     ]
 
     KEYWORDS = [
@@ -131,13 +97,10 @@ class FetcherAgent(BaseAgent):
     async def _execute_tools(
         self, tool_calls: list, tools_context: dict
     ) -> list[dict]:
-        """Tool 실행: Tavily + yfinance 기반 실시간 데이터 수집"""
+        """Tool 실행: yfinance + 웹 검색 기반 실시간 데이터 수집"""
         from app.services.market_service import MarketService
-        from app.services.news_service import NewsService
 
         market: MarketService | None = tools_context.get("market")
-        news: NewsService | None = tools_context.get("news")
-        db = tools_context.get("db")
         results = []
 
         for tc in tool_calls:
@@ -159,21 +122,6 @@ class FetcherAgent(BaseAgent):
                         "change_percent": price_data.change_percent,
                     }
 
-                elif fn_name == "search_news" and news:
-                    news_response = await news.search_news(
-                        query=args["query"], per_page=5
-                    )
-                    result_data = [
-                        {
-                            "title": a.title,
-                            "source": a.source.name,
-                            "snippet": a.snippet,
-                            "link": a.link,
-                            "published_at": a.published_at,
-                        }
-                        for a in news_response.articles
-                    ]
-
                 elif fn_name == "web_search":
                     from app.services.search import get_search_provider
                     provider = get_search_provider()
@@ -188,12 +136,6 @@ class FetcherAgent(BaseAgent):
                         "change": rate_data.change,
                         "change_percent": rate_data.change_percent,
                     }
-
-                elif fn_name == "query_news_db" and db:
-                    from app.services.news_llm_service import get_processed_articles
-                    category = args.get("category", "all")
-                    articles = await get_processed_articles(db, category, limit=10)
-                    result_data = articles or {"message": "분석된 뉴스가 없습니다"}
 
                 else:
                     result_data = {"error": f"Unknown tool: {fn_name}"}

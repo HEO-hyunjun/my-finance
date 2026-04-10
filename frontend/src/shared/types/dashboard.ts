@@ -96,12 +96,19 @@ export interface DashboardRecentEntry {
   transacted_at: string;
 }
 
+export interface AssetDistributionItem {
+  type: string;
+  label: string;
+  amount: number;
+}
+
 export interface DashboardSummaryResponse {
   total_assets_krw: number;
   accounts_count: number;
   monthly_income: number;
   monthly_expense: number;
   budget_overview: DashboardBudgetOverview;
+  asset_distribution: AssetDistributionItem[];
   recent_entries: DashboardRecentEntry[];
 }
 

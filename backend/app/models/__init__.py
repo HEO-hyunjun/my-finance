@@ -10,6 +10,5 @@ from app.models.portfolio import AssetSnapshot, PortfolioTarget, RebalancingAler
 
 # Supporting models
 from app.models.insight import AIInsightRecord  # noqa: F401
-from app.models.news import NewsArticleDB, NewsCluster  # noqa: F401
 from app.models.settings import ApiKey, LlmSetting  # noqa: F401
 from app.models.conversation import Conversation, Message  # noqa: F401

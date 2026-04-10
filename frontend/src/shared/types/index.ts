@@ -1,7 +1,6 @@
 export * from './auth';
 export * from './common';
 export * from './dashboard';
-export * from './news';
 export * from './chat';
 export * from './calendar';
 export * from './portfolio';

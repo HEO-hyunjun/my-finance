@@ -7,6 +7,9 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import {
   AlertCircle,
@@ -21,7 +24,7 @@ import {
 
 import { useDashboardSummary, useDashboardInsights } from '@/features/dashboard/api';
 import { useGoal, useAssetTimeline } from '@/features/portfolio/api';
-import { useExchangeRate } from '@/features/market/api';
+import { useExchangeRate, useMarketPrice } from '@/features/market/api';
 import { useBudgetAnalysis } from '@/features/budget/api';
 import { useSchedules } from '@/features/schedules/api';
 
@@ -218,6 +221,14 @@ function GoalAssetWidget() {
 const PERIOD_OPTIONS = ['1W', '1M', '3M', '6M', '1Y', 'ALL'] as const;
 type PeriodOption = (typeof PERIOD_OPTIONS)[number];
 
+const BREAKDOWN_CONFIG: { key: string; label: string; color: string }[] = [
+  { key: 'investment', label: '투자', color: '#6366f1' },
+  { key: 'cash', label: '현금', color: '#f59e0b' },
+  { key: 'parking', label: '파킹', color: '#10b981' },
+  { key: 'savings', label: '적금', color: '#06b6d4' },
+  { key: 'deposit', label: '예금', color: '#8b5cf6' },
+];
+
 function AssetTimelineWidget() {
   const [period, setPeriod] = useState<PeriodOption>('1M');
   const { data, isLoading, isError } = useAssetTimeline(period);
@@ -226,7 +237,13 @@ function AssetTimelineWidget() {
     data?.snapshots.map((s) => ({
       date: formatShortDate(s.snapshot_date),
       total: s.total_krw,
+      ...(s.breakdown ?? {}),
     })) ?? [];
+
+  // breakdown에 존재하는 키만 필터
+  const activeKeys = BREAKDOWN_CONFIG.filter((cfg) =>
+    chartData.some((d) => (d[cfg.key as keyof typeof d] as number) > 0),
+  );
 
   return (
     <Card className="col-span-full">
@@ -261,53 +278,73 @@ function AssetTimelineWidget() {
             <p className="text-sm text-muted-foreground">데이터가 없습니다</p>
           </div>
         ) : (
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="totalGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tickFormatter={(v: number) =>
-                  v >= 100_000_000
-                    ? `${(v / 100_000_000).toFixed(0)}억`
-                    : v >= 10_000
-                    ? `${(v / 10_000).toFixed(0)}만`
-                    : `${v}`
-                }
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-                axisLine={false}
-                tickLine={false}
-                width={48}
-              />
-              <RechartsTooltip
-                formatter={(value: number) => [formatKRW(value), '총 자산']}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="total"
-                stroke="#6366f1"
-                strokeWidth={2}
-                fill="url(#totalGradient)"
-                dot={false}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <defs>
+                  {activeKeys.map((cfg) => (
+                    <linearGradient key={cfg.key} id={`grad_${cfg.key}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={cfg.color} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={cfg.color} stopOpacity={0.02} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  tickFormatter={(v: number) =>
+                    v >= 100_000_000
+                      ? `${(v / 100_000_000).toFixed(0)}억`
+                      : v >= 10_000
+                      ? `${(v / 10_000).toFixed(0)}만`
+                      : `${v}`
+                  }
+                  tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={48}
+                />
+                <RechartsTooltip
+                  formatter={(value: number, name: string) => {
+                    const cfg = BREAKDOWN_CONFIG.find((c) => c.key === name);
+                    return [formatKRW(value), cfg?.label ?? name];
+                  }}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+                {activeKeys.map((cfg) => (
+                  <Area
+                    key={cfg.key}
+                    type="monotone"
+                    dataKey={cfg.key}
+                    stackId="1"
+                    stroke={cfg.color}
+                    strokeWidth={1.5}
+                    fill={`url(#grad_${cfg.key})`}
+                    dot={false}
+                  />
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+            {/* 범례 */}
+            <div className="mt-2 flex flex-wrap gap-3 justify-center">
+              {activeKeys.map((cfg) => (
+                <span key={cfg.key} className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: cfg.color }} />
+                  {cfg.label}
+                </span>
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
@@ -390,15 +427,15 @@ function DailyBudgetWidget() {
 
 // ─── 5. Asset Distribution Widget ─────────────────────────────────────────────
 
+const PIE_COLORS = ['#6366f1', '#06b6d4', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6'];
+
 function AssetDistributionWidget() {
   const { data: summary, isLoading, isError } = useDashboardSummary();
 
-  // budget_overview 의 계좌 수와 합산 자산을 활용
-  const overview = summary?.budget_overview;
-
-  // DashboardSummaryResponse에 자산 breakdown 정보가 없으므로
-  // accounts_count 와 total_assets_krw 로 간단한 정보 표시
-  const hasPieData = (summary?.total_assets_krw ?? 0) > 0;
+  const distribution: { label: string; amount: number }[] = (summary?.asset_distribution ?? []).map(
+    (d: { label: string; amount: number }) => ({ label: d.label, amount: Number(d.amount) }),
+  );
+  const total = summary?.total_assets_krw ?? 0;
 
   return (
     <Card>
@@ -410,41 +447,56 @@ function AssetDistributionWidget() {
           <Skeleton className="mx-auto h-40 w-40 rounded-full" />
         ) : isError ? (
           <WidgetError />
-        ) : !hasPieData ? (
+        ) : distribution.length === 0 ? (
           <div className="flex h-40 items-center justify-center">
             <p className="text-sm text-muted-foreground">자산 데이터가 없습니다</p>
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground">총 자산</p>
-              <p className="text-xl font-bold">{formatKRW(summary?.total_assets_krw ?? 0)}</p>
-              <p className="text-xs text-muted-foreground">
-                계좌 {summary?.accounts_count ?? 0}개
-              </p>
+            <ResponsiveContainer width="100%" height={160}>
+              <PieChart>
+                <Pie
+                  data={distribution}
+                  dataKey="amount"
+                  nameKey="label"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={70}
+                  paddingAngle={2}
+                >
+                  {distribution.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  formatter={(value: number, name: string) => [formatKRW(value), name]}
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="text-center text-xs text-muted-foreground">
+              총 자산 <span className="font-bold text-foreground">{formatKRW(total)}</span>
             </div>
-            {overview && (
-              <div className="space-y-1 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">총 수입</span>
-                  <span className="font-medium">{formatKRW(overview.total_income)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">고정 지출</span>
-                  <span className="font-medium">{formatKRW(overview.total_fixed_expense)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">가용 예산</span>
-                  <span
-                    className={`font-semibold ${
-                      overview.available_budget < 0 ? 'text-destructive' : 'text-green-600'
-                    }`}
-                  >
-                    {formatKRW(overview.available_budget)}
+            <div className="space-y-1">
+              {distribution.map((d, i) => (
+                <div key={d.label} className="flex items-center justify-between text-xs">
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-sm"
+                      style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
+                    />
+                    {d.label}
                   </span>
+                  <span className="font-medium">{formatKRW(d.amount)}</span>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
@@ -594,6 +646,7 @@ function RecentTransactionsWidget() {
 
 function MarketInfoWidget() {
   const { data: exchangeRate, isLoading, isError } = useExchangeRate();
+  const { data: goldPrice } = useMarketPrice('KRX:GOLD');
 
   return (
     <Card>
@@ -647,13 +700,40 @@ function MarketInfoWidget() {
                 )}
               </div>
             )}
-            {/* 금 시세 — 추후 추가 예정 */}
-            <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
-              <div>
-                <p className="text-xs text-muted-foreground">금 (XAU/KRW)</p>
-                <p className="text-sm text-muted-foreground">데이터 준비 중</p>
+            {/* 금 시세 */}
+            {goldPrice && (
+              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">{goldPrice.name ?? '금 (KRX)'}</p>
+                  <p className="text-lg font-bold">
+                    {goldPrice.price.toLocaleString('ko-KR')}
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">원/g</span>
+                  </p>
+                </div>
+                {goldPrice.change != null && (
+                  <div className="text-right">
+                    <p
+                      className={`flex items-center gap-0.5 text-sm font-medium ${
+                        goldPrice.change >= 0 ? 'text-green-600' : 'text-destructive'
+                      }`}
+                    >
+                      {goldPrice.change >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {Math.abs(goldPrice.change).toLocaleString('ko-KR')}
+                    </p>
+                    {goldPrice.change_percent != null && (
+                      <p className="text-xs text-muted-foreground">
+                        {goldPrice.change_percent >= 0 ? '+' : ''}
+                        {goldPrice.change_percent.toFixed(2)}%
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
           </div>
         )}
       </CardContent>
