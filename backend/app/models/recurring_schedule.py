@@ -21,7 +21,7 @@ class RecurringSchedule(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     type: Mapped[ScheduleType] = mapped_column(
-        Enum(ScheduleType, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False,
+        Enum(ScheduleType), nullable=False,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)

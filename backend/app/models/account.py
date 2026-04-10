@@ -28,14 +28,14 @@ class Account(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     account_type: Mapped[AccountType] = mapped_column(
-        Enum(AccountType, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False,
+        Enum(AccountType), nullable=False,
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="KRW")
     institution: Mapped[str | None] = mapped_column(String(50), nullable=True)
     interest_rate: Mapped[Decimal | None] = mapped_column(Numeric(5, 3), nullable=True)
     interest_type: Mapped[InterestType | None] = mapped_column(
-        Enum(InterestType, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=True,
+        Enum(InterestType), nullable=True,
     )
     monthly_amount: Mapped[Decimal | None] = mapped_column(Numeric(18, 4), nullable=True)
     start_date: Mapped[date | None] = mapped_column(Date, nullable=True)

@@ -32,10 +32,10 @@ class Security(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     asset_class: Mapped[AssetClass] = mapped_column(
-        Enum(AssetClass, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False,
+        Enum(AssetClass), nullable=False,
     )
     data_source: Mapped[DataSource] = mapped_column(
-        Enum(DataSource, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False, default=DataSource.YAHOO,
+        Enum(DataSource), nullable=False, default=DataSource.YAHOO,
     )
     exchange: Mapped[str | None] = mapped_column(String(20), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

@@ -5,8 +5,8 @@ class Settings(BaseSettings):
     APP_NAME: str = "My Finance"
     DEBUG: bool = True
 
-    # Database (로컬 개발: 3307, Docker 내부: 3306)
-    DATABASE_URL: str = "mysql+asyncmy://myfinance:myfinance@localhost:3307/myfinance?charset=utf8mb4"
+    # Database (로컬 개발: 5433, Docker 내부: 5432)
+    DATABASE_URL: str = "postgresql+asyncpg://myfinance:myfinance@localhost:5433/myfinance"
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"

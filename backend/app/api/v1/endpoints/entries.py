@@ -41,7 +41,11 @@ async def list_entries(
     if account_id:
         base = base.where(Entry.account_id == account_id)
     if type:
-        base = base.where(Entry.type == type)
+        type_list = [t.strip() for t in type.split(",") if t.strip()]
+        if len(type_list) == 1:
+            base = base.where(Entry.type == type_list[0])
+        else:
+            base = base.where(Entry.type.in_(type_list))
     if category_id:
         base = base.where(Entry.category_id == category_id)
     if start_date:
@@ -75,6 +79,20 @@ async def create_entry(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.models.account import Account
+
+    account = (
+        await db.execute(
+            select(Account).where(
+                Account.id == data.account_id, Account.user_id == current_user.id
+            )
+        )
+    ).scalar_one_or_none()
+    if not account:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="계좌를 찾을 수 없습니다")
+
     entry = await entry_service.create_entry(
         db,
         user_id=current_user.id,
@@ -91,6 +109,26 @@ async def create_transfer(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from fastapi import HTTPException
+
+    from app.models.account import Account
+
+    for aid, label in [
+        (data.source_account_id, "출금"),
+        (data.target_account_id, "입금"),
+    ]:
+        acc = (
+            await db.execute(
+                select(Account).where(
+                    Account.id == aid, Account.user_id == current_user.id
+                )
+            )
+        ).scalar_one_or_none()
+        if not acc:
+            raise HTTPException(
+                status_code=404, detail=f"{label} 계좌를 찾을 수 없습니다"
+            )
+
     group = await entry_service.create_transfer(
         db,
         user_id=current_user.id,
@@ -102,7 +140,6 @@ async def create_transfer(
         transacted_at=data.transacted_at,
     )
     await db.commit()
-    # Return both entries in the group
     stmt = select(Entry).where(Entry.entry_group_id == group.id)
     entries = list((await db.execute(stmt)).scalars().all())
     return entries
@@ -114,6 +151,20 @@ async def create_trade(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from fastapi import HTTPException
+
+    from app.models.account import Account
+
+    acc = (
+        await db.execute(
+            select(Account).where(
+                Account.id == data.account_id, Account.user_id == current_user.id
+            )
+        )
+    ).scalar_one_or_none()
+    if not acc:
+        raise HTTPException(status_code=404, detail="계좌를 찾을 수 없습니다")
+
     trade_type = EntryType(data.trade_type)
     group = await entry_service.create_trade(
         db,

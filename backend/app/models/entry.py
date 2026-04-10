@@ -36,7 +36,7 @@ class EntryGroup(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
     group_type: Mapped[GroupType] = mapped_column(
-        Enum(GroupType, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False,
+        Enum(GroupType), nullable=False,
     )
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -70,7 +70,7 @@ class Entry(Base):
         Uuid, ForeignKey("securities.id", ondelete="SET NULL"), nullable=True,
     )
     type: Mapped[EntryType] = mapped_column(
-        Enum(EntryType, native_enum=False, values_callable=lambda x: [e.value for e in x]), nullable=False,
+        Enum(EntryType), nullable=False,
     )
     amount: Mapped[Decimal] = mapped_column(Numeric(18, 4), nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="KRW")
