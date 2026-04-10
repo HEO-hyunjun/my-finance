@@ -21,7 +21,7 @@ from app.services.chatbot_service import (
 )
 from app.services.market_service import MarketService
 
-router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
+router = APIRouter(tags=["Chatbot"])
 
 
 @router.post("/chat")

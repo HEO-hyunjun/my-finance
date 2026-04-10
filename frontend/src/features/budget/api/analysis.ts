@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
-import type { BudgetAnalysis } from '@/shared/types';
+import type { BudgetAnalysis } from '@/entities/budget/model/types';
 
 export const budgetAnalysisKeys = {
   all: ['budget-analysis'] as const,

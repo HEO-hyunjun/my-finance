@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Integer, String, Text, DateTime, JSON, Uuid, ForeignKey
+from sqlalchemy import String, Text, DateTime, JSON, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -19,18 +19,6 @@ class User(Base):
     default_currency: Mapped[str] = mapped_column(
         String(3), default="KRW", nullable=False
     )
-    salary_day: Mapped[int] = mapped_column(
-        Integer, default=1, nullable=False, server_default="1"
-    )
-    salary_asset_id: Mapped[uuid.UUID | None] = mapped_column(
-        Uuid,
-        ForeignKey("assets.id", ondelete="SET NULL"),
-        nullable=True,
-        default=None,
-    )
-    salary_amount: Mapped[int | None] = mapped_column(
-        Integer, nullable=True, default=None
-    )
     investment_prompt: Mapped[str | None] = mapped_column(
         Text, nullable=True, default=None
     )
@@ -44,4 +32,18 @@ class User(Base):
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # --- Personal API Key ---
+    api_key_hash: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, default=None, index=True
+    )
+    api_key_encrypted: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None
+    )
+    api_key_prefix: Mapped[str | None] = mapped_column(
+        String(12), nullable=True, default=None
+    )
+    api_key_created_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True, default=None
     )

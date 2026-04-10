@@ -33,7 +33,7 @@ class ApiKey(Base):
         nullable=False,
     )
     service: Mapped[ApiServiceType] = mapped_column(
-        Enum(ApiServiceType, name="api_service_type_enum", native_enum=False), nullable=False
+        Enum(ApiServiceType), nullable=False,
     )
     encrypted_key: Mapped[str] = mapped_column(Text, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(

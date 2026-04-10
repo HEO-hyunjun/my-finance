@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 import uuid
 from datetime import datetime, timezone
 
@@ -6,17 +8,20 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models.asset import Asset
 from app.models.settings import ApiKey, ApiServiceType, LlmSetting
 from app.models.user import User
+from app.core.security import verify_password
 from app.schemas.settings import (
     ApiKeyCreate,
     ApiKeyResponse,
-    LlmSettingResponse,
-    LlmSettingUpdate,
     AppSettingsResponse,
     AppSettingsUpdate,
     InvestmentPromptResponse,
+    LlmSettingResponse,
+    LlmSettingUpdate,
+    PersonalApiKeyCreated,
+    PersonalApiKeyRevealed,
+    PersonalApiKeyStatus,
 )
 
 
@@ -252,15 +257,6 @@ async def get_app_settings(
 
     prefs = user.notification_preferences or {}
 
-    # 월급 자산 이름 조회
-    salary_asset_name = None
-    if user.salary_asset_id:
-        asset = (await db.execute(
-            select(Asset).where(Asset.id == user.salary_asset_id)
-        )).scalar_one_or_none()
-        if asset:
-            salary_asset_name = asset.name
-
     return AppSettingsResponse(
         api_keys=api_keys,
         llm=llm,
@@ -268,9 +264,8 @@ async def get_app_settings(
         default_currency=user.default_currency,
         news_refresh_interval=prefs.get("news_refresh_interval", 30),
         investment_prompt=user.investment_prompt,
-        salary_asset_id=user.salary_asset_id,
-        salary_asset_name=salary_asset_name,
         asset_type_colors=prefs.get("asset_type_colors"),
+        dashboard_widgets=prefs.get("dashboard_widgets"),
     )
 
 
@@ -285,13 +280,78 @@ async def update_app_settings(
         user.default_currency = data.default_currency
     if data.news_refresh_interval is not None:
         prefs["news_refresh_interval"] = data.news_refresh_interval
-    if "salary_asset_id" in data.model_fields_set:
-        user.salary_asset_id = data.salary_asset_id
     if data.asset_type_colors is not None:
         prefs["asset_type_colors"] = data.asset_type_colors
+    if data.dashboard_widgets is not None:
+        prefs["dashboard_widgets"] = data.dashboard_widgets
 
     user.notification_preferences = prefs
     await db.commit()
     await db.refresh(user)
 
     return await get_app_settings(db, user)
+
+
+# --- Personal API Key ---
+
+
+def _hash_api_key(raw_key: str) -> str:
+    return hashlib.sha256(raw_key.encode()).hexdigest()
+
+
+async def generate_personal_api_key(
+    db: AsyncSession, user: User
+) -> PersonalApiKeyCreated:
+    raw = "myf_" + secrets.token_urlsafe(32)
+    user.api_key_hash = _hash_api_key(raw)
+    user.api_key_encrypted = _encrypt(raw)
+    user.api_key_prefix = raw[:12]
+    user.api_key_created_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(user)
+
+    return PersonalApiKeyCreated(
+        api_key=raw,
+        prefix=raw[:12],
+        created_at=user.api_key_created_at,
+    )
+
+
+async def get_personal_api_key_status(
+    db: AsyncSession, user: User
+) -> PersonalApiKeyStatus:
+    return PersonalApiKeyStatus(
+        is_set=user.api_key_hash is not None,
+        prefix=user.api_key_prefix,
+        created_at=user.api_key_created_at,
+    )
+
+
+async def revoke_personal_api_key(
+    db: AsyncSession, user: User
+) -> None:
+    user.api_key_hash = None
+    user.api_key_encrypted = None
+    user.api_key_prefix = None
+    user.api_key_created_at = None
+    await db.commit()
+
+
+async def reveal_personal_api_key(
+    db: AsyncSession, user: User, password: str
+) -> PersonalApiKeyRevealed | None:
+    if not verify_password(password, user.hashed_password):
+        return None
+    if not user.api_key_encrypted:
+        return None
+
+    raw = _decrypt(user.api_key_encrypted)
+    return PersonalApiKeyRevealed(api_key=raw)
+
+
+async def authenticate_by_api_key(
+    db: AsyncSession, raw_key: str
+) -> User | None:
+    key_hash = _hash_api_key(raw_key)
+    stmt = select(User).where(User.api_key_hash == key_hash)
+    return (await db.execute(stmt)).scalar_one_or_none()

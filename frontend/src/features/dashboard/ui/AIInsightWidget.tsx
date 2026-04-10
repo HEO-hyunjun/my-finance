@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { useDashboardInsights } from '@/features/dashboard/api';
-import type { AIInsight } from '@/shared/types';
+import type { AIInsight } from '@/shared/types/dashboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Sparkles, TrendingDown, BarChart3, Target, AlertTriangle, Lightbulb } from 'lucide-react';

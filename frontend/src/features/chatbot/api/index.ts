@@ -3,7 +3,7 @@ import { apiClient } from '@/shared/api/client';
 import type {
   ConversationListResponse,
   ConversationDetailResponse,
-} from '@/shared/types';
+} from '@/shared/types/chat';
 
 export const chatbotKeys = {
   all: ['chatbot'] as const,

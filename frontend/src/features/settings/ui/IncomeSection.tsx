@@ -7,8 +7,8 @@ import {
   useDeleteRecurringIncome,
   useToggleRecurringIncome,
 } from '../api/income';
-import type { IncomeType, RecurringIncomeCreateRequest } from '@/shared/types';
-import { INCOME_TYPE_LABELS } from '@/shared/types';
+import type { RecurringIncomeCreateRequest } from '@/shared/types/settings';
+import { INCOME_TYPE_LABELS } from '@/shared/types/settings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/ui/dialog';
 import { Label } from '@/shared/ui/label';
@@ -28,24 +28,24 @@ function AddRecurringIncomeModal({
   onSubmit: (data: RecurringIncomeCreateRequest) => void;
   isSubmitting: boolean;
 }) {
-  const [type, setType] = useState<IncomeType>('salary');
+  const [incomeType, setIncomeType] = useState('salary');
   const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [recurringDay, setRecurringDay] = useState('25');
+  const [name, setName] = useState('');
+  const [day, setDay] = useState('25');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !description || !recurringDay) return;
+    if (!amount || !name || !day) return;
     onSubmit({
-      type,
+      income_type: incomeType,
       amount: Number(amount),
-      description,
-      recurring_day: Number(recurringDay),
+      name,
+      day: Number(day),
     });
-    setType('salary');
+    setIncomeType('salary');
     setAmount('');
-    setDescription('');
-    setRecurringDay('25');
+    setName('');
+    setDay('25');
     onClose();
   };
 
@@ -59,8 +59,8 @@ function AddRecurringIncomeModal({
           <div>
             <Label>유형</Label>
             <select
-              value={type}
-              onChange={(e) => setType(e.target.value as IncomeType)}
+              value={incomeType}
+              onChange={(e) => setIncomeType(e.target.value)}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
             >
               {Object.entries(INCOME_TYPE_LABELS).map(([key, label]) => (
@@ -72,11 +72,11 @@ function AddRecurringIncomeModal({
           </div>
 
           <div>
-            <Label>설명</Label>
+            <Label>이름</Label>
             <Input
               type="text"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               placeholder="예: 회사 급여"
             />
           </div>
@@ -96,8 +96,8 @@ function AddRecurringIncomeModal({
             <Label>매월 수령일</Label>
             <Input
               type="number"
-              value={recurringDay}
-              onChange={(e) => setRecurringDay(e.target.value)}
+              value={day}
+              onChange={(e) => setDay(e.target.value)}
               min="1"
               max="31"
             />
@@ -107,7 +107,7 @@ function AddRecurringIncomeModal({
             <Button type="button" variant="outline" onClick={onClose}>
               취소
             </Button>
-            <Button type="submit" disabled={!amount || !description || !recurringDay || isSubmitting}>
+            <Button type="submit" disabled={!amount || !name || !day || isSubmitting}>
               {isSubmitting ? '추가 중...' : '추가'}
             </Button>
           </div>
@@ -150,22 +150,17 @@ export function IncomeSection() {
           <div className="rounded-md bg-primary/10 px-4 py-3">
             <p className="text-sm text-muted-foreground">월 총 수입</p>
             <p className="text-xl font-bold text-primary">
-              {formatKRW(summary.total_monthly_income)}원
+              {formatKRW(summary.total_income)}원
             </p>
-            <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
-              {summary.salary_income > 0 && (
-                <span>급여 {formatKRW(summary.salary_income)}원</span>
-              )}
-              {summary.side_income > 0 && (
-                <span>부수입 {formatKRW(summary.side_income)}원</span>
-              )}
-              {summary.investment_income > 0 && (
-                <span>투자수익 {formatKRW(summary.investment_income)}원</span>
-              )}
-              {summary.other_income > 0 && (
-                <span>기타 {formatKRW(summary.other_income)}원</span>
-              )}
-            </div>
+            {summary.incomes.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                {summary.incomes.map((item, i) => (
+                  <span key={i}>
+                    {INCOME_TYPE_LABELS[item.income_type] ?? item.income_type} {formatKRW(item.amount)}원
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -181,9 +176,9 @@ export function IncomeSection() {
                 className={`flex items-center justify-between rounded-md border border-border px-4 py-3 ${!ri.is_active ? 'opacity-50' : ''}`}
               >
                 <div>
-                  <p className="text-sm font-medium">{ri.description}</p>
+                  <p className="text-sm font-medium">{ri.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {INCOME_TYPE_LABELS[ri.type]} · 매월 {ri.recurring_day}일
+                    {INCOME_TYPE_LABELS[ri.income_type] ?? ri.income_type} · 매월 {ri.day}일
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

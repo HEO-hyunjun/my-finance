@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { CalendarEvent, CalendarEventType } from '@/shared/types';
+import type { CalendarEvent, CalendarEventType } from '@/shared/types/calendar';
 import { EVENT_TYPE_CONFIG } from '../lib/constants';
 import { formatKRW } from '@/shared/lib/format';
 import { Card } from '@/shared/ui/card';

@@ -4,7 +4,6 @@ from app.services.agents.checkpoint import RedisCheckpointStore
 from app.services.agents.graph import AgentGraph
 from app.services.agents.sub_agent import SubAgent, SubAgentResult
 from app.services.agents.asset_agent import AssetAgent
-from app.services.agents.news_agent import NewsAgent
 from app.services.agents.budget_agent import BudgetAgent
 
 __all__ = [
@@ -14,6 +13,5 @@ __all__ = [
     "SubAgent",
     "SubAgentResult",
     "AssetAgent",
-    "NewsAgent",
     "BudgetAgent",
 ]

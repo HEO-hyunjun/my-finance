@@ -5,31 +5,30 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.redis import close_redis
-from app.api.v1.endpoints import (
-    assets, transactions, market, budget, expenses, fixed_expenses,
-    installments, dashboard, news, calendar, chatbot, users,
-    incomes, recurring_incomes, carryover, portfolio, auth, transfers,
-)
-from app.api.v1.endpoints import settings as settings_endpoints
+
+# Auth & Users
+from app.api.v1.endpoints import auth as auth_router
+from app.api.v1.endpoints import users as users_router
+
+# New v2 core
+from app.api.v1.endpoints import accounts as accounts_router
+from app.api.v1.endpoints import entries as entries_router
+from app.api.v1.endpoints import categories as categories_router
+from app.api.v1.endpoints import schedules as schedules_router
+
+# Existing features (to be updated in Phase 2)
+from app.api.v1.endpoints import budget as budget_router
+from app.api.v1.endpoints import calendar as calendar_router
+from app.api.v1.endpoints import carryover as carryover_router
+from app.api.v1.endpoints import dashboard as dashboard_router
+from app.api.v1.endpoints import market as market_router
+from app.api.v1.endpoints import portfolio as portfolio_router
+from app.api.v1.endpoints import settings as settings_router
+from app.api.v1.endpoints import chatbot as chatbot_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 서버 시작 시 뉴스 캐시 워밍 (DB → Redis)
-    try:
-        from app.core.redis import get_redis
-        from app.services.news_service import NewsService
-
-        redis_client = await get_redis()
-        news_service = NewsService(redis_client)
-        warmed = await news_service.warm_cache_from_db()
-        if warmed:
-            import logging
-            logging.getLogger(__name__).info(f"News cache warmed with {warmed} articles")
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"News cache warming failed: {e}")
-
     # 다운타임 중 누락된 일일 태스크 보상 실행
     try:
         from app.tasks.startup_tasks import run_missed_tasks
@@ -58,26 +57,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API v1 라우터 등록
-app.include_router(auth.router, prefix="/api/v1")
-app.include_router(assets.router, prefix="/api/v1")
-app.include_router(transactions.router, prefix="/api/v1")
-app.include_router(market.router, prefix="/api/v1")
-app.include_router(budget.router, prefix="/api/v1")
-app.include_router(expenses.router, prefix="/api/v1")
-app.include_router(fixed_expenses.router, prefix="/api/v1")
-app.include_router(installments.router, prefix="/api/v1")
-app.include_router(dashboard.router, prefix="/api/v1")
-app.include_router(news.router, prefix="/api/v1")
-app.include_router(calendar.router, prefix="/api/v1")
-app.include_router(chatbot.router, prefix="/api/v1")
-app.include_router(users.router, prefix="/api/v1")
-app.include_router(incomes.router, prefix="/api/v1")
-app.include_router(recurring_incomes.router, prefix="/api/v1")
-app.include_router(carryover.router, prefix="/api/v1")
-app.include_router(portfolio.router, prefix="/api/v1")
-app.include_router(transfers.router, prefix="/api/v1")
-app.include_router(settings_endpoints.router, prefix="/api/v1")
+# Auth & Users
+app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(users_router.router, prefix="/api/v1/users", tags=["users"])
+
+# New v2 core
+app.include_router(accounts_router.router, prefix="/api/v1/accounts", tags=["accounts"])
+app.include_router(entries_router.router, prefix="/api/v1/entries", tags=["entries"])
+app.include_router(categories_router.router, prefix="/api/v1/categories", tags=["categories"])
+app.include_router(schedules_router.router, prefix="/api/v1/schedules", tags=["schedules"])
+
+# Existing features (to be updated in Phase 2)
+app.include_router(budget_router.router, prefix="/api/v1/budget", tags=["budget"])
+app.include_router(calendar_router.router, prefix="/api/v1/calendar", tags=["calendar"])
+app.include_router(carryover_router.router, prefix="/api/v1/carryover", tags=["carryover"])
+app.include_router(dashboard_router.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(market_router.router, prefix="/api/v1/market", tags=["market"])
+app.include_router(portfolio_router.router, prefix="/api/v1/portfolio", tags=["portfolio"])
+app.include_router(settings_router.router, prefix="/api/v1/settings", tags=["settings"])
+app.include_router(chatbot_router.router, prefix="/api/v1/chatbot", tags=["chatbot"])
 
 
 @app.get("/api/health")

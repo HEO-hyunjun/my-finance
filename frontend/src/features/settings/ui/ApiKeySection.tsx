@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApiKeys, useUpsertApiKey, useDeleteApiKey } from '../api/settings-api';
-import { API_SERVICE_LABELS } from '@/shared/types';
-import type { ApiServiceType } from '@/shared/types';
+import { API_SERVICE_LABELS } from '@/shared/types/settings';
+import type { ApiServiceType } from '@/shared/types/settings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Input } from '@/shared/ui/input';
 import { Button } from '@/shared/ui/button';

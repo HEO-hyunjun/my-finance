@@ -1,24 +1,33 @@
+"""포트폴리오 관리 API 엔드포인트.
+
+Phase 2 완료: portfolio_v2_service 기반으로 자산 요약 제공.
+"""
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.database import get_db
-from app.core.redis import get_redis
 from app.api.deps import get_current_user
+from app.core.database import get_db
 from app.models.user import User
-from app.services import portfolio_service, asset_service
-from app.services.market_service import MarketService
 from app.schemas.portfolio import (
-    AssetTimelineResponse, GoalAssetCreate, GoalAssetResponse,
-    PortfolioTargetBulkCreate, PortfolioTargetResponse,
-    RebalancingAnalysisResponse, RebalancingAlertResponse,
+    AssetTimelineResponse,
+    GoalAssetCreate,
+    GoalAssetResponse,
+    PortfolioTargetBulkCreate,
+    PortfolioTargetResponse,
+    RebalancingAlertResponse,
+    RebalancingAnalysisResponse,
 )
+from app.services import portfolio_service
+from app.services.portfolio_v2_service import get_total_assets
 
-router = APIRouter(prefix="/portfolio", tags=["portfolio"])
+router = APIRouter(tags=["portfolio"])
 
 
 # --- Asset Timeline ---
+
 
 @router.get("/timeline", response_model=AssetTimelineResponse)
 async def get_timeline(
@@ -34,29 +43,29 @@ async def create_snapshot(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = await get_redis()
-    market = MarketService(redis)
-    summary = await asset_service.get_asset_summary(db, user.id, market)
-    from decimal import Decimal
-    snapshot = await portfolio_service.create_snapshot(
-        db, user.id,
-        total_krw=Decimal(str(summary.total_value_krw)),
-        breakdown=summary.breakdown,
+    total_data = await get_total_assets(db, user.id)
+    breakdown = {}
+    for acc in total_data["accounts"]:
+        atype = acc["account_type"]
+        breakdown[atype] = float(
+            breakdown.get(atype, 0) + float(acc["total_value_krw"])
+        )
+    return await portfolio_service.create_snapshot(
+        db, user.id, total_data["total_krw"], breakdown
     )
-    return snapshot
 
 
 # --- Goal ---
+
 
 @router.get("/goal", response_model=GoalAssetResponse | None)
 async def get_goal(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = await get_redis()
-    market = MarketService(redis)
-    summary = await asset_service.get_asset_summary(db, user.id, market)
-    return await portfolio_service.get_goal(db, user.id, summary.total_value_krw)
+    total_data = await get_total_assets(db, user.id)
+    current_amount = float(total_data["total_krw"])
+    return await portfolio_service.get_goal(db, user.id, current_amount)
 
 
 @router.put("/goal", response_model=GoalAssetResponse)
@@ -70,15 +79,20 @@ async def set_goal(
 
 # --- Portfolio Targets ---
 
+
 @router.get("/targets", response_model=list[PortfolioTargetResponse])
 async def get_targets(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = await get_redis()
-    market = MarketService(redis)
-    summary = await asset_service.get_asset_summary(db, user.id, market)
-    return await portfolio_service.get_portfolio_targets(db, user.id, summary.breakdown)
+    total_data = await get_total_assets(db, user.id)
+    breakdown = {}
+    for acc in total_data["accounts"]:
+        atype = acc["account_type"]
+        breakdown[atype] = float(
+            breakdown.get(atype, 0) + float(acc["total_value_krw"])
+        )
+    return await portfolio_service.get_portfolio_targets(db, user.id, breakdown)
 
 
 @router.put("/targets", response_model=list[PortfolioTargetResponse])
@@ -95,17 +109,22 @@ async def set_targets(
 
 # --- Rebalancing ---
 
+
 @router.get("/rebalancing", response_model=RebalancingAnalysisResponse)
 async def get_rebalancing(
     threshold: float = Query(default=0.05, ge=0.01, le=0.20),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    redis = await get_redis()
-    market = MarketService(redis)
-    summary = await asset_service.get_asset_summary(db, user.id, market)
+    total_data = await get_total_assets(db, user.id)
+    breakdown = {}
+    for acc in total_data["accounts"]:
+        atype = acc["account_type"]
+        breakdown[atype] = float(
+            breakdown.get(atype, 0) + float(acc["total_value_krw"])
+        )
     return await portfolio_service.get_rebalancing_analysis(
-        db, user.id, summary.breakdown, threshold
+        db, user.id, breakdown, threshold
     )
 
 

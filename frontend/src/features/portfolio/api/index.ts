@@ -1,14 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
 import type {
-  AssetTimeline,
-  GoalAsset,
-  GoalAssetRequest,
-  PortfolioTarget,
-  PortfolioTargetRequest,
-  RebalancingAnalysis,
-  RebalancingAlert,
-} from '@/shared/types';
+  AssetTimelineResponse,
+  GoalAssetResponse,
+  GoalAssetCreate,
+  PortfolioTargetResponse,
+  PortfolioTargetCreate,
+  RebalancingAnalysisResponse,
+  RebalancingAlertResponse,
+} from '@/shared/types/portfolio';
 
 // Query Keys
 
@@ -32,7 +32,7 @@ export function useAssetTimeline(period?: string) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (period) params.append('period', period);
-      const { data } = await apiClient.get<AssetTimeline>(
+      const { data } = await apiClient.get<AssetTimelineResponse>(
         `/v1/portfolio/timeline?${params.toString()}`,
       );
       return data;
@@ -62,7 +62,7 @@ export function useGoal() {
   return useQuery({
     queryKey: portfolioKeys.goal(),
     queryFn: async () => {
-      const { data } = await apiClient.get<GoalAsset>('/v1/portfolio/goal');
+      const { data } = await apiClient.get<GoalAssetResponse>('/v1/portfolio/goal');
       return data;
     },
   });
@@ -71,8 +71,8 @@ export function useGoal() {
 export function useSetGoal() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: GoalAssetRequest) => {
-      const { data: result } = await apiClient.put<GoalAsset>(
+    mutationFn: async (data: GoalAssetCreate) => {
+      const { data: result } = await apiClient.put<GoalAssetResponse>(
         '/v1/portfolio/goal',
         data,
       );
@@ -91,7 +91,7 @@ export function usePortfolioTargets() {
   return useQuery({
     queryKey: portfolioKeys.targets(),
     queryFn: async () => {
-      const { data } = await apiClient.get<PortfolioTarget[]>(
+      const { data } = await apiClient.get<PortfolioTargetResponse[]>(
         '/v1/portfolio/targets',
       );
       return data;
@@ -102,8 +102,8 @@ export function usePortfolioTargets() {
 export function useSetPortfolioTargets() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: PortfolioTargetRequest[]) => {
-      const { data: result } = await apiClient.put<PortfolioTarget[]>(
+    mutationFn: async (data: PortfolioTargetCreate[]) => {
+      const { data: result } = await apiClient.put<PortfolioTargetResponse[]>(
         '/v1/portfolio/targets',
         data,
       );
@@ -124,7 +124,7 @@ export function useRebalancingAnalysis(threshold?: number) {
     queryFn: async () => {
       const params = new URLSearchParams();
       if (threshold !== undefined) params.append('threshold', String(threshold));
-      const { data } = await apiClient.get<RebalancingAnalysis>(
+      const { data } = await apiClient.get<RebalancingAnalysisResponse>(
         `/v1/portfolio/rebalancing?${params.toString()}`,
       );
       return data;
@@ -141,7 +141,7 @@ export function useRebalancingAlerts(unreadOnly?: boolean) {
       const params = new URLSearchParams();
       if (unreadOnly !== undefined)
         params.append('unread_only', String(unreadOnly));
-      const { data } = await apiClient.get<RebalancingAlert[]>(
+      const { data } = await apiClient.get<RebalancingAlertResponse[]>(
         `/v1/portfolio/alerts?${params.toString()}`,
       );
       return data;
@@ -153,7 +153,7 @@ export function useMarkAlertRead() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { data } = await apiClient.patch<RebalancingAlert>(
+      const { data } = await apiClient.patch<RebalancingAlertResponse>(
         `/v1/portfolio/alerts/${id}/read`,
       );
       return data;

@@ -1,16 +1,19 @@
 """자산 분석 서브에이전트.
 
 포트폴리오, 보유 자산, 거래 내역, 시세, 리밸런싱을 분석합니다.
+신규 스키마(Account, Entry) 기반.
 """
 
-import json
 import uuid
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.entry import Entry
 from app.services.agents.sub_agent import SubAgent
 from app.services.market_service import MarketService
+from app.services.portfolio_v2_service import get_total_assets, get_asset_allocation
 
 
 class AssetAgent(SubAgent):
@@ -122,37 +125,46 @@ class AssetAgent(SubAgent):
         market: MarketService,
     ) -> Any:
         if tool_name == "get_asset_summary":
-            from app.services.asset_service import get_asset_summary
-
-            summary = await get_asset_summary(db, user_id, market)
-            return json.loads(summary.model_dump_json())
+            assets = await get_total_assets(db, user_id)
+            allocation = await get_asset_allocation(db, user_id)
+            # Decimal → float for JSON serialization
+            for acc in assets["accounts"]:
+                for k, v in acc.items():
+                    if hasattr(v, "as_tuple"):  # Decimal
+                        acc[k] = float(v)
+            return {
+                "total_krw": float(assets["total_krw"]),
+                "exchange_rate_usd_krw": float(assets["exchange_rate_usd_krw"]),
+                "accounts": assets["accounts"],
+                "allocation": [
+                    {"type": a["type"], "value_krw": float(a["value_krw"]), "ratio": a["ratio"]} for a in allocation
+                ],
+            }
 
         if tool_name == "get_transactions":
-            from datetime import date as date_type
-
-            from app.services.transaction_service import get_transactions
-
-            start = (
-                date_type.fromisoformat(args["start_date"])
-                if args.get("start_date")
-                else None
-            )
-            end = (
-                date_type.fromisoformat(args["end_date"])
-                if args.get("end_date")
-                else None
-            )
-
-            tx_resp = await get_transactions(
-                db,
-                user_id,
-                asset_type=args.get("asset_type"),
-                tx_type=args.get("tx_type"),
-                start_date=start,
-                end_date=end,
-                per_page=min(args.get("per_page", 20), 50),
-            )
-            return json.loads(tx_resp.model_dump_json())
+            # Entry 직접 쿼리 — 최근 거래 내역
+            per_page = min(args.get("per_page", 20), 50)
+            stmt = select(Entry).where(Entry.user_id == user_id).order_by(Entry.transacted_at.desc())
+            if args.get("start_date"):
+                stmt = stmt.where(Entry.transacted_at >= args["start_date"])
+            if args.get("end_date"):
+                stmt = stmt.where(Entry.transacted_at <= args["end_date"])
+            if args.get("tx_type"):
+                stmt = stmt.where(Entry.type == args["tx_type"])
+            stmt = stmt.limit(per_page)
+            result = await db.execute(stmt)
+            entries = result.scalars().all()
+            return [
+                {
+                    "id": str(e.id),
+                    "type": e.type.value,
+                    "amount": float(e.amount),
+                    "currency": e.currency,
+                    "memo": e.memo,
+                    "transacted_at": e.transacted_at.isoformat(),
+                }
+                for e in entries
+            ]
 
         if tool_name == "get_market_price":
             price_data = await market.get_price(args["symbol"], asset_type=None)
@@ -175,13 +187,14 @@ class AssetAgent(SubAgent):
             }
 
         if tool_name == "get_rebalancing_analysis":
-            from app.services.asset_service import get_asset_summary
-            from app.services.portfolio_service import get_rebalancing_analysis
-
-            summary = await get_asset_summary(db, user_id, market)
-            analysis = await get_rebalancing_analysis(
-                db, user_id, breakdown=summary.breakdown,
-            )
-            return json.loads(analysis.model_dump_json())
+            allocation = await get_asset_allocation(db, user_id)
+            if not allocation:
+                return {"message": "자산 데이터가 없어 리밸런싱 분석을 수행할 수 없습니다."}
+            return {
+                "current_allocation": [
+                    {"type": a["type"], "value_krw": float(a["value_krw"]), "ratio": a["ratio"]} for a in allocation
+                ],
+                "note": "목표 비율은 사용자가 설정해야 합니다. 현재 배분 비율을 기반으로 조정 제안을 드릴 수 있습니다.",
+            }
 
         return {"error": f"Unknown tool: {tool_name}"}

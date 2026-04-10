@@ -1,4 +1,8 @@
-import json
+"""챗봇 서비스.
+
+LangGraph 기반 AI 재무 상담 챗봇. 신규 스키마(Account, Entry) 기반.
+"""
+
 import logging
 import re
 import uuid
@@ -12,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.core.tz import today as get_today
 from app.models.conversation import Conversation, Message
 from app.schemas.chatbot import (
     ChatAgentEvent,
@@ -25,11 +30,10 @@ from app.schemas.chatbot import (
     ConversationSummary,
     MessageResponse,
 )
-from app.services.asset_service import get_asset_summary
 from app.services.budget_analysis_service import get_budget_analysis
-from app.services.budget_service import get_budget_summary
+from app.services.budget_v2_service import get_budget_overview
 from app.services.market_service import MarketService
-from app.services.transaction_service import get_transactions
+from app.services.portfolio_v2_service import get_total_assets
 
 logger = logging.getLogger(__name__)
 
@@ -67,49 +71,33 @@ async def build_financial_context(
 ) -> str:
     """사용자 재무 데이터를 수집하여 컨텍스트 문자열 생성"""
     parts: list[str] = []
+    today_ = get_today()
 
+    # 자산 현황 (portfolio_v2_service)
     try:
-        asset_summary = await get_asset_summary(db, user_id, market)
-        parts.append(
-            f"### 자산 현황\n"
-            f"- 총 자산: ₩{asset_summary.total_value_krw:,.0f}\n"
-            f"- 총 투자금: ₩{asset_summary.total_invested_krw:,.0f}\n"
-            f"- 총 수익/손실: ₩{asset_summary.total_profit_loss:,.0f} "
-            f"({asset_summary.total_profit_loss_rate:+.2f}%)\n"
-            f"- 자산 분포: {json.dumps(asset_summary.breakdown, ensure_ascii=False)}"
-        )
-
-        # 개별 보유 종목 상세
-        if asset_summary.holdings:
-            holding_lines = ["### 보유 종목 상세"]
-            holding_lines.append("| 종목명 | 유형 | 수량 | 현재가 | 평가금액(KRW) | 수익률 |")
-            holding_lines.append("|--------|------|------|--------|--------------|--------|")
-            for h in asset_summary.holdings:
-                name = h.name or h.symbol or "N/A"
-                asset_type = h.asset_type.value if hasattr(h.asset_type, 'value') else str(h.asset_type)
-                qty = f"{h.quantity:,.4f}" if h.quantity < 10 else f"{h.quantity:,.2f}"
-                price = f"₩{h.current_price:,.0f}" if h.current_price else "-"
-                if h.exchange_rate:
-                    price = f"${h.current_price:,.2f} (₩{h.exchange_rate:,.0f})"
-                value = f"₩{h.total_value_krw:,.0f}"
-                rate = f"{h.profit_loss_rate:+.2f}%"
-                holding_lines.append(f"| {name} | {asset_type} | {qty} | {price} | {value} | {rate} |")
-            parts.append("\n".join(holding_lines))
+        assets = await get_total_assets(db, user_id)
+        account_lines = []
+        for acc in assets["accounts"]:
+            account_lines.append(f"- {acc['name']} ({acc['account_type']}): ₩{acc['total_value_krw']:,.0f}")
+        parts.append(f"### 자산 현황\n- **총 자산**: ₩{assets['total_krw']:,.0f}\n" + "\n".join(account_lines))
     except Exception:
         parts.append("### 자산 현황\n- 데이터를 불러올 수 없습니다.")
 
+    # 예산 현황 (budget_v2_service)
     try:
-        budget_summary = await get_budget_summary(db, user_id)
+        overview = await get_budget_overview(db, user_id, today_)
         parts.append(
-            f"### 예산 현황 (이번 달)\n"
-            f"- 총 예산: ₩{budget_summary.total_budget:,.0f}\n"
-            f"- 총 지출: ₩{budget_summary.total_spent:,.0f}\n"
-            f"- 잔여 예산: ₩{budget_summary.total_remaining:,.0f}\n"
-            f"- 사용률: {budget_summary.total_usage_rate:.1f}%"
+            f"### 예산 현황\n"
+            f"- 기간: {overview['period_start']} ~ {overview['period_end']}\n"
+            f"- 총 수입: ₩{overview['total_income']:,.0f}\n"
+            f"- 고정 지출: ₩{overview['total_fixed_expense']:,.0f}\n"
+            f"- 가용 예산: ₩{overview['available_budget']:,.0f}\n"
+            f"- 미배분: ₩{overview['unallocated']:,.0f}"
         )
     except Exception:
         parts.append("### 예산 현황\n- 데이터를 불러올 수 없습니다.")
 
+    # 예산 분석 (budget_analysis_service — 기존 유지)
     try:
         analysis = await get_budget_analysis(db, user_id)
         parts.append(
@@ -126,23 +114,9 @@ async def build_financial_context(
         pass
 
     try:
-        recent_tx = await get_transactions(db, user_id, page=1, per_page=5)
-        if recent_tx.data:
-            tx_lines = []
-            for tx in recent_tx.data:
-                tx_type = {"buy": "매수", "sell": "매도", "exchange": "환전"}.get(tx.type, tx.type)
-                tx_lines.append(f"  - {tx.transacted_at.strftime('%m/%d')} {tx.asset_name} {tx_type} "
-                                f"{tx.quantity:,.2f} @ ₩{tx.unit_price:,.0f}")
-            parts.append("### 최근 거래\n" + "\n".join(tx_lines))
-    except Exception:
-        pass
-
-    try:
         exchange_rate = await market.get_exchange_rate()
         parts.append(
-            f"### 시장 정보\n"
-            f"- USD/KRW 환율: ₩{exchange_rate.rate:,.2f} "
-            f"(변동: {exchange_rate.change:+.2f})"
+            f"### 시장 정보\n- USD/KRW 환율: \u20a9{exchange_rate.rate:,.2f} (변동: {exchange_rate.change:+.2f})"
         )
     except Exception:
         parts.append("### 시장 정보\n- 데이터를 불러올 수 없습니다.")
@@ -322,9 +296,7 @@ async def chat_stream(
         market=market,
     ):
         if event["type"] == "agent":
-            yield _sse_event(
-                ChatAgentEvent(name=event["name"], status=event["status"])
-            )
+            yield _sse_event(ChatAgentEvent(name=event["name"], status=event["status"]))
 
         elif event["type"] == "tool":
             yield _sse_event(

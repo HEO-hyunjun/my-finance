@@ -19,7 +19,7 @@ from app.services.user_service import (
     update_profile,
 )
 
-router = APIRouter(prefix="/users", tags=["Users"])
+router = APIRouter(tags=["Users"])
 
 
 @router.get("/me", response_model=UserProfileResponse)

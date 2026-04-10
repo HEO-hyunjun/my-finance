@@ -1,4 +1,4 @@
-import type { MonthSummary } from '@/shared/types';
+import type { MonthSummary } from '@/shared/types/calendar';
 import { Card, CardContent } from '@/shared/ui/card';
 
 interface Props {
@@ -14,7 +14,7 @@ function formatPeriod(start?: string, end?: string) {
 }
 
 export function MonthSummaryCard({ summary }: Props) {
-  const period = formatPeriod(summary.budget_period_start, summary.budget_period_end);
+  const period = formatPeriod(summary.budget_period_start ?? undefined, summary.budget_period_end ?? undefined);
 
   return (
     <Card>

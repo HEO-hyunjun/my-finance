@@ -21,40 +21,28 @@ export const router = createBrowserRouter([
         lazy: () => import('@/pages/dashboard'),
       },
       {
-        path: '/assets',
-        lazy: () => import('@/pages/assets'),
+        path: '/accounts',
+        lazy: () => import('@/pages/accounts'),
+      },
+      {
+        path: '/entries',
+        lazy: () => import('@/pages/entries'),
+      },
+      {
+        path: '/schedules',
+        lazy: () => import('@/pages/schedules'),
       },
       {
         path: '/budget',
         lazy: () => import('@/pages/budget'),
       },
-      {
-        path: '/news',
-        lazy: () => import('@/pages/news'),
-      },
-      {
-        path: '/news/:id',
-        lazy: () => import('@/pages/news/detail'),
-      },
-      {
+{
         path: '/calendar',
         lazy: () => import('@/pages/calendar'),
       },
       {
         path: '/chatbot',
         lazy: () => import('@/pages/chatbot'),
-      },
-      {
-        path: '/income',
-        lazy: () => import('@/pages/income'),
-      },
-      {
-        path: '/expenses',
-        lazy: () => import('@/pages/expenses'),
-      },
-      {
-        path: '/transactions',
-        lazy: () => import('@/pages/transactions'),
       },
       {
         path: '/settings',

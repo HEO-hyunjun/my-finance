@@ -6,7 +6,7 @@ import type {
   PasswordChangeRequest,
   NotificationPreferences,
   AccountDeleteRequest,
-} from '@/shared/types';
+} from '@/shared/types/auth';
 
 export const userKeys = {
   all: ['user'] as const,

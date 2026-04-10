@@ -1,4 +1,3 @@
-import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -55,14 +54,36 @@ class AppSettingsResponse(BaseModel):
     default_currency: str
     news_refresh_interval: int  # minutes
     investment_prompt: str | None = None
-    salary_asset_id: uuid.UUID | None = None
-    salary_asset_name: str | None = None
     asset_type_colors: dict[str, str] | None = None
+    dashboard_widgets: dict[str, bool] | None = None
 
 
 class AppSettingsUpdate(BaseModel):
     theme: str | None = Field(default=None, pattern=r"^(light|dark|system)$")
     default_currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
     news_refresh_interval: int | None = Field(default=None, ge=5, le=1440)
-    salary_asset_id: uuid.UUID | None = None
     asset_type_colors: dict[str, str] | None = None
+    dashboard_widgets: dict[str, bool] | None = None
+
+
+# --- Personal API Key ---
+
+
+class PersonalApiKeyStatus(BaseModel):
+    is_set: bool
+    prefix: str | None = None
+    created_at: datetime | None = None
+
+
+class PersonalApiKeyCreated(BaseModel):
+    api_key: str
+    prefix: str
+    created_at: datetime
+
+
+class PersonalApiKeyRevealRequest(BaseModel):
+    password: str = Field(min_length=1)
+
+
+class PersonalApiKeyRevealed(BaseModel):
+    api_key: str

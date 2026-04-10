@@ -1,16 +1,23 @@
 """가계부 분석 서브에이전트.
 
 예산, 지출, 수입, 고정비, 할부금을 분석합니다.
+신규 스키마(Entry, Category) 기반.
 """
 
 import json
 import uuid
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tz import today as get_today
+from app.models.entry import Entry, EntryType
+from app.models.recurring_schedule import ScheduleType
 from app.services.agents.sub_agent import SubAgent
+from app.services.budget_v2_service import get_budget_overview, get_category_budgets
 from app.services.market_service import MarketService
+from app.services.schedule_service import get_schedules
 
 
 class BudgetAgent(SubAgent):
@@ -130,17 +137,21 @@ class BudgetAgent(SubAgent):
         market: MarketService,
     ) -> Any:
         if tool_name == "get_budget_status":
-            from sqlalchemy import select as sa_select
-
-            from app.models.user import User as UserModel
-            from app.services.budget_service import get_budget_summary
-
-            stmt = sa_select(UserModel.salary_day).where(UserModel.id == user_id)
-            row = await db.execute(stmt)
-            salary_day = row.scalar_one_or_none() or 1
-
-            summary = await get_budget_summary(db, user_id, salary_day=salary_day)
-            return json.loads(summary.model_dump_json())
+            today_ = get_today()
+            overview = await get_budget_overview(db, user_id, today_)
+            categories = await get_category_budgets(db, user_id, today_)
+            # Decimal → float for JSON serialization
+            for k, v in overview.items():
+                if hasattr(v, "as_tuple"):
+                    overview[k] = float(v)
+            for cat in categories:
+                for k, v in cat.items():
+                    if hasattr(v, "as_tuple"):
+                        cat[k] = float(v)
+            return {
+                "overview": overview,
+                "categories": categories,
+            }
 
         if tool_name == "get_budget_analysis":
             from app.services.budget_analysis_service import get_budget_analysis
@@ -149,66 +160,87 @@ class BudgetAgent(SubAgent):
             return json.loads(analysis.model_dump_json())
 
         if tool_name == "get_expense_list":
-            from datetime import date as date_type
-
-            from app.services.budget_service import get_expenses
-
-            start = (
-                date_type.fromisoformat(args["start_date"])
-                if args.get("start_date")
-                else None
+            per_page = min(args.get("per_page", 20), 50)
+            stmt = (
+                select(Entry)
+                .where(Entry.user_id == user_id, Entry.type == EntryType.EXPENSE)
+                .order_by(Entry.transacted_at.desc())
             )
-            end = (
-                date_type.fromisoformat(args["end_date"])
-                if args.get("end_date")
-                else None
-            )
-
-            expense_resp = await get_expenses(
-                db,
-                user_id,
-                start_date=start,
-                end_date=end,
-                per_page=min(args.get("per_page", 20), 50),
-            )
-            return json.loads(expense_resp.model_dump_json())
+            if args.get("start_date"):
+                stmt = stmt.where(Entry.transacted_at >= args["start_date"])
+            if args.get("end_date"):
+                stmt = stmt.where(Entry.transacted_at <= args["end_date"])
+            stmt = stmt.limit(per_page)
+            result = await db.execute(stmt)
+            entries = result.scalars().all()
+            return [
+                {
+                    "id": str(e.id),
+                    "amount": float(e.amount),
+                    "currency": e.currency,
+                    "memo": e.memo,
+                    "category_id": str(e.category_id) if e.category_id else None,
+                    "transacted_at": e.transacted_at.isoformat(),
+                }
+                for e in entries
+            ]
 
         if tool_name == "get_income_list":
-            from datetime import date as date_type
-
-            from app.services.income_service import get_incomes
-
-            start = (
-                date_type.fromisoformat(args["start_date"])
-                if args.get("start_date")
-                else None
+            stmt = (
+                select(Entry)
+                .where(Entry.user_id == user_id, Entry.type == EntryType.INCOME)
+                .order_by(Entry.transacted_at.desc())
             )
-            end = (
-                date_type.fromisoformat(args["end_date"])
-                if args.get("end_date")
-                else None
-            )
-
-            income_resp = await get_incomes(
-                db,
-                user_id,
-                income_type=args.get("income_type"),
-                start_date=start,
-                end_date=end,
-                per_page=min(args.get("per_page", 20), 50),
-            )
-            return json.loads(income_resp.model_dump_json())
+            if args.get("start_date"):
+                stmt = stmt.where(Entry.transacted_at >= args["start_date"])
+            if args.get("end_date"):
+                stmt = stmt.where(Entry.transacted_at <= args["end_date"])
+            stmt = stmt.limit(20)
+            result = await db.execute(stmt)
+            entries = result.scalars().all()
+            return [
+                {
+                    "id": str(e.id),
+                    "amount": float(e.amount),
+                    "currency": e.currency,
+                    "memo": e.memo,
+                    "category_id": str(e.category_id) if e.category_id else None,
+                    "transacted_at": e.transacted_at.isoformat(),
+                }
+                for e in entries
+            ]
 
         if tool_name == "get_fixed_expenses":
-            from app.services.budget_service import get_fixed_expenses
-
-            fixed_resp = await get_fixed_expenses(db, user_id)
-            return [json.loads(f.model_dump_json()) for f in fixed_resp]
+            schedules = await get_schedules(db, user_id)
+            fixed = [s for s in schedules if s.type == ScheduleType.EXPENSE and s.is_active]
+            return [
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "amount": float(s.amount),
+                    "currency": s.currency,
+                    "schedule_day": s.schedule_day,
+                    "is_active": s.is_active,
+                }
+                for s in fixed
+            ]
 
         if tool_name == "get_installments":
-            from app.services.budget_service import get_installments
-
-            inst_resp = await get_installments(db, user_id)
-            return [json.loads(i.model_dump_json()) for i in inst_resp]
+            schedules = await get_schedules(db, user_id)
+            installments = [s for s in schedules if s.total_count is not None and s.is_active]
+            return [
+                {
+                    "id": str(s.id),
+                    "name": s.name,
+                    "amount": float(s.amount),
+                    "currency": s.currency,
+                    "schedule_day": s.schedule_day,
+                    "total_count": s.total_count,
+                    "executed_count": s.executed_count,
+                    "remaining_count": (s.total_count - s.executed_count) if s.total_count else None,
+                    "remaining_amount": float(s.amount * (s.total_count - s.executed_count)) if s.total_count else None,
+                }
+                for s in installments
+            ]
 
         return {"error": f"Unknown tool: {tool_name}"}

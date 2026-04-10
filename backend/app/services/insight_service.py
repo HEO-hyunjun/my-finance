@@ -1,6 +1,12 @@
+"""AI 인사이트 서비스.
+
+LLM 기반 재무 인사이트 생성. 신규 스키마(Account, Entry) 기반.
+"""
+
 import json
 import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from litellm import acompletion
 from sqlalchemy import select, delete
@@ -8,12 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.tz import today
+from app.models.entry import Entry
 from app.models.insight import AIInsightRecord
-from app.services.asset_service import get_asset_summary
 from app.services.budget_analysis_service import get_budget_analysis
-from app.services.budget_service import get_budget_summary
+from app.services.budget_v2_service import get_budget_overview
 from app.services.market_service import MarketService
-from app.services.transaction_service import get_transactions
+from app.services.portfolio_v2_service import get_total_assets
 
 logger = logging.getLogger(__name__)
 
@@ -49,9 +55,12 @@ async def generate_daily_insights(
     db: AsyncSession,
     user_id: uuid.UUID,
     market: MarketService,
-    salary_day: int = 1,
 ) -> list[dict]:
-    """LLM을 호출하여 인사이트를 생성하고 DB에 저장. 이미 있으면 재생성."""
+    """LLM을 호출하여 인사이트를 생성하고 DB에 저장. 이미 있으면 재생성.
+
+    TODO: Phase 2 - asset_service, budget_service, transaction_service를
+    새 스키마 기반 서비스로 교체 필요.
+    """
     today_ = today()
 
     # 기존 데이터 삭제 (upsert 패턴)
@@ -65,28 +74,33 @@ async def generate_daily_insights(
     # 재무 데이터 수집
     context_parts: list[str] = []
 
+    # 자산 현황 (portfolio_v2_service)
     try:
-        asset_summary = await get_asset_summary(db, user_id, market)
+        assets = await get_total_assets(db, user_id)
+        total_krw = assets["total_krw"]
+        account_lines = []
+        for acc in assets["accounts"]:
+            account_lines.append(f"  - {acc['name']} ({acc['account_type']}): ₩{acc['total_value_krw']:,.0f}")
+        context_parts.append(f"총 자산: ₩{total_krw:,.0f}\n" + "\n".join(account_lines))
+    except Exception:
+        pass
+
+    # 예산 현황 (budget_v2_service)
+    try:
+        overview = await get_budget_overview(db, user_id, today_)
         context_parts.append(
-            f"총 자산: ₩{asset_summary.total_value_krw:,.0f}, "
-            f"수익률: {asset_summary.total_profit_loss_rate:+.2f}%, "
-            f"자산 분포: {json.dumps(asset_summary.breakdown, ensure_ascii=False)}"
+            f"예산 기간: {overview['period_start']} ~ {overview['period_end']}, "
+            f"수입: ₩{overview['total_income']:,.0f}, "
+            f"고정지출: ₩{overview['total_fixed_expense']:,.0f}, "
+            f"가용예산: ₩{overview['available_budget']:,.0f}, "
+            f"미배분: ₩{overview['unallocated']:,.0f}"
         )
     except Exception:
         pass
 
+    # 예산 분석 (budget_analysis_service — 기존 유지)
     try:
-        budget = await get_budget_summary(db, user_id, salary_day=salary_day)
-        context_parts.append(
-            f"예산: ₩{budget.total_budget:,.0f}, "
-            f"지출: ₩{budget.total_spent:,.0f}, "
-            f"사용률: {budget.total_usage_rate:.1f}%"
-        )
-    except Exception:
-        pass
-
-    try:
-        analysis = await get_budget_analysis(db, user_id, salary_day=salary_day)
+        analysis = await get_budget_analysis(db, user_id)
         context_parts.append(
             f"일일 가용: ₩{analysis.daily_budget.daily_available:,.0f}, "
             f"오늘 지출: ₩{analysis.daily_budget.today_spent:,.0f}, "
@@ -97,13 +111,28 @@ async def generate_daily_insights(
     except Exception:
         pass
 
+    # 최근 거래 내역 (직접 Entry 쿼리, 최근 30일)
     try:
-        recent_tx = await get_transactions(db, user_id, page=1, per_page=10)
-        if recent_tx.data:
-            tx_summary = ", ".join(
-                f"{tx.asset_name}({tx.type})" for tx in recent_tx.data[:5]
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        stmt = (
+            select(Entry)
+            .where(
+                Entry.user_id == user_id,
+                Entry.transacted_at >= cutoff,
             )
-            context_parts.append(f"최근 거래: {tx_summary}")
+            .order_by(Entry.transacted_at.desc())
+            .limit(10)
+        )
+        result = await db.execute(stmt)
+        recent_entries = result.scalars().all()
+        if recent_entries:
+            tx_lines = []
+            for e in recent_entries:
+                tx_lines.append(
+                    f"  - {e.transacted_at.strftime('%m/%d')} {e.type.value} ₩{e.amount:,.0f}"
+                    + (f" ({e.memo})" if e.memo else "")
+                )
+            context_parts.append("최근 거래:\n" + "\n".join(tx_lines))
     except Exception:
         pass
 

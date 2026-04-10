@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
-import type { CalendarEventsResponse } from '@/shared/types';
+import type { CalendarEventsResponse } from '@/shared/types/calendar';
 
 export const calendarKeys = {
   all: ['calendar'] as const,

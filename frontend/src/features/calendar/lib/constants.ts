@@ -1,4 +1,4 @@
-import type { CalendarEventType } from '@/shared/types';
+import type { CalendarEventType } from '@/shared/types/calendar';
 
 export const EVENT_TYPE_CONFIG: Record<
   CalendarEventType,

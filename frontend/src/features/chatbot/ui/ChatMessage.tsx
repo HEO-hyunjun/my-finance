@@ -1,6 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { ChatMessage as ChatMessageType } from '@/shared/types';
+import type { ChatMessage as ChatMessageType } from '@/shared/types/chat';
 
 interface Props {
   message: ChatMessageType;

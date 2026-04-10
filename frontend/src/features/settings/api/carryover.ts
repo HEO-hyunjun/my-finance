@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
 import type {
-  CarryoverSetting,
-  CarryoverSettingRequest,
-} from '@/shared/types';
+  CarryoverSettingResponse as CarryoverSetting,
+  CarryoverSettingCreate as CarryoverSettingRequest,
+} from '@/shared/types/carryover';
 
 export const carryoverKeys = {
   all: ['carryover'] as const,

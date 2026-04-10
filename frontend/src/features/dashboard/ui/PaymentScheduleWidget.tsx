@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import type { DashboardPayment } from '@/shared/types';
+import type { DashboardPayment } from '@/shared/types/dashboard';
 import { formatKRW } from '@/shared/lib/format';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Badge } from '@/shared/ui/badge';
@@ -40,7 +40,7 @@ function PaymentScheduleWidgetInner({ payments }: Props) {
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">{p.payment_day}일</span>
+                  <span className="text-xs font-medium text-muted-foreground">{p.payment_day === 0 ? '말일' : `${p.payment_day}일`}</span>
                   <span className="truncate text-sm">{p.name}</span>
                 </div>
                 <Badge

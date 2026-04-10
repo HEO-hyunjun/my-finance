@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_user_jwt_only
 from app.models.user import User
 from app.schemas.settings import (
     ApiKeyCreate,
@@ -13,10 +13,14 @@ from app.schemas.settings import (
     AppSettingsUpdate,
     InvestmentPromptUpdate,
     InvestmentPromptResponse,
+    PersonalApiKeyStatus,
+    PersonalApiKeyCreated,
+    PersonalApiKeyRevealRequest,
+    PersonalApiKeyRevealed,
 )
 from app.services import settings_service
 
-router = APIRouter(prefix="/settings", tags=["settings"])
+router = APIRouter(tags=["settings"])
 
 
 @router.get("", response_model=AppSettingsResponse)
@@ -107,3 +111,43 @@ async def delete_investment_prompt(
 ):
     await settings_service.delete_investment_prompt(db, user.id)
     return {"message": "Investment prompt deleted"}
+
+
+# --- Personal API Key ---
+
+
+@router.get("/personal-api-key", response_model=PersonalApiKeyStatus)
+async def get_personal_api_key(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user_jwt_only),
+):
+    return await settings_service.get_personal_api_key_status(db, user)
+
+
+@router.post("/personal-api-key", response_model=PersonalApiKeyCreated)
+async def create_personal_api_key(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user_jwt_only),
+):
+    return await settings_service.generate_personal_api_key(db, user)
+
+
+@router.post("/personal-api-key/reveal", response_model=PersonalApiKeyRevealed)
+async def reveal_personal_api_key(
+    data: PersonalApiKeyRevealRequest,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user_jwt_only),
+):
+    result = await settings_service.reveal_personal_api_key(db, user, data.password)
+    if not result:
+        raise HTTPException(status_code=400, detail="Invalid password or no key set")
+    return result
+
+
+@router.delete("/personal-api-key")
+async def delete_personal_api_key(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user_jwt_only),
+):
+    await settings_service.revoke_personal_api_key(db, user)
+    return {"message": "API key revoked"}

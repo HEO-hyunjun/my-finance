@@ -16,7 +16,7 @@ from app.core.security import (
 )
 from app.models.user import User
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter(tags=["Auth"])
 
 
 # --- Schemas ---

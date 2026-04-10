@@ -4,7 +4,7 @@ import type {
   AssetTimeline,
   GoalAsset,
   GoalAssetRequest,
-} from '@/shared/types';
+} from '@/shared/types/portfolio';
 
 export const portfolioKeys = {
   all: ['portfolio'] as const,

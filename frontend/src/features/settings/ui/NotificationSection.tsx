@@ -1,4 +1,4 @@
-import type { NotificationPreferences } from '@/shared/types';
+import type { NotificationPreferences } from '@/shared/types/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Switch } from '@/shared/ui/switch';
 import { Label } from '@/shared/ui/label';

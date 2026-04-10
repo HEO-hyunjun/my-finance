@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import type { ConversationSummary } from '@/shared/types';
+import type { ConversationSummary } from '@/shared/types/chat';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 

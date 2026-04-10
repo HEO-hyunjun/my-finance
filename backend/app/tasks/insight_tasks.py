@@ -35,7 +35,7 @@ async def _generate_all_user_insights_async():
         for user in users:
             try:
                 insights = await generate_daily_insights(
-                    db, user.id, market, salary_day=user.salary_day or 1
+                    db, user.id, market
                 )
                 if insights:
                     count += 1

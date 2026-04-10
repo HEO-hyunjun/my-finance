@@ -1,13 +1,19 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { GlobalCreateEntryDialog } from './GlobalCreateEntryDialog';
 import { Sheet, SheetContent } from '@/shared/ui/sheet';
 import { cn } from '@/shared/lib/utils';
 
 export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [showGlobalCreate, setShowGlobalCreate] = useState(false);
+
+  const handleQuickAdd = useCallback(() => {
+    setShowGlobalCreate(true);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,11 +39,14 @@ export function AppLayout() {
           collapsed ? 'md:ml-20' : 'md:ml-60'
         )}
       >
-        <Header onMenuClick={() => setMobileOpen(true)} />
+        <Header onMenuClick={() => setMobileOpen(true)} onQuickAdd={handleQuickAdd} />
         <main id="main-content" className="flex-1">
           <Outlet />
         </main>
       </div>
+
+      {/* Quick Add Modal — 어떤 페이지에서든 수입/지출 추가 */}
+      <GlobalCreateEntryDialog isOpen={showGlobalCreate} onClose={() => setShowGlobalCreate(false)} />
     </div>
   );
 }

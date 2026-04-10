@@ -5,6 +5,49 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 
+# ============================================================
+# Budget v2 schemas (top-down budget: BudgetPeriod + Allocation)
+# ============================================================
+
+
+class BudgetOverviewResponse(BaseModel):
+    period_start: str
+    period_end: str
+    period_start_day: int
+    total_income: Decimal
+    total_fixed_expense: Decimal
+    total_transfer: Decimal
+    available_budget: Decimal
+    total_allocated: Decimal
+    unallocated: Decimal
+
+
+class CategoryBudgetResponse(BaseModel):
+    allocation_id: str
+    category_id: str
+    allocated: Decimal
+    spent: Decimal
+    remaining: Decimal
+
+
+class AllocationCreate(BaseModel):
+    category_id: uuid.UUID
+    amount: Decimal
+
+
+class AllocationUpdate(BaseModel):
+    amount: Decimal
+
+
+class PeriodSettingUpdate(BaseModel):
+    period_start_day: int
+
+
+# ============================================================
+# Legacy schemas (kept for backward compatibility)
+# ============================================================
+
+
 # --- BudgetCategory Request ---
 
 

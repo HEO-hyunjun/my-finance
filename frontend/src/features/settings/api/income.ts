@@ -5,7 +5,7 @@ import type {
   RecurringIncomeCreateRequest,
   RecurringIncomeUpdateRequest,
   IncomeSummary,
-} from '@/shared/types';
+} from '@/shared/types/settings';
 
 export const recurringIncomeKeys = {
   all: ['recurring-incomes'] as const,
