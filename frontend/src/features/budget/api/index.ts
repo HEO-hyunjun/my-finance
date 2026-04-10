@@ -49,7 +49,11 @@ export function useCreateAllocation() {
       const { data } = await apiClient.post('/v1/budget/allocations', payload);
       return data;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: budgetKeys.all }); toast.success('예산이 배분되었습니다'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: budgetKeys.categories() });
+      qc.invalidateQueries({ queryKey: budgetKeys.overview() });
+      toast.success('예산이 배분되었습니다');
+    },
     onError: (e) => { toast.error(getErrorMsg(e, '예산 배분 실패')); },
   });
 }
@@ -61,7 +65,11 @@ export function useUpdateAllocation() {
       const { data } = await apiClient.patch(`/v1/budget/allocations/${id}`, payload);
       return data;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: budgetKeys.all }); toast.success('배분이 수정되었습니다'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: budgetKeys.categories() });
+      qc.invalidateQueries({ queryKey: budgetKeys.overview() });
+      toast.success('배분이 수정되었습니다');
+    },
     onError: (e) => { toast.error(getErrorMsg(e, '배분 수정 실패')); },
   });
 }

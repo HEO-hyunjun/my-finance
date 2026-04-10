@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Plus,
   AlertCircle,
@@ -18,13 +18,25 @@ import {
   useUpdateBudgetPeriod,
 } from '@/features/budget/api';
 import {
+  useCarryoverSettings,
+  useUpsertCarryoverSetting,
+} from '@/features/budget/api/carryover';
+import {
   useCategories,
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
 } from '@/features/categories/api';
+import { useAccounts } from '@/features/accounts/api';
 import type { CategoryBudget, CategorySpendingRate } from '@/entities/budget/model/types';
 import type { Category } from '@/entities/category/model/types';
+import type { Account } from '@/entities/account/model/types';
+import type {
+  CarryoverType,
+  CarryoverSettingCreate,
+  CarryoverSettingResponse,
+} from '@/shared/types/carryover';
+import { CARRYOVER_TYPE_LABELS } from '@/shared/types/carryover';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
@@ -39,21 +51,11 @@ import {
   DialogFooter,
 } from '@/shared/ui/dialog';
 
-// ─── 기본 프리셋 ───────────────────────────────────────────────────────────────
+// ─── 상수 ─────────────────────────────────────────────────────────────────────
 
-const DEFAULT_PRESETS = [
-  { name: '식비', icon: '🍽️', color: '#ef4444' },
-  { name: '교통', icon: '🚗', color: '#3b82f6' },
-  { name: '주거', icon: '🏠', color: '#8b5cf6' },
-  { name: '통신', icon: '📱', color: '#06b6d4' },
-  { name: '구독비', icon: '🗓️', color: '#f59e0b' },
-  { name: '문화/여가', icon: '🎬', color: '#10b981' },
-  { name: '의료', icon: '🏥', color: '#ec4899' },
-  { name: '쇼핑', icon: '🛍️', color: '#f97316' },
-  { name: '교육', icon: '📚', color: '#6366f1' },
-  { name: '생활비', icon: '📌', color: '#64748b' },
-  { name: '저축', icon: '💰', color: '#22c55e' },
-];
+const CARRYOVER_TYPES: CarryoverType[] = ['expire', 'next_month', 'savings', 'transfer', 'deposit'];
+const TRANSFER_TARGET_TYPES = new Set(['cash', 'parking']);
+const SOURCE_ACCOUNT_TYPES = new Set(['cash', 'parking', 'investment']);
 
 // ─── 유틸 ─────────────────────────────────────────────────────────────────────
 
@@ -84,6 +86,7 @@ interface UnifiedCategoryRow {
   remaining: number;
   usage_rate: number;
   status: 'normal' | 'warning' | 'exceeded' | null;
+  carryover: CarryoverSettingResponse | null;
 }
 
 // ─── Status Badge ──────────────────────────────────────────────────────────────
@@ -245,74 +248,62 @@ function PeriodSettingsDialog({ isOpen, onClose, currentDay }: PeriodSettingsDia
   );
 }
 
-// ─── Preset Dialog ─────────────────────────────────────────────────────────────
+// ─── Batch Allocation Dialog (예산 일괄 배분) ─────────────────────────────────
 
-interface PresetItem {
-  name: string;
-  icon: string;
-  color: string;
-  selected: boolean;
-  editedName: string;
-  editedIcon: string;
-}
-
-interface PresetDialogProps {
+interface BatchAllocationDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  existingNames: Set<string>;
+  rows: UnifiedCategoryRow[];
+  availableBudget: number;
 }
 
-function PresetDialog({ isOpen, onClose, existingNames }: PresetDialogProps) {
-  const createCategory = useCreateCategory();
+function BatchAllocationDialog({ isOpen, onClose, rows, availableBudget }: BatchAllocationDialogProps) {
+  const createAllocation = useCreateAllocation();
+  const updateAllocation = useUpdateAllocation();
 
-  const [items, setItems] = useState<PresetItem[]>(() =>
-    DEFAULT_PRESETS.map((p) => ({
-      ...p,
-      selected: !existingNames.has(p.name),
-      editedName: p.name,
-      editedIcon: p.icon,
-    })),
-  );
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setItems(
-        DEFAULT_PRESETS.map((p) => ({
-          ...p,
-          selected: !existingNames.has(p.name),
-          editedName: p.name,
-          editedIcon: p.icon,
-        })),
-      );
+      const initial: Record<string, string> = {};
+      rows.forEach((r) => {
+        initial[r.category.id] = r.allocated > 0 ? String(r.allocated) : '';
+      });
+      setAmounts(initial);
     }
-  }, [isOpen, existingNames]);
+  }, [isOpen, rows]);
 
-  const [isApplying, setIsApplying] = useState(false);
+  const totalAllocated = Object.values(amounts).reduce((sum, v) => {
+    const n = Number(v);
+    return sum + (isNaN(n) ? 0 : n);
+  }, 0);
 
-  const toggleSelect = (idx: number) => {
-    setItems((prev) => prev.map((item, i) => i === idx ? { ...item, selected: !item.selected } : item));
-  };
+  const unallocated = availableBudget - totalAllocated;
 
-  const updateName = (idx: number, name: string) => {
-    setItems((prev) => prev.map((item, i) => i === idx ? { ...item, editedName: name } : item));
-  };
-
-  const updateIcon = (idx: number, icon: string) => {
-    setItems((prev) => prev.map((item, i) => i === idx ? { ...item, editedIcon: icon } : item));
+  const handleEqualDistribute = () => {
+    if (rows.length === 0) return;
+    const perCategory = Math.floor(availableBudget / rows.length);
+    const updated: Record<string, string> = {};
+    rows.forEach((r) => {
+      updated[r.category.id] = String(perCategory);
+    });
+    setAmounts(updated);
   };
 
   const handleApply = async () => {
-    const toCreate = items.filter((item) => item.selected && !existingNames.has(item.editedName.trim()));
-    if (toCreate.length === 0) { onClose(); return; }
     setIsApplying(true);
     try {
-      for (const item of toCreate) {
-        await createCategory.mutateAsync({
-          direction: 'expense',
-          name: item.editedName.trim(),
-          icon: item.editedIcon || null,
-          color: item.color || null,
-        });
+      for (const row of rows) {
+        const newAmount = Number(amounts[row.category.id]);
+        if (isNaN(newAmount) || newAmount < 0) continue;
+        if (newAmount === row.allocated) continue;
+
+        if (row.allocation) {
+          await updateAllocation.mutateAsync({ id: row.allocation.allocation_id, amount: newAmount });
+        } else if (newAmount > 0) {
+          await createAllocation.mutateAsync({ category_id: row.category.id, amount: newAmount });
+        }
       }
       onClose();
     } finally {
@@ -320,66 +311,70 @@ function PresetDialog({ isOpen, onClose, existingNames }: PresetDialogProps) {
     }
   };
 
-  const selectedCount = items.filter((item) => item.selected && !existingNames.has(item.editedName.trim())).length;
+  const hasChanges = rows.some((r) => {
+    const newAmount = Number(amounts[r.category.id] ?? '');
+    return !isNaN(newAmount) && newAmount !== r.allocated;
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>기본값 설정</DialogTitle>
+          <DialogTitle>예산 일괄 배분</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            추가할 카테고리를 선택하세요. 이미 존재하는 카테고리는 건너뜁니다.
-          </p>
+        <div className="space-y-4">
+          <div className="rounded-lg bg-muted/50 px-4 py-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">사용 가능 예산</span>
+              <span className="font-semibold">{formatCurrency(availableBudget)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">배분 합계</span>
+              <span>{formatCurrency(totalAllocated)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">미배분</span>
+              <span className={unallocated < 0 ? 'text-destructive font-semibold' : ''}>
+                {formatCurrency(unallocated)}
+              </span>
+            </div>
+          </div>
 
-          <div className="max-h-80 overflow-y-auto space-y-1.5 pr-1">
-            {items.map((item, idx) => {
-              const alreadyExists = existingNames.has(item.editedName.trim());
-              return (
-                <div
-                  key={item.name}
-                  className={`rounded-lg border px-3 py-2 ${alreadyExists ? 'opacity-50' : ''} ${item.selected && !alreadyExists ? 'border-primary/50 bg-primary/5' : ''}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={item.selected && !alreadyExists}
-                      onChange={() => !alreadyExists && toggleSelect(idx)}
-                      disabled={alreadyExists}
-                      className="h-4 w-4 rounded"
-                    />
+          <Button variant="outline" size="sm" className="w-full" onClick={handleEqualDistribute}>
+            균등 배분 ({rows.length}개 카테고리)
+          </Button>
+
+          <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+            {rows.map((row) => (
+              <div key={row.category.id} className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  {row.category.icon && <span className="text-sm shrink-0">{row.category.icon}</span>}
+                  {row.category.color && (
                     <span
-                      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: item.color }}
+                      className="inline-block h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: row.category.color }}
                     />
-                    <Input
-                      value={item.editedIcon}
-                      onChange={(e) => updateIcon(idx, e.target.value)}
-                      className="h-7 w-12 text-center text-sm p-1"
-                      disabled={alreadyExists || !item.selected}
-                    />
-                    <Input
-                      value={item.editedName}
-                      onChange={(e) => updateName(idx, e.target.value)}
-                      className="h-7 flex-1 text-sm"
-                      disabled={alreadyExists || !item.selected}
-                    />
-                    {alreadyExists && (
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">이미 존재</span>
-                    )}
-                  </div>
+                  )}
+                  <span className="text-sm truncate">{row.category.name}</span>
                 </div>
-              );
-            })}
+                <Input
+                  type="number"
+                  min="0"
+                  value={amounts[row.category.id] ?? ''}
+                  onChange={(e) => setAmounts((prev) => ({ ...prev, [row.category.id]: e.target.value }))}
+                  placeholder="0"
+                  className="h-8 w-32 text-right text-sm"
+                />
+              </div>
+            ))}
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isApplying}>취소</Button>
-          <Button onClick={handleApply} disabled={isApplying || selectedCount === 0}>
-            {isApplying ? '적용 중...' : `적용 (${selectedCount}개)`}
+          <Button onClick={handleApply} disabled={isApplying || !hasChanges}>
+            {isApplying ? '적용 중...' : '적용'}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -403,7 +398,6 @@ function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
   const createCategory = useCreateCategory();
   const createAllocation = useCreateAllocation();
 
-  // dialog 열릴 때 초기화
   useEffect(() => {
     if (isOpen) {
       setName('');
@@ -505,64 +499,111 @@ function AddCategoryDialog({ isOpen, onClose }: AddCategoryDialogProps) {
   );
 }
 
-// ─── Edit Category Dialog (Unified) ───────────────────────────────────────────
+// ─── Edit Category Dialog (이름, 아이콘, 색상 + 이월 정책) ──────────────────
 
 interface EditCategoryDialogProps {
-  row: UnifiedCategoryRow;
+  category: Category;
+  carryover: CarryoverSettingResponse | null;
+  accounts: Account[];
   isOpen: boolean;
   onClose: () => void;
+  onCarryoverSave: (data: CarryoverSettingCreate) => void;
+  isSavingCarryover: boolean;
 }
 
-function EditCategoryDialog({ row, isOpen, onClose }: EditCategoryDialogProps) {
-  const [name, setName] = useState(row.category.name);
-  const [icon, setIcon] = useState(row.category.icon ?? '');
-  const [color, setColor] = useState(row.category.color ?? '#6366f1');
-  const [budgetAmount, setBudgetAmount] = useState(row.allocated > 0 ? String(row.allocated) : '');
+function EditCategoryDialog({
+  category,
+  carryover,
+  accounts,
+  isOpen,
+  onClose,
+  onCarryoverSave,
+  isSavingCarryover,
+}: EditCategoryDialogProps) {
+  const [name, setName] = useState(category.name);
+  const [icon, setIcon] = useState(category.icon ?? '');
+  const [color, setColor] = useState(category.color ?? '#6366f1');
+
+  // 이월 정책 state
+  const [coType, setCoType] = useState<CarryoverType>(carryover?.carryover_type ?? 'expire');
+  const [coLimit, setCoLimit] = useState(carryover?.carryover_limit?.toString() ?? '');
+  const [coSourceId, setCoSourceId] = useState(carryover?.source_asset_id ?? '');
+  const [coTargetId, setCoTargetId] = useState(carryover?.target_asset_id ?? '');
+  const [coRate, setCoRate] = useState(carryover?.target_annual_rate?.toString() ?? '');
 
   const updateCategory = useUpdateCategory();
-  const createAllocation = useCreateAllocation();
-  const updateAllocation = useUpdateAllocation();
 
-  // dialog 열릴 때 현재 값으로 초기화
   useEffect(() => {
     if (isOpen) {
-      setName(row.category.name);
-      setIcon(row.category.icon ?? '');
-      setColor(row.category.color ?? '#6366f1');
-      setBudgetAmount(row.allocated > 0 ? String(row.allocated) : '');
+      setName(category.name);
+      setIcon(category.icon ?? '');
+      setColor(category.color ?? '#6366f1');
+      setCoType(carryover?.carryover_type ?? 'expire');
+      setCoLimit(carryover?.carryover_limit?.toString() ?? '');
+      setCoSourceId(carryover?.source_asset_id ?? '');
+      setCoTargetId(carryover?.target_asset_id ?? '');
+      setCoRate(carryover?.target_annual_rate?.toString() ?? '');
     }
-  }, [isOpen, row]);
+  }, [isOpen, category, carryover]);
+
+  const coNeedsTransfer = coType === 'savings' || coType === 'deposit' || coType === 'transfer';
+
+  const coHasChanges =
+    coType !== (carryover?.carryover_type ?? 'expire') ||
+    (coType === 'next_month' && coLimit !== (carryover?.carryover_limit?.toString() ?? '')) ||
+    (coNeedsTransfer && coSourceId !== (carryover?.source_asset_id ?? '')) ||
+    (coNeedsTransfer && coTargetId !== (carryover?.target_asset_id ?? '')) ||
+    (coType === 'deposit' && coRate !== (carryover?.target_annual_rate?.toString() ?? ''));
+
+  const sourceAccounts = accounts.filter((a) => SOURCE_ACCOUNT_TYPES.has(a.account_type));
+  const filteredTargets = accounts.filter((a) => {
+    if (coType === 'savings') return a.account_type === 'savings';
+    if (coType === 'deposit') return a.account_type === 'deposit';
+    if (coType === 'transfer') return TRANSFER_TARGET_TYPES.has(a.account_type);
+    return false;
+  });
+
+  const handleTargetChange = (id: string) => {
+    setCoTargetId(id);
+    if (coType === 'deposit' && id) {
+      const selected = accounts.find((a) => a.id === id);
+      if (selected?.interest_rate != null) setCoRate(selected.interest_rate.toString());
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     try {
-      // 카테고리 정보가 변경됐으면 업데이트
       const catChanged =
-        name.trim() !== row.category.name ||
-        (icon || null) !== row.category.icon ||
-        (color || null) !== row.category.color;
+        name.trim() !== category.name ||
+        (icon || null) !== category.icon ||
+        (color || null) !== category.color;
 
       if (catChanged) {
         await updateCategory.mutateAsync({
-          id: row.category.id,
+          id: category.id,
           name: name.trim(),
           icon: icon || null,
           color: color || null,
         });
       }
 
-      // 예산 금액 처리
-      const newAmount = Number(budgetAmount);
-      const validAmount = !isNaN(newAmount) && newAmount >= 0;
-
-      if (validAmount && newAmount !== row.allocated) {
-        if (row.allocation) {
-          await updateAllocation.mutateAsync({ id: row.allocation.allocation_id, amount: newAmount });
-        } else if (newAmount > 0) {
-          await createAllocation.mutateAsync({ category_id: row.category.id, amount: newAmount });
+      if (coHasChanges) {
+        const data: CarryoverSettingCreate = {
+          category_id: category.id,
+          carryover_type: coType,
+        };
+        if (coType === 'next_month' && coLimit) data.carryover_limit = Number(coLimit);
+        if (coNeedsTransfer && coTargetId) {
+          if (coSourceId) data.source_asset_id = coSourceId;
+          data.target_asset_id = coTargetId;
+          const selected = accounts.find((a) => a.id === coTargetId);
+          if (selected) data.target_savings_name = selected.name;
         }
+        if (coType === 'deposit' && coRate) data.target_annual_rate = Number(coRate);
+        onCarryoverSave(data);
       }
 
       onClose();
@@ -571,7 +612,7 @@ function EditCategoryDialog({ row, isOpen, onClose }: EditCategoryDialogProps) {
     }
   };
 
-  const isPending = updateCategory.isPending || createAllocation.isPending || updateAllocation.isPending;
+  const isPending = updateCategory.isPending || isSavingCarryover;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -615,20 +656,95 @@ function EditCategoryDialog({ row, isOpen, onClose }: EditCategoryDialogProps) {
               </div>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="edit_budget">예산 금액</Label>
-            <Input
-              id="edit_budget"
-              type="number"
-              min="0"
-              value={budgetAmount}
-              onChange={(e) => setBudgetAmount(e.target.value)}
-              placeholder="0 (미배분)"
-            />
-            {!row.allocation && (
-              <p className="text-xs text-muted-foreground">현재 미배분 상태입니다. 금액 입력 시 배분이 생성됩니다.</p>
-            )}
+
+          {/* 이월 정책 */}
+          <div className="space-y-3 pt-2 border-t">
+            <Label className="text-sm font-medium">이월 정책</Label>
+            <div className="space-y-2">
+              <select
+                value={coType}
+                onChange={(e) => setCoType(e.target.value as CarryoverType)}
+                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                {CARRYOVER_TYPES.map((t) => (
+                  <option key={t} value={t}>{CARRYOVER_TYPE_LABELS[t]}</option>
+                ))}
+              </select>
+
+              {coType === 'next_month' && (
+                <div className="space-y-1">
+                  <Label className="text-xs">이월 한도 (원)</Label>
+                  <Input
+                    type="number"
+                    value={coLimit}
+                    onChange={(e) => setCoLimit(e.target.value)}
+                    placeholder="한도 없음"
+                    min="0"
+                  />
+                </div>
+              )}
+
+              {coNeedsTransfer && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">출처 계좌 (어디서)</Label>
+                    {sourceAccounts.length > 0 ? (
+                      <select
+                        value={coSourceId}
+                        onChange={(e) => setCoSourceId(e.target.value)}
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">선택하세요</option>
+                        {sourceAccounts.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}{a.institution ? ` (${a.institution})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-xs text-muted-foreground py-1">출금 가능 계좌가 없습니다.</p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      대상 {coType === 'savings' ? '적금' : coType === 'deposit' ? '예금' : '계좌'} (어디로)
+                    </Label>
+                    {filteredTargets.length > 0 ? (
+                      <select
+                        value={coTargetId}
+                        onChange={(e) => handleTargetChange(e.target.value)}
+                        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">선택하세요</option>
+                        {filteredTargets.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name}{a.institution ? ` (${a.institution})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-xs text-muted-foreground py-1">해당 유형 계좌가 없습니다.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {coType === 'deposit' && (
+                <div className="space-y-1">
+                  <Label className="text-xs">연 이율 (%)</Label>
+                  <Input
+                    type="number"
+                    value={coRate}
+                    onChange={(e) => setCoRate(e.target.value)}
+                    placeholder="예: 3.5"
+                    step="0.1"
+                    min="0"
+                  />
+                </div>
+              )}
+            </div>
           </div>
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={isPending}>취소</Button>
             <Button type="submit" disabled={isPending || !name.trim()}>
@@ -641,16 +757,122 @@ function EditCategoryDialog({ row, isOpen, onClose }: EditCategoryDialogProps) {
   );
 }
 
-// ─── Unified Category Row ──────────────────────────────────────────────────────
+// ─── Inline Budget Editor (호버 시 인풋 전환) ─────────────────────────────────
+
+interface InlineBudgetEditorProps {
+  allocated: number;
+  hasAllocation: boolean;
+  onSave: (amount: number) => void;
+  isSaving: boolean;
+}
+
+function InlineBudgetEditor({ allocated, hasAllocation, onSave, isSaving }: InlineBudgetEditorProps) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const startEdit = () => {
+    setValue(allocated > 0 ? String(allocated) : '');
+    setEditing(true);
+  };
+
+  useEffect(() => {
+    if (editing) inputRef.current?.focus();
+  }, [editing]);
+
+  const handleSave = () => {
+    const num = Number(value);
+    if (!isNaN(num) && num >= 0 && num !== allocated) {
+      onSave(num);
+    }
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSave();
+    if (e.key === 'Escape') setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <Input
+        ref={inputRef}
+        type="number"
+        min="0"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={handleKeyDown}
+        onBlur={handleSave}
+        className="h-7 w-28 text-sm font-semibold text-right px-2"
+        disabled={isSaving}
+      />
+    );
+  }
+
+  return (
+    <span
+      onClick={startEdit}
+      className="font-semibold text-sm cursor-pointer rounded px-1.5 py-0.5 transition-colors hover:bg-muted"
+      title="클릭하여 예산 수정"
+    >
+      {hasAllocation ? formatCurrency(allocated) : <span className="text-muted-foreground italic">미배분</span>}
+    </span>
+  );
+}
+
+// ─── Carryover Summary (읽기 전용 한 줄 요약) ─────────────────────────────────
+
+function getCarryoverSummary(
+  current: CarryoverSettingResponse | null,
+  accounts: Account[],
+): string {
+  if (!current) return '소멸';
+  const typeLabel = CARRYOVER_TYPE_LABELS[current.carryover_type];
+
+  if (current.carryover_type === 'expire') return '소멸';
+  if (current.carryover_type === 'next_month') {
+    return current.carryover_limit
+      ? `다음달 이월 (한도 ${current.carryover_limit.toLocaleString('ko-KR')}원)`
+      : '다음달 이월';
+  }
+
+  // transfer, savings, deposit
+  const source = current.source_asset_id
+    ? accounts.find((a) => a.id === current.source_asset_id)
+    : null;
+  const target = current.target_asset_id
+    ? accounts.find((a) => a.id === current.target_asset_id)
+    : null;
+
+  if (source && target) {
+    return `${typeLabel} ${source.name} → ${target.name}`;
+  }
+  if (target) {
+    return `${typeLabel} → ${target.name}`;
+  }
+  return `${typeLabel} (미설정)`;
+}
+
+// ─── Unified Category Row Item ────────────────────────────────────────────────
 
 interface UnifiedCategoryRowProps {
   row: UnifiedCategoryRow;
+  accounts: Account[];
   onEdit: () => void;
   onDelete: () => void;
+  onBudgetSave: (categoryId: string, amount: number, allocationId?: string) => void;
+  isSavingBudget: boolean;
 }
 
-function UnifiedCategoryRowItem({ row, onEdit, onDelete }: UnifiedCategoryRowProps) {
-  const { category, allocated, spent, status } = row;
+function UnifiedCategoryRowItem({
+  row,
+  accounts,
+  onEdit,
+  onDelete,
+  onBudgetSave,
+  isSavingBudget,
+}: UnifiedCategoryRowProps) {
+  const { category, allocated, spent, status, carryover } = row;
   const hasAllocation = row.allocation !== null;
   const usageRate = allocated > 0 ? Math.min(spent / allocated, 1) : 0;
   const isExceeded = hasAllocation && spent > allocated;
@@ -662,9 +884,15 @@ function UnifiedCategoryRowItem({ row, onEdit, onDelete }: UnifiedCategoryRowPro
       ? 'bg-amber-500'
       : 'bg-primary';
 
+  const handleBudgetSave = (amount: number) => {
+    onBudgetSave(category.id, amount, row.allocation?.allocation_id);
+  };
+
+  const carryoverSummary = getCarryoverSummary(carryover, accounts);
+
   return (
-    <div className={`rounded-lg border bg-card px-4 py-3 space-y-2 ${!hasAllocation ? 'border-dashed bg-card/50' : ''}`}>
-      {/* 상단 행: 카테고리 정보 + 상태 + 버튼 */}
+    <div className={`rounded-lg border bg-card px-4 py-3 space-y-3 ${!hasAllocation ? 'border-dashed bg-card/50' : ''}`}>
+      {/* 상단: 카테고리 이름 + 예산 금액 (같은 크기) + 액션 버튼 */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {category.icon && <span aria-hidden="true" className="text-base shrink-0">{category.icon}</span>}
@@ -678,13 +906,16 @@ function UnifiedCategoryRowItem({ row, onEdit, onDelete }: UnifiedCategoryRowPro
           <span className={`font-medium truncate ${!hasAllocation ? 'text-muted-foreground' : ''}`}>
             {category.name}
           </span>
-          {!hasAllocation && (
-            <span className="text-xs rounded-full bg-muted px-1.5 py-0.5 text-muted-foreground shrink-0">미배분</span>
-          )}
+          <StatusBadge status={status} />
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <StatusBadge status={status} />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <InlineBudgetEditor
+            allocated={allocated}
+            hasAllocation={hasAllocation}
+            onSave={handleBudgetSave}
+            isSaving={isSavingBudget}
+          />
           <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={onEdit} title="편집">
             <Pencil className="h-3.5 w-3.5" />
           </Button>
@@ -700,35 +931,37 @@ function UnifiedCategoryRowItem({ row, onEdit, onDelete }: UnifiedCategoryRowPro
         </div>
       </div>
 
-      {/* 예산 정보 */}
-      <div className="space-y-1">
-        {hasAllocation ? (
-          <>
-            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${progressColor}`}
-                style={{ width: `${Math.min(usageRate * 100, 100)}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatCurrency(spent)} 사용</span>
-              <span>
-                {isExceeded ? (
-                  <span className="text-destructive font-medium">{formatCurrency(Math.abs(remaining))} 초과</span>
-                ) : (
-                  <span>{formatCurrency(remaining)} 남음</span>
-                )}
-              </span>
-            </div>
-            <div className="text-right text-xs text-muted-foreground">
-              예산: {formatCurrency(allocated)}
-            </div>
-          </>
-        ) : spent > 0 ? (
-          <div className="text-xs text-muted-foreground">
-            이번 달 지출: {formatCurrency(spent)}
+      {/* 예산 사용량 (진행바 + 텍스트) */}
+      {hasAllocation && (
+        <div className="space-y-1">
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${progressColor}`}
+              style={{ width: `${Math.min(usageRate * 100, 100)}%` }}
+            />
           </div>
-        ) : null}
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>{formatCurrency(spent)} 사용</span>
+            <span>
+              {isExceeded ? (
+                <span className="text-destructive font-medium">{formatCurrency(Math.abs(remaining))} 초과</span>
+              ) : (
+                <span>{formatCurrency(remaining)} 남음</span>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!hasAllocation && spent > 0 && (
+        <div className="text-xs text-muted-foreground">
+          이번 달 지출: {formatCurrency(spent)}
+        </div>
+      )}
+
+      {/* 이월 정책 한 줄 요약 */}
+      <div className="text-xs text-muted-foreground">
+        이월: {carryoverSummary}
       </div>
     </div>
   );
@@ -738,12 +971,27 @@ function UnifiedCategoryRowItem({ row, onEdit, onDelete }: UnifiedCategoryRowPro
 
 interface UnifiedCategorySectionProps {
   rows: UnifiedCategoryRow[];
+  accounts: Account[];
   isLoading: boolean;
-  onOpenPreset: () => void;
+  onOpenBatchAllocation: () => void;
   onOpenAdd: () => void;
+  onBudgetSave: (categoryId: string, amount: number, allocationId?: string) => void;
+  onCarryoverSave: (data: CarryoverSettingCreate) => void;
+  isSavingBudget: boolean;
+  isSavingCarryover: boolean;
 }
 
-function UnifiedCategorySection({ rows, isLoading, onOpenPreset, onOpenAdd }: UnifiedCategorySectionProps) {
+function UnifiedCategorySection({
+  rows,
+  accounts,
+  isLoading,
+  onOpenBatchAllocation,
+  onOpenAdd,
+  onBudgetSave,
+  onCarryoverSave,
+  isSavingBudget,
+  isSavingCarryover,
+}: UnifiedCategorySectionProps) {
   const [editTarget, setEditTarget] = useState<UnifiedCategoryRow | null>(null);
   const [confirmDeleteCatId, setConfirmDeleteCatId] = useState<string | null>(null);
 
@@ -776,9 +1024,9 @@ function UnifiedCategorySection({ rows, isLoading, onOpenPreset, onOpenAdd }: Un
             <Plus className="mr-1.5 h-3.5 w-3.5" />
             추가
           </Button>
-          <Button size="sm" variant="outline" onClick={onOpenPreset}>
+          <Button size="sm" variant="outline" onClick={onOpenBatchAllocation}>
             <Settings className="mr-1.5 h-3.5 w-3.5" />
-            기본값 설정
+            일괄 배분
           </Button>
         </div>
       </div>
@@ -789,7 +1037,7 @@ function UnifiedCategorySection({ rows, isLoading, onOpenPreset, onOpenAdd }: Un
           <CardContent className="flex flex-col items-center py-12">
             <p className="text-muted-foreground">지출 카테고리가 없습니다.</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              [+ 추가] 또는 [기본값 설정]으로 카테고리를 만들어보세요.
+              [+ 추가]로 카테고리를 만들어보세요.
             </p>
           </CardContent>
         </Card>
@@ -799,19 +1047,26 @@ function UnifiedCategorySection({ rows, isLoading, onOpenPreset, onOpenAdd }: Un
             <UnifiedCategoryRowItem
               key={row.category.id}
               row={row}
+              accounts={accounts}
               onEdit={() => setEditTarget(row)}
               onDelete={() => setConfirmDeleteCatId(row.category.id)}
+              onBudgetSave={onBudgetSave}
+              isSavingBudget={isSavingBudget}
             />
           ))}
         </div>
       )}
 
-      {/* 편집 다이얼로그 */}
+      {/* 편집 다이얼로그 (카테고리 메타 + 이월 정책) */}
       {editTarget && (
         <EditCategoryDialog
-          row={editTarget}
+          category={editTarget.category}
+          carryover={editTarget.carryover}
+          accounts={accounts}
           isOpen={editTarget !== null}
           onClose={() => setEditTarget(null)}
+          onCarryoverSave={onCarryoverSave}
+          isSavingCarryover={isSavingCarryover}
         />
       )}
 
@@ -830,7 +1085,6 @@ function UnifiedCategorySection({ rows, isLoading, onOpenPreset, onOpenAdd }: Un
 }
 
 // ─── Analysis Section ──────────────────────────────────────────────────────────
-// 카테고리별 소진율 카드는 UnifiedCategorySection으로 이동했으므로 제거
 
 function AnalysisSection() {
   const { data: analysis, isLoading } = useBudgetAnalysis();
@@ -954,21 +1208,27 @@ function AnalysisSection() {
 
 export function Component() {
   const { data: budgetCategories = [], isLoading: catBudgetLoading } = useBudgetCategories();
-  const { data: allCategories = [], isLoading: catLoading } = useCategories();
+  const { isLoading: catLoading } = useCategories();
   const { data: expenseCategories = [], isLoading: expCatLoading } = useCategories('expense');
   const { data: analysis, isLoading: analysisLoading } = useBudgetAnalysis();
   const { data: overview } = useBudgetOverview();
+  const { data: carryoverSettings = [] } = useCarryoverSettings();
+  const { data: accounts = [] } = useAccounts();
+
+  const createAllocation = useCreateAllocation();
+  const updateAllocation = useUpdateAllocation();
+  const upsertCarryover = useUpsertCarryoverSetting();
 
   const [showPeriodSettings, setShowPeriodSettings] = useState(false);
-  const [showPreset, setShowPreset] = useState(false);
+  const [showBatchAllocation, setShowBatchAllocation] = useState(false);
   const [showAddCategory, setShowAddCategory] = useState(false);
-
-  // 기존 카테고리명 Set (프리셋 중복 체크용)
-  const existingCategoryNames = new Set<string>(allCategories.map((c) => c.name));
 
   const isLoading = catBudgetLoading || expCatLoading || catLoading || analysisLoading;
 
-  // 카테고리 + 배분 + 분석 데이터 통합
+  // 이월 설정 맵
+  const carryoverMap = new Map(carryoverSettings.map((s) => [s.category_id, s]));
+
+  // 카테고리 + 배분 + 분석 + 이월 데이터 통합
   const unifiedRows: UnifiedCategoryRow[] = expenseCategories.map((cat) => {
     const allocation = budgetCategories.find((b) => b.category_id === cat.id) ?? null;
     const rate = analysis?.category_rates?.find((r) => r.category_id === cat.id) ?? null;
@@ -988,8 +1248,27 @@ export function Component() {
       remaining,
       usage_rate,
       status: rate?.status ?? null,
+      carryover: carryoverMap.get(cat.id) ?? null,
     };
   });
+
+  const handleBudgetSave = useCallback(
+    (categoryId: string, amount: number, allocationId?: string) => {
+      if (allocationId) {
+        updateAllocation.mutate({ id: allocationId, amount });
+      } else if (amount > 0) {
+        createAllocation.mutate({ category_id: categoryId, amount });
+      }
+    },
+    [createAllocation, updateAllocation],
+  );
+
+  const handleCarryoverSave = useCallback(
+    (data: CarryoverSettingCreate) => {
+      upsertCarryover.mutate(data);
+    },
+    [upsertCarryover],
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 p-6">
@@ -1001,17 +1280,22 @@ export function Component() {
       {/* Section 1: Overview */}
       <OverviewCard onPeriodSettingsClick={() => setShowPeriodSettings(true)} />
 
-      {/* Section 2: 카테고리별 예산 (통합) */}
+      {/* Section 2: 카테고리별 예산 (통합: 배분 + 이월 정책) */}
       <div className="space-y-3">
         <UnifiedCategorySection
           rows={unifiedRows}
+          accounts={accounts}
           isLoading={isLoading}
-          onOpenPreset={() => setShowPreset(true)}
+          onOpenBatchAllocation={() => setShowBatchAllocation(true)}
           onOpenAdd={() => setShowAddCategory(true)}
+          onBudgetSave={handleBudgetSave}
+          onCarryoverSave={handleCarryoverSave}
+          isSavingBudget={createAllocation.isPending || updateAllocation.isPending}
+          isSavingCarryover={upsertCarryover.isPending}
         />
       </div>
 
-      {/* Section 3: 예산 분석 (카테고리별 소진율 카드 제외) */}
+      {/* Section 3: 예산 분석 */}
       <AnalysisSection />
 
       {/* 기간 설정 모달 */}
@@ -1021,11 +1305,12 @@ export function Component() {
         currentDay={overview?.period_start_day ?? 1}
       />
 
-      {/* 프리셋 모달 */}
-      <PresetDialog
-        isOpen={showPreset}
-        onClose={() => setShowPreset(false)}
-        existingNames={existingCategoryNames}
+      {/* 예산 일괄 배분 모달 */}
+      <BatchAllocationDialog
+        isOpen={showBatchAllocation}
+        onClose={() => setShowBatchAllocation(false)}
+        rows={unifiedRows}
+        availableBudget={overview?.available_budget ?? 0}
       />
 
       {/* 카테고리 추가 모달 */}
