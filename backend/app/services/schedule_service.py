@@ -78,11 +78,12 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
         return None
 
     # 중복 체크: 이번 달 같은 스케줄에서 생성된 Entry가 있는지
+    # TRANSFER는 2개 Entry(out+in)를 생성하므로 .first() 사용
     check_stmt = select(Entry.id).where(
         Entry.recurring_schedule_id == schedule.id,
         extract("year", Entry.transacted_at) == target_date.year,
         extract("month", Entry.transacted_at) == target_date.month,
-    )
+    ).limit(1)
     if (await db.execute(check_stmt)).scalar_one_or_none():
         return None
 

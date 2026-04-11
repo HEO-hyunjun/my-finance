@@ -248,6 +248,29 @@ async def test_transfer_missing_one_account(db):
     assert entry is None
 
 
+# ─── TRANSFER 중복 체크 (2개 Entry 생성) ───
+
+
+async def test_transfer_duplicate_check_with_two_entries(db):
+    """TRANSFER는 entry 2개(out+in) 생성 — 중복 체크에서 에러 없이 스킵되어야 함"""
+    user_id, src, dst = await _setup(db)
+    schedule = RecurringSchedule(
+        user_id=user_id, type=ScheduleType.TRANSFER, name="이체 중복테스트",
+        amount=Decimal("100000"), schedule_day=10,
+        start_date=date(2026, 1, 1),
+        source_account_id=src.id, target_account_id=dst.id,
+    )
+    db.add(schedule)
+    await db.flush()
+
+    entry1 = await execute_schedule(db, schedule, date(2026, 4, 10))
+    assert entry1 is not None
+    # 같은 달 재실행 → 에러 없이 None 반환
+    entry2 = await execute_schedule(db, schedule, date(2026, 4, 10))
+    assert entry2 is None
+    assert schedule.executed_count == 1
+
+
 # ─── 다른 달 중복 체크는 통과 ───
 
 
