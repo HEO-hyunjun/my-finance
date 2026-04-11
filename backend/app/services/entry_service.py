@@ -227,10 +227,10 @@ async def create_trade(
     await db.flush()
 
     if trade_type == EntryType.BUY:
-        entry_amount = -total_cost  # 현금 유출
+        entry_amount = -total_cost  # 현금 유출: -(qty * price + fee)
         entry_qty = quantity  # 주식 유입
     else:
-        entry_amount = total_cost - fee  # 현금 유입 (수수료 차감)
+        entry_amount = quantity * unit_price - fee  # 현금 유입: qty * price - fee
         entry_qty = -quantity  # 주식 유출
 
     entry = Entry(

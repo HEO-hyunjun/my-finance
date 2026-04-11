@@ -164,9 +164,9 @@ async def test_sell_adds_cash_reduces_quantity(db):
 
     balance = await get_account_balance(db, acc.id)
     qty = await get_holding_quantity(db, acc.id, sec.id)
-    # SELL amount = qty * price (fee는 fee 필드에만 기록, amount에 미반영)
-    # 10M - 700000 + (5*80000) = 9,700,000
-    assert balance == Decimal("9700000")
+    # SELL amount = qty * price - fee
+    # 10M - 700000 + (5*80000 - 500) = 9,699,500
+    assert balance == Decimal("9699500")
     assert qty == Decimal("5")
 
 
@@ -380,13 +380,13 @@ async def test_mixed_operations_final_balance(db):
     # 급여통장: 5M - 2M + 1000 - 500000 = 2,501,000
     assert cash_bal == Decimal("2501000")
 
-    # 증권계좌: 2M - (10*150000+500)(매수) + (5*160000)(매도, fee는 amount 미반영)
-    #         = 2M - 1,500,500 + 800,000 = 1,299,500
-    assert inv_bal == Decimal("1299500")
+    # 증권계좌: 2M - (10*150000+500)(매수) + (5*160000-300)(매도)
+    #         = 2M - 1,500,500 + 799,700 = 1,299,200
+    assert inv_bal == Decimal("1299200")
 
     # 보유수량: 10 - 5 = 5주
     assert inv_qty == Decimal("5")
 
     # 전체 현금 합계
     total_cash = cash_bal + inv_bal
-    assert total_cash == Decimal("3800500")
+    assert total_cash == Decimal("3800200")
