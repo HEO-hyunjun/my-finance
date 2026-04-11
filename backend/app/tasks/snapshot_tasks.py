@@ -53,11 +53,10 @@ async def _take_snapshot_async():
 
                     # 투자 계좌는 holdings도 저장
                     holdings_json = None
-                    account_total_krw = balance
                     if account.account_type == AccountType.INVESTMENT:
                         holdings = await get_holdings(db, account.id)
                         holdings_json = {}
-                        holdings_value = Decimal("0")
+                        holdings_value_krw = Decimal("0")
                         for h in holdings:
                             sec_id = h.get("security_id")
                             price = await get_latest_price(db, _uuid.UUID(sec_id) if isinstance(sec_id, str) else sec_id) if sec_id else None
@@ -69,10 +68,13 @@ async def _take_snapshot_async():
                                 value = h["quantity"] * Decimal(str(price.close_price))
                                 if price.currency == "USD":
                                     value *= krw_rate
-                                holdings_value += value
-                        account_total_krw = balance + holdings_value
+                                holdings_value_krw += value
+                        cash_krw = balance * krw_rate if account.currency == "USD" else balance
+                        account_total_krw = cash_krw + holdings_value_krw
                     elif account.currency == "USD":
                         account_total_krw = balance * krw_rate
+                    else:
+                        account_total_krw = balance
 
                     # AccountSnapshot upsert
                     existing = (await db.execute(

@@ -6,7 +6,7 @@ import type { User } from '@/shared/types/auth';
 interface AuthState {
   user: User | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (email: string, password: string, nickname: string) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
@@ -18,10 +18,10 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoading: false,
 
-      login: async (email, password) => {
+      login: async (email, password, rememberMe = false) => {
         set({ isLoading: true });
         try {
-          const { data } = await apiClient.post('/v1/auth/login', { email, password });
+          const { data } = await apiClient.post('/v1/auth/login', { email, password, remember_me: rememberMe });
           localStorage.setItem('access_token', data.access_token);
           localStorage.setItem('refresh_token', data.refresh_token);
           set({ user: data.user, isLoading: false });

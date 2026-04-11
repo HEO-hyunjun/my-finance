@@ -24,27 +24,21 @@ async def get_total_assets(db: AsyncSession, user_id: uuid.UUID) -> dict:
         if account.account_type == AccountType.INVESTMENT:
             # 투자 계좌: 현금 + 종목별 시가 평가
             holdings = await get_holdings(db, account.id)
-            holdings_value = Decimal("0")
+            holdings_value_krw = Decimal("0")
 
             for h in holdings:
                 price_record = await get_latest_price(db, uuid.UUID(h["security_id"]))
                 if price_record:
                     value = h["quantity"] * Decimal(str(price_record.close_price))
-                    if price_record.currency == "USD":
-                        value *= krw_rate
-                    holdings_value += value
+                    value_krw = value * krw_rate if price_record.currency == "USD" else value
+                    holdings_value_krw += value_krw
                     h["current_price"] = Decimal(str(price_record.close_price))
-                    h["value_krw"] = value
+                    h["value_krw"] = value_krw
 
-            # 현금잔액 = security_id가 없는 entry들의 amount 합
-            # (매매 entry는 security_id가 있으므로 제외됨)
-            # amount는 항상 현금 흐름을 나타냄 (BUY=-cost, SELL=+proceeds)
-            # 따라서 전체 amount 합계 = 현금 잔액
-            cash_balance = balance  # balance = sum(all amounts) = 현금 잔액
+            cash_balance = balance
+            cash_krw = cash_balance * krw_rate if account.currency == "USD" else cash_balance
 
-            total_value = cash_balance + holdings_value
-            if account.currency == "USD":
-                total_value *= krw_rate
+            total_value = cash_krw + holdings_value_krw
 
             account_details.append({
                 "id": str(account.id),
@@ -52,7 +46,7 @@ async def get_total_assets(db: AsyncSession, user_id: uuid.UUID) -> dict:
                 "account_type": account.account_type.value,
                 "currency": account.currency,
                 "cash_balance": cash_balance,
-                "holdings_value": holdings_value,
+                "holdings_value": holdings_value_krw,
                 "total_value_krw": total_value,
                 "holdings": holdings,
             })

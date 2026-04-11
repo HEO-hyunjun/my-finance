@@ -13,6 +13,7 @@ export function Component() {
   const { user, login, isLoading } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
 
   // 이미 로그인된 상태면 이전 페이지 또는 홈으로 리다이렉트
@@ -31,7 +32,7 @@ export function Component() {
     }
 
     try {
-      await login(email, password);
+      await login(email, password, rememberMe);
       navigate(from, { replace: true });
     } catch (err: unknown) {
       const message =
@@ -87,6 +88,16 @@ export function Component() {
                 autoComplete="current-password"
               />
             </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              <span className="text-muted-foreground">로그인 유지</span>
+            </label>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? '로그인 중...' : '로그인'}

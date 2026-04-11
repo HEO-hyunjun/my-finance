@@ -25,6 +25,7 @@ router = APIRouter(tags=["Auth"])
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=1)
+    remember_me: bool = False
 
 
 class RegisterRequest(BaseModel):
@@ -66,11 +67,12 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
         )
 
     access_token = create_access_token(str(user.id))
-    refresh_token = create_refresh_token(str(user.id))
+    refresh_days = 30 if body.remember_me else None
+    refresh = create_refresh_token(str(user.id), expire_days=refresh_days)
 
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
+        "refresh_token": refresh,
         "user": {
             "id": str(user.id),
             "email": user.email,
