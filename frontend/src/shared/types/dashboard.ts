@@ -107,6 +107,8 @@ export interface DashboardSummaryResponse {
   accounts_count: number;
   monthly_income: number;
   monthly_expense: number;
+  daily_change: number | null;
+  daily_change_rate: number | null;
   budget_overview: DashboardBudgetOverview;
   asset_distribution: AssetDistributionItem[];
   recent_entries: DashboardRecentEntry[];

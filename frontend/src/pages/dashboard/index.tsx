@@ -46,7 +46,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { Button } from '@/shared/ui/button';
-import { Badge } from '@/shared/ui/badge';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -71,9 +70,21 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
   income: '수입',
   expense: '지출',
   transfer: '이체',
+  transfer_in: '이체(입금)',
+  transfer_out: '이체(출금)',
   adjustment: '잔액조정',
   investment_buy: '매수',
   investment_sell: '매도',
+};
+
+const ENTRY_TYPE_BG: Record<string, string> = {
+  income: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  expense: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+  transfer_in: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+  transfer_out: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+  investment_buy: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+  investment_sell: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+  adjustment: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 };
 
 
@@ -117,6 +128,20 @@ function TotalAssetsWidget() {
             <p className="text-sm text-muted-foreground">
               계좌 {data?.accounts_count ?? 0}개 연동 중
             </p>
+            {data?.daily_change != null && (
+              <div className="mt-1 flex items-center gap-2 text-sm">
+                <span className="text-muted-foreground">전일대비</span>
+                {(data.daily_change ?? 0) >= 0 ? (
+                  <TrendingUp className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <TrendingDown className="h-3.5 w-3.5 text-red-600 dark:text-red-400" />
+                )}
+                <span className={(data.daily_change ?? 0) >= 0 ? 'font-medium text-green-600 dark:text-green-400' : 'font-medium text-red-600 dark:text-red-400'}>
+                  {(data.daily_change ?? 0) >= 0 ? '+' : ''}{formatKRW(data.daily_change)}
+                  {data.daily_change_rate != null && ` (${((data.daily_change_rate ?? 0) * 100).toFixed(2)}%)`}
+                </span>
+              </div>
+            )}
             <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">이번 달 수입</p>
@@ -140,7 +165,7 @@ function TotalAssetsWidget() {
 
 // ─── 2. Goal Asset Widget ──────────────────────────────────────────────────────
 
-function GoalAssetWidget() {
+function GoalAssetWidget({ onOpenSettings }: { onOpenSettings?: () => void }) {
   const { data, isLoading, isError, error } = useGoal();
 
   const isNotFound =
@@ -169,12 +194,13 @@ function GoalAssetWidget() {
           <div className="flex flex-col items-center py-6 text-center">
             <Target className="mb-2 h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">목표가 설정되지 않았습니다</p>
-            <a
-              href="/settings"
+            <button
+              type="button"
+              onClick={onOpenSettings}
               className="mt-2 text-xs text-primary underline underline-offset-2"
             >
               목표 설정하기
-            </a>
+            </button>
           </div>
         ) : isError ? (
           <WidgetError />
@@ -635,9 +661,9 @@ function RecentTransactionsWidget() {
             {entries.map((entry) => (
               <li key={entry.id} className="flex items-center justify-between py-2.5">
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="text-xs">
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${ENTRY_TYPE_BG[entry.type] ?? 'bg-gray-100 text-gray-600'}`}>
                     {ENTRY_TYPE_LABELS[entry.type] ?? entry.type}
-                  </Badge>
+                  </span>
                   <span className="max-w-[120px] truncate text-sm text-muted-foreground">
                     {entry.memo ?? '메모 없음'}
                   </span>
@@ -924,9 +950,10 @@ const COLOR_KEYS: AssetType[] = [
 interface DashboardSettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  defaultTab?: string;
 }
 
-function DashboardSettingsDialog({ isOpen, onClose }: DashboardSettingsDialogProps) {
+function DashboardSettingsDialog({ isOpen, onClose, defaultTab = 'widgets' }: DashboardSettingsDialogProps) {
   const { data: settings } = useAppSettings();
   const updateSettings = useUpdateAppSettings();
   const { data: goal } = useGoal();
@@ -982,7 +1009,7 @@ function DashboardSettingsDialog({ isOpen, onClose }: DashboardSettingsDialogPro
           <DialogTitle>대시보드 설정</DialogTitle>
         </DialogHeader>
 
-        <Tabs defaultValue="widgets" className="mt-2">
+        <Tabs defaultValue={defaultTab} className="mt-2">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="widgets">위젯</TabsTrigger>
             <TabsTrigger value="goal">목표자산</TabsTrigger>
@@ -1080,7 +1107,7 @@ function DashboardSettingsDialog({ isOpen, onClose }: DashboardSettingsDialogPro
 // ─── main page component ───────────────────────────────────────────────────────
 
 export function Component() {
-  const [showSettings, setShowSettings] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<string | null>(null);
   const { data: settings } = useAppSettings();
 
   const w = settings?.dashboard_widgets ?? {};
@@ -1091,7 +1118,7 @@ export function Component() {
       {/* 헤더 */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">대시보드</h1>
-        <Button variant="ghost" size="sm" onClick={() => setShowSettings(true)}>
+        <Button variant="ghost" size="sm" onClick={() => setSettingsTab('widgets')}>
           <Settings className="h-4 w-4" />
         </Button>
       </div>
@@ -1100,7 +1127,7 @@ export function Component() {
       {(show('totalAssets') || show('goalAsset')) && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {show('totalAssets') && <TotalAssetsWidget />}
-          {show('goalAsset') && <GoalAssetWidget />}
+          {show('goalAsset') && <GoalAssetWidget onOpenSettings={() => setSettingsTab('goal')} />}
         </div>
       )}
 
@@ -1144,8 +1171,9 @@ export function Component() {
 
       {/* 설정 모달 */}
       <DashboardSettingsDialog
-        isOpen={showSettings}
-        onClose={() => setShowSettings(false)}
+        isOpen={settingsTab !== null}
+        onClose={() => setSettingsTab(null)}
+        defaultTab={settingsTab ?? 'widgets'}
       />
     </div>
   );

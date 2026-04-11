@@ -4,13 +4,14 @@ Phase 2 완료: Account/Entry/Security 기반으로 전면 재작성.
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.entry import Entry, EntryType
+from app.models.portfolio import AssetSnapshot
 from app.services.portfolio_v2_service import get_total_assets
 from app.services.budget_v2_service import get_budget_overview
 from app.core.tz import today as tz_today
@@ -81,11 +82,35 @@ async def get_dashboard_summary(db: AsyncSession, user_id: uuid.UUID, **kwargs) 
         if v > 0
     ]
 
+    # 6. 전일대비 변동
+    total_krw = total_assets["total_krw"]
+    yesterday = today - timedelta(days=1)
+    prev_snapshot = (
+        await db.execute(
+            select(AssetSnapshot)
+            .where(
+                AssetSnapshot.user_id == user_id,
+                AssetSnapshot.snapshot_date <= yesterday,
+            )
+            .order_by(AssetSnapshot.snapshot_date.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+
+    daily_change = None
+    daily_change_rate = None
+    if prev_snapshot and prev_snapshot.total_krw:
+        prev_total = prev_snapshot.total_krw
+        daily_change = float(total_krw - prev_total)
+        daily_change_rate = float((total_krw - prev_total) / prev_total) if prev_total else None
+
     return {
-        "total_assets_krw": total_assets["total_krw"],
+        "total_assets_krw": total_krw,
         "accounts_count": len(total_assets["accounts"]),
         "monthly_income": monthly_income,
         "monthly_expense": monthly_expense,
+        "daily_change": daily_change,
+        "daily_change_rate": daily_change_rate,
         "budget_overview": budget,
         "asset_distribution": asset_distribution,
         "recent_entries": [
