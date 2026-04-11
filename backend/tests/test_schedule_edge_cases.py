@@ -159,6 +159,38 @@ async def test_past_end_date_skipped(db):
     assert entry is None
 
 
+async def test_future_start_date_skipped(db):
+    """target_date < start_date이면 실행되지 않는다 (아직 시작 전)"""
+    user_id, src, _ = await _setup(db)
+    schedule = RecurringSchedule(
+        user_id=user_id, type=ScheduleType.EXPENSE, name="미래구독",
+        amount=Decimal("15000"), schedule_day=3,
+        start_date=date(2026, 5, 1),
+        source_account_id=src.id,
+    )
+    db.add(schedule)
+    await db.flush()
+
+    entry = await execute_schedule(db, schedule, date(2026, 4, 3))
+    assert entry is None
+
+
+async def test_on_start_date_executes(db):
+    """target_date == start_date이면 실행된다"""
+    user_id, _, dst = await _setup(db)
+    schedule = RecurringSchedule(
+        user_id=user_id, type=ScheduleType.INCOME, name="시작일 수입",
+        amount=Decimal("100000"), schedule_day=1,
+        start_date=date(2026, 5, 1),
+        target_account_id=dst.id,
+    )
+    db.add(schedule)
+    await db.flush()
+
+    entry = await execute_schedule(db, schedule, date(2026, 5, 1))
+    assert entry is not None
+
+
 async def test_on_end_date_still_executes(db):
     """target_date == end_date이면 실행된다 (초과만 스킵)"""
     user_id, _, dst = await _setup(db)

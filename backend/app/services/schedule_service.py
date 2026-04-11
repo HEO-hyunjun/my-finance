@@ -72,6 +72,8 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
     # 종료 조건 체크
     if not schedule.is_active:
         return None
+    if schedule.start_date and target_date < schedule.start_date:
+        return None
     if schedule.end_date and target_date > schedule.end_date:
         return None
     if schedule.total_count is not None and schedule.executed_count >= schedule.total_count:
