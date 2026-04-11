@@ -87,7 +87,10 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
         return None
 
     _, last_day = calendar.monthrange(target_date.year, target_date.month)
-    exec_day = min(schedule.schedule_day, last_day)
+    if schedule.schedule_day == 0:
+        exec_day = last_day
+    else:
+        exec_day = min(schedule.schedule_day, last_day)
     ts = datetime(target_date.year, target_date.month, exec_day, tzinfo=timezone.utc)
 
     if schedule.type == ScheduleType.TRANSFER:
@@ -152,9 +155,18 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
 
 async def execute_due_schedules(db: AsyncSession, today: date) -> dict:
     """오늘 실행해야 할 모든 스케줄을 처리. Celery 태스크에서 호출."""
+    _, last_day = calendar.monthrange(today.year, today.month)
+    is_last_day = today.day == last_day
+
+    from sqlalchemy import or_
+
+    conditions = [RecurringSchedule.schedule_day == today.day]
+    if is_last_day:
+        conditions.append(RecurringSchedule.schedule_day == 0)
+
     stmt = select(RecurringSchedule).where(
         RecurringSchedule.is_active.is_(True),
-        RecurringSchedule.schedule_day == today.day,
+        or_(*conditions),
     )
     schedules = (await db.execute(stmt)).scalars().all()
 

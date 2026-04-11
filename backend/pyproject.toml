@@ -27,6 +27,7 @@ dependencies = [
     "sse-starlette>=1.6.0",
     "numpy>=1.26.0",
     "pandas>=2.2.0",
+    "asyncmy>=0.2.11",
 ]
 
 [project.optional-dependencies]
