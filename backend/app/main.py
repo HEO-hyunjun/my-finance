@@ -23,6 +23,7 @@ from app.api.v1.endpoints import carryover as carryover_router
 from app.api.v1.endpoints import dashboard as dashboard_router
 from app.api.v1.endpoints import market as market_router
 from app.api.v1.endpoints import portfolio as portfolio_router
+from app.api.v1.endpoints import securities as securities_router
 from app.api.v1.endpoints import settings as settings_router
 from app.api.v1.endpoints import chatbot as chatbot_router
 
@@ -73,6 +74,7 @@ app.include_router(calendar_router.router, prefix="/api/v1/calendar", tags=["cal
 app.include_router(carryover_router.router, prefix="/api/v1/budget/carryover", tags=["carryover"])
 app.include_router(dashboard_router.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(market_router.router, prefix="/api/v1/market", tags=["market"])
+app.include_router(securities_router.router, prefix="/api/v1/securities", tags=["securities"])
 app.include_router(portfolio_router.router, prefix="/api/v1/portfolio", tags=["portfolio"])
 app.include_router(settings_router.router, prefix="/api/v1/settings", tags=["settings"])
 app.include_router(chatbot_router.router, prefix="/api/v1/chatbot", tags=["chatbot"])

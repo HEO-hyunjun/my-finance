@@ -75,6 +75,7 @@ Entries 목록만 페이지네이션 지원: `?page=1&per_page=20` (최대 100)
 | 하고 싶은 일 | 읽을 파일 |
 |-------------|----------|
 | 계좌 조회/생성/수정/삭제, 거래 내역 관리, 이체, 매매, 카테고리 관리 | [references/accounts.md](references/accounts.md) |
+| 종목(Security) 조회/등록 — 매매·보유수량 조정 전 security_id 확보 | [references/securities.md](references/securities.md) |
 | 예산 개요, 카테고리별 배분, 예산 분석, 이월 설정/실행 | [references/budget.md](references/budget.md) |
 | 정기거래(자동이체) 조회/생성/수정/삭제/토글 | [references/schedules.md](references/schedules.md) |
 | 자산 추이, 스냅샷, 목표 자산, 리밸런싱, 시세/환율 조회 | [references/investment.md](references/investment.md) |
