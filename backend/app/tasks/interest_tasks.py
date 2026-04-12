@@ -1,10 +1,29 @@
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 
 from app.core.celery_app import celery_app
-from app.core.tz import today as tz_today
+from app.core.tz import APP_TZ, today as tz_today
+
+
+def _kst_day_utc_range(d: date) -> tuple[datetime, datetime]:
+    """KST 기준 하루(00:00~다음날 00:00)의 UTC 범위를 반환."""
+    start = datetime.combine(d, time.min, tzinfo=APP_TZ).astimezone(timezone.utc)
+    end = datetime.combine(d + timedelta(days=1), time.min, tzinfo=APP_TZ).astimezone(timezone.utc)
+    return start, end
+
+
+def _kst_month_utc_range(d: date) -> tuple[datetime, datetime]:
+    """KST 기준 이번 달(1일 00:00~다음달 1일 00:00)의 UTC 범위를 반환."""
+    month_start = d.replace(day=1)
+    if month_start.month == 12:
+        next_month = date(month_start.year + 1, 1, 1)
+    else:
+        next_month = date(month_start.year, month_start.month + 1, 1)
+    start = datetime.combine(month_start, time.min, tzinfo=APP_TZ).astimezone(timezone.utc)
+    end = datetime.combine(next_month, time.min, tzinfo=APP_TZ).astimezone(timezone.utc)
+    return start, end
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +51,7 @@ def record_monthly_deposit_interest():
 
 
 async def _record_parking_interest_async():
-    from sqlalchemy import select, and_, cast, Date
+    from sqlalchemy import select, and_
 
     from app.models.account import Account, AccountType
     from app.models.entry import Entry, EntryType
@@ -62,18 +81,20 @@ async def _record_parking_interest_async():
                     if balance <= 0:
                         continue
 
-                    # 중복 체크: 오늘 이미 기록된 이자 Entry가 있는지
+                    # 중복 체크: 오늘(KST) 이미 기록된 이자 Entry가 있는지
+                    day_start_utc, day_end_utc = _kst_day_utc_range(today)
                     existing = await db.execute(
-                        select(Entry).where(
+                        select(Entry.id).where(
                             and_(
                                 Entry.account_id == account.id,
                                 Entry.type == EntryType.INTEREST,
-                                cast(Entry.transacted_at, Date) == today,
+                                Entry.transacted_at >= day_start_utc,
+                                Entry.transacted_at < day_end_utc,
                                 Entry.memo.like("%일일이자%"),
                             )
-                        )
+                        ).limit(1)
                     )
-                    if existing.scalar_one_or_none():
+                    if existing.first() is not None:
                         continue
 
                     info = calculate_parking_interest(
@@ -149,24 +170,20 @@ async def _record_deposit_interest_async():
 
             for account in accounts:
                 try:
-                    # 중복 체크: 이번 달 이미 기록된 월별이자 Entry가 있는지
-                    month_start = today.replace(day=1)
+                    # 중복 체크: 이번 달(KST) 이미 기록된 월별이자 Entry가 있는지
+                    month_start_utc, month_end_utc = _kst_month_utc_range(today)
                     existing = await db.execute(
-                        select(Entry).where(
+                        select(Entry.id).where(
                             and_(
                                 Entry.account_id == account.id,
                                 Entry.type == EntryType.INTEREST,
-                                Entry.transacted_at >= datetime(
-                                    month_start.year,
-                                    month_start.month,
-                                    month_start.day,
-                                    tzinfo=timezone.utc,
-                                ),
+                                Entry.transacted_at >= month_start_utc,
+                                Entry.transacted_at < month_end_utc,
                                 Entry.memo.like("%월별이자%"),
                             )
-                        )
+                        ).limit(1)
                     )
-                    if existing.scalar_one_or_none():
+                    if existing.first() is not None:
                         continue
 
                     tax_rate = account.tax_rate or Decimal("15.400")
