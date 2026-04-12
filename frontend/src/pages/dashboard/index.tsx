@@ -23,6 +23,7 @@ import {
   Settings,
 } from 'lucide-react';
 
+import { ENTRY_TYPE_LABELS, ENTRY_TYPE_BG } from '@/shared/lib/entry-labels';
 import { useDashboardSummary, useDashboardInsights } from '@/features/dashboard/api';
 import { useGoal, useAssetTimeline } from '@/features/portfolio/api';
 import { useExchangeRate, useMarketPrice } from '@/features/market/api';
@@ -65,28 +66,6 @@ function formatDate(iso: string): string {
 function formatShortDate(iso: string): string {
   return new Date(iso).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
-
-const ENTRY_TYPE_LABELS: Record<string, string> = {
-  income: '수입',
-  expense: '지출',
-  transfer: '이체',
-  transfer_in: '이체(입금)',
-  transfer_out: '이체(출금)',
-  adjustment: '잔액조정',
-  investment_buy: '매수',
-  investment_sell: '매도',
-};
-
-const ENTRY_TYPE_BG: Record<string, string> = {
-  income: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  expense: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  transfer_in: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  transfer_out: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  investment_buy: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  investment_sell: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-  adjustment: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-};
-
 
 // ─── widget error boundary helper ─────────────────────────────────────────────
 

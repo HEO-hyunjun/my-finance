@@ -29,16 +29,6 @@ export const ASSET_TYPE_LABELS: Record<string, string> = {
   other: '기타',
 };
 
-export const TRANSACTION_TYPE_LABELS: Record<string, string> = {
-  buy: '매수',
-  sell: '매도',
-  exchange: '환전',
-  deposit_in: '입금',
-  withdraw: '출금',
-  interest: '이자',
-  dividend: '배당',
-};
-
 export interface Asset {
   id: string;
   name: string;

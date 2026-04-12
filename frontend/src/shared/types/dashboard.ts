@@ -30,17 +30,6 @@ export interface DashboardBudgetSummary {
   top_categories: DashboardBudgetCategory[];
 }
 
-export interface DashboardTransaction {
-  id: string;
-  asset_name: string;
-  asset_type: string;
-  type: string;
-  quantity: number;
-  unit_price: number;
-  currency: string;
-  transacted_at: string;
-}
-
 export interface DashboardMarketItem {
   symbol: string;
   name: string | null;
