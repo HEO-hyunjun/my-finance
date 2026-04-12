@@ -7,6 +7,7 @@ export interface Category {
   icon: string | null;
   color: string | null;
   sort_order: number;
+  default_allocation: number | null;
   is_active: boolean;
   created_at: string;
 }
@@ -17,6 +18,7 @@ export interface CategoryCreate {
   icon?: string | null;
   color?: string | null;
   sort_order?: number;
+  default_allocation?: number | null;
 }
 
 export interface CategoryUpdate {
@@ -24,5 +26,6 @@ export interface CategoryUpdate {
   icon?: string | null;
   color?: string | null;
   sort_order?: number | null;
+  default_allocation?: number | null;
   is_active?: boolean | null;
 }

@@ -8,6 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.budget_v2 import BudgetPeriod, BudgetAllocation
+from app.models.category import Category, CategoryDirection
 from app.models.entry import Entry, EntryType
 from app.models.recurring_schedule import RecurringSchedule, ScheduleType
 
@@ -69,12 +70,60 @@ async def update_period_start_day(
     return period
 
 
+async def ensure_default_allocations(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    period_start: date,
+    period_end: date,
+) -> None:
+    """카테고리의 default_allocation을 현재 기간 allocation으로 lazy seed.
+
+    이미 해당 카테고리의 period_start에 allocation이 있으면 건드리지 않는다.
+    default_allocation이 None이거나 0인 카테고리는 생성하지 않는다.
+    """
+    cat_stmt = select(Category).where(
+        Category.user_id == user_id,
+        Category.direction == CategoryDirection.EXPENSE,
+        Category.is_active.is_(True),
+        Category.default_allocation.is_not(None),
+        Category.default_allocation > 0,
+    )
+    categories = (await db.execute(cat_stmt)).scalars().all()
+    if not categories:
+        return
+
+    existing_stmt = select(BudgetAllocation.category_id).where(
+        BudgetAllocation.user_id == user_id,
+        BudgetAllocation.period_start == period_start,
+    )
+    existing_cat_ids = {
+        row for row in (await db.execute(existing_stmt)).scalars().all()
+    }
+
+    created = False
+    for cat in categories:
+        if cat.id in existing_cat_ids:
+            continue
+        db.add(BudgetAllocation(
+            user_id=user_id,
+            category_id=cat.id,
+            amount=cat.default_allocation,
+            period_start=period_start,
+            period_end=period_end,
+        ))
+        created = True
+
+    if created:
+        await db.commit()
+
+
 async def get_budget_overview(
     db: AsyncSession, user_id: uuid.UUID, today: date,
 ) -> dict:
     """Top-down 예산 개요"""
     period = await get_or_create_period(db, user_id)
     period_start, period_end = get_period_dates(period.period_start_day, today)
+    await ensure_default_allocations(db, user_id, period_start, period_end)
 
     # 월 수입 합계 (활성 income 스케줄)
     income_stmt = select(
@@ -138,6 +187,7 @@ async def get_category_budgets(
     """카테고리별 배분 + 실제 지출 + 잔여"""
     period = await get_or_create_period(db, user_id)
     period_start, period_end = get_period_dates(period.period_start_day, today)
+    await ensure_default_allocations(db, user_id, period_start, period_end)
 
     # 이번 기간 allocations
     alloc_stmt = select(BudgetAllocation).where(

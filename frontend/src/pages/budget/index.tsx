@@ -523,6 +523,9 @@ function EditCategoryDialog({
   const [name, setName] = useState(category.name);
   const [icon, setIcon] = useState(category.icon ?? '');
   const [color, setColor] = useState(category.color ?? '#6366f1');
+  const [defaultAllocation, setDefaultAllocation] = useState(
+    category.default_allocation != null ? String(category.default_allocation) : '',
+  );
 
   // 이월 정책 state
   const [coType, setCoType] = useState<CarryoverType>(carryover?.carryover_type ?? 'expire');
@@ -538,6 +541,9 @@ function EditCategoryDialog({
       setName(category.name);
       setIcon(category.icon ?? '');
       setColor(category.color ?? '#6366f1');
+      setDefaultAllocation(
+        category.default_allocation != null ? String(category.default_allocation) : '',
+      );
       setCoType(carryover?.carryover_type ?? 'expire');
       setCoLimit(carryover?.carryover_limit?.toString() ?? '');
       setCoSourceId(carryover?.source_asset_id ?? '');
@@ -576,10 +582,12 @@ function EditCategoryDialog({
     if (!name.trim()) return;
 
     try {
+      const parsedDefault = defaultAllocation === '' ? null : Number(defaultAllocation);
       const catChanged =
         name.trim() !== category.name ||
         (icon || null) !== category.icon ||
-        (color || null) !== category.color;
+        (color || null) !== category.color ||
+        parsedDefault !== (category.default_allocation ?? null);
 
       if (catChanged) {
         await updateCategory.mutateAsync({
@@ -587,6 +595,7 @@ function EditCategoryDialog({
           name: name.trim(),
           icon: icon || null,
           color: color || null,
+          default_allocation: parsedDefault,
         });
       }
 
@@ -656,6 +665,25 @@ function EditCategoryDialog({
               </div>
             </div>
           </div>
+
+          {category.direction === 'expense' && (
+            <div className="space-y-1.5 pt-2 border-t">
+              <Label htmlFor="edit_default_allocation" className="text-sm font-medium">
+                기본 월 배분액 (원)
+              </Label>
+              <Input
+                id="edit_default_allocation"
+                type="number"
+                value={defaultAllocation}
+                onChange={(e) => setDefaultAllocation(e.target.value)}
+                placeholder="설정 안 함"
+                min="0"
+              />
+              <p className="text-xs text-muted-foreground">
+                매 기간 시작 시 이 금액으로 예산이 자동 배정됩니다. 이월된 잔여액은 여기에 더해집니다.
+              </p>
+            </div>
+          )}
 
           {/* 이월 정책 */}
           <div className="space-y-3 pt-2 border-t">

@@ -6,6 +6,7 @@ from app.models.entry import Entry, EntryGroup, EntryType, GroupType  # noqa: F4
 from app.models.category import Category, CategoryDirection  # noqa: F401
 from app.models.recurring_schedule import RecurringSchedule, ScheduleType  # noqa: F401
 from app.models.budget_v2 import BudgetPeriod, BudgetAllocation  # noqa: F401
+from app.models.carryover import CarryoverSetting, CarryoverLog, CarryoverType  # noqa: F401
 from app.models.portfolio import AssetSnapshot, PortfolioTarget, RebalancingAlert, GoalAsset, AccountSnapshot  # noqa: F401
 
 # Supporting models

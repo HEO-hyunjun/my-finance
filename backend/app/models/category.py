@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, DateTime, Enum, Uuid, Boolean, Integer, UniqueConstraint
+from sqlalchemy import String, DateTime, Enum, Numeric, Uuid, Boolean, Integer, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -28,6 +29,7 @@ class Category(Base):
     icon: Mapped[str | None] = mapped_column(String(10), nullable=True)
     color: Mapped[str | None] = mapped_column(String(7), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    default_allocation: Mapped[Decimal | None] = mapped_column(Numeric(18, 4), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),

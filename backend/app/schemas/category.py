@@ -1,7 +1,8 @@
 from datetime import datetime
+from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CategoryCreate(BaseModel):
@@ -10,6 +11,7 @@ class CategoryCreate(BaseModel):
     icon: str | None = None
     color: str | None = None
     sort_order: int = 0
+    default_allocation: Decimal | None = Field(default=None, ge=0)
 
 
 class CategoryUpdate(BaseModel):
@@ -17,6 +19,7 @@ class CategoryUpdate(BaseModel):
     icon: str | None = None
     color: str | None = None
     sort_order: int | None = None
+    default_allocation: Decimal | None = Field(default=None, ge=0)
     is_active: bool | None = None
 
 
@@ -29,5 +32,6 @@ class CategoryResponse(BaseModel):
     icon: str | None
     color: str | None
     sort_order: int
+    default_allocation: Decimal | None
     is_active: bool
     created_at: datetime

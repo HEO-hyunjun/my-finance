@@ -11,6 +11,9 @@ from app.schemas.carryover import (
     CarryoverLogResponse, CarryoverExecuteRequest, CarryoverPreviewResponse,
 )
 from app.services import carryover_service
+from app.models.carryover import CarryoverSetting
+from sqlalchemy import select
+import uuid
 
 router = APIRouter(tags=["budget-carryover"])
 
@@ -21,6 +24,22 @@ async def list_settings(
     user: User = Depends(get_current_user),
 ):
     return await carryover_service.get_carryover_settings(db, user.id)
+
+
+@router.delete("/settings/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_setting(
+    category_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    stmt = select(CarryoverSetting).where(
+        CarryoverSetting.user_id == user.id,
+        CarryoverSetting.category_id == category_id,
+    )
+    setting = (await db.execute(stmt)).scalar_one_or_none()
+    if setting:
+        await db.delete(setting)
+        await db.commit()
 
 
 @router.post("/settings", response_model=CarryoverSettingResponse, status_code=status.HTTP_201_CREATED)
