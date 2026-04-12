@@ -661,13 +661,15 @@ function SavingsDetail({ account, summary }: SavingsDetailProps) {
   const monthlyAmount = account.monthly_amount ?? 0;
   const startDate = account.start_date;
   const maturityDate = account.maturity_date;
+  const balance = summary.balance;
 
   const elapsed = startDate ? elapsedMonths(startDate) : 0;
   const totalMonths = startDate && maturityDate ? monthsBetween(startDate, maturityDate) : 0;
-  const totalPaid = elapsed * monthlyAmount;
+  const remainingMonths = Math.max(0, totalMonths - elapsed);
+  // 총 납입액은 실제 잔액(과납입·추가입금 반영)
+  const totalPaid = balance;
 
-  // 단리 기준 이자 추정 (월별 납입액 누적)
-  // 각 회차 납입액 × (잔여개월 × rate/12)
+  // 과거 경과이자 추정 (참고용): 각 회차 × 잔여개월 × rate/12
   let estimatedInterest = 0;
   if (startDate && maturityDate && rate > 0 && monthlyAmount > 0) {
     for (let i = 0; i < elapsed; i++) {
@@ -677,7 +679,14 @@ function SavingsDetail({ account, summary }: SavingsDetailProps) {
   }
   const interestAfterTax = estimatedInterest * (1 - taxRate / 100);
 
-  const maturityExpected = totalPaid + estimatedInterest;
+  // 만기 예상: 현재 잔액 + 앞으로 납입 + 잔여기간 이자(세후, 단리 근사)
+  const futureDeposits = monthlyAmount * remainingMonths;
+  const interestOnBalance = balance * (rate / 100) * (remainingMonths / 12);
+  const interestOnFuture =
+    monthlyAmount * (rate / 100 / 12) * remainingMonths * (remainingMonths + 1) / 2;
+  const futureInterestAfterTax =
+    (interestOnBalance + interestOnFuture) * (1 - taxRate / 100);
+  const maturityExpected = balance + futureDeposits + futureInterestAfterTax;
   const progressPct = totalMonths > 0 ? Math.min(100, Math.round((elapsed / totalMonths) * 100)) : 0;
 
   return (
