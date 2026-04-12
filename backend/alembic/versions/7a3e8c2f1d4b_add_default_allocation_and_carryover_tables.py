@@ -40,7 +40,15 @@ def upgrade() -> None:
         sa.Column("id", sa.Uuid(), primary_key=True, nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("category_id", sa.Uuid(), nullable=False),
-        sa.Column("carryover_type", CARRYOVER_TYPE_ENUM, nullable=False),
+        sa.Column(
+            "carryover_type",
+            sa.Enum(
+                "expire", "next_month", "savings", "deposit", "transfer",
+                name="carryovertype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
         sa.Column("carryover_limit", sa.Numeric(18, 4), nullable=True),
         sa.Column("source_asset_id", sa.Uuid(), nullable=True),
         sa.Column("target_asset_id", sa.Uuid(), nullable=True),
@@ -67,7 +75,15 @@ def upgrade() -> None:
         sa.Column("category_id", sa.Uuid(), nullable=False),
         sa.Column("budget_period_start", sa.Date(), nullable=False),
         sa.Column("budget_period_end", sa.Date(), nullable=False),
-        sa.Column("carryover_type", CARRYOVER_TYPE_ENUM, nullable=False),
+        sa.Column(
+            "carryover_type",
+            sa.Enum(
+                "expire", "next_month", "savings", "deposit", "transfer",
+                name="carryovertype",
+                create_type=False,
+            ),
+            nullable=False,
+        ),
         sa.Column("amount", sa.Numeric(18, 4), nullable=False),
         sa.Column("target_description", sa.String(200), nullable=True),
         sa.Column("executed_at", sa.DateTime(timezone=True), nullable=False),
