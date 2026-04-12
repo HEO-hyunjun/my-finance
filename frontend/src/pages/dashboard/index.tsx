@@ -214,12 +214,12 @@ function GoalAssetWidget({ onOpenSettings }: { onOpenSettings?: () => void }) {
             <div>
               <div className="mb-1 flex justify-between text-xs text-muted-foreground">
                 <span>달성률</span>
-                <span>{(data.achievement_rate * 100).toFixed(1)}%</span>
+                <span>{data.achievement_rate.toFixed(1)}%</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div
                   className="h-full rounded-full bg-primary transition-all"
-                  style={{ width: `${Math.min(data.achievement_rate * 100, 100)}%` }}
+                  style={{ width: `${Math.min(data.achievement_rate, 100)}%` }}
                 />
               </div>
             </div>
@@ -1064,7 +1064,7 @@ function DashboardSettingsDialog({ isOpen, onClose, defaultTab = 'widgets' }: Da
             </Button>
             {goal && (
               <p className="text-xs text-muted-foreground text-center">
-                현재 달성률: {(goal.achievement_rate * 100).toFixed(1)}%
+                현재 달성률: {goal.achievement_rate.toFixed(1)}%
               </p>
             )}
           </TabsContent>
