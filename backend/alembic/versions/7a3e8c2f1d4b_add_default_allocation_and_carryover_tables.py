@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 
 revision: str = "7a3e8c2f1d4b"
@@ -17,14 +18,17 @@ branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
-CARRYOVER_TYPE_ENUM = sa.Enum(
-    "expire",
-    "next_month",
-    "savings",
-    "deposit",
-    "transfer",
-    name="carryovertype",
-)
+def _carryover_enum() -> postgresql.ENUM:
+    """컬럼용 ENUM 참조. create_type=False 로 CREATE TYPE 재발행 금지."""
+    return postgresql.ENUM(
+        "expire",
+        "next_month",
+        "savings",
+        "deposit",
+        "transfer",
+        name="carryovertype",
+        create_type=False,
+    )
 
 
 def upgrade() -> None:
@@ -33,22 +37,18 @@ def upgrade() -> None:
         sa.Column("default_allocation", sa.Numeric(18, 4), nullable=True),
     )
 
-    CARRYOVER_TYPE_ENUM.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        "DO $$ BEGIN "
+        "CREATE TYPE carryovertype AS ENUM ('expire','next_month','savings','deposit','transfer'); "
+        "EXCEPTION WHEN duplicate_object THEN NULL; END $$"
+    )
 
     op.create_table(
         "carryover_settings",
         sa.Column("id", sa.Uuid(), primary_key=True, nullable=False),
         sa.Column("user_id", sa.Uuid(), nullable=False),
         sa.Column("category_id", sa.Uuid(), nullable=False),
-        sa.Column(
-            "carryover_type",
-            sa.Enum(
-                "expire", "next_month", "savings", "deposit", "transfer",
-                name="carryovertype",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
+        sa.Column("carryover_type", _carryover_enum(), nullable=False),
         sa.Column("carryover_limit", sa.Numeric(18, 4), nullable=True),
         sa.Column("source_asset_id", sa.Uuid(), nullable=True),
         sa.Column("target_asset_id", sa.Uuid(), nullable=True),
@@ -75,15 +75,7 @@ def upgrade() -> None:
         sa.Column("category_id", sa.Uuid(), nullable=False),
         sa.Column("budget_period_start", sa.Date(), nullable=False),
         sa.Column("budget_period_end", sa.Date(), nullable=False),
-        sa.Column(
-            "carryover_type",
-            sa.Enum(
-                "expire", "next_month", "savings", "deposit", "transfer",
-                name="carryovertype",
-                create_type=False,
-            ),
-            nullable=False,
-        ),
+        sa.Column("carryover_type", _carryover_enum(), nullable=False),
         sa.Column("amount", sa.Numeric(18, 4), nullable=False),
         sa.Column("target_description", sa.String(200), nullable=True),
         sa.Column("executed_at", sa.DateTime(timezone=True), nullable=False),
@@ -103,5 +95,5 @@ def downgrade() -> None:
     op.drop_table("carryover_logs")
     op.drop_index("ix_carryover_settings_user_id", table_name="carryover_settings")
     op.drop_table("carryover_settings")
-    CARRYOVER_TYPE_ENUM.drop(op.get_bind(), checkfirst=True)
+    op.execute("DROP TYPE IF EXISTS carryovertype")
     op.drop_column("categories", "default_allocation")
