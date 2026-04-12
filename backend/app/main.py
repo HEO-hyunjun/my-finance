@@ -70,7 +70,7 @@ app.include_router(schedules_router.router, prefix="/api/v1/schedules", tags=["s
 # Existing features (to be updated in Phase 2)
 app.include_router(budget_router.router, prefix="/api/v1/budget", tags=["budget"])
 app.include_router(calendar_router.router, prefix="/api/v1/calendar", tags=["calendar"])
-app.include_router(carryover_router.router, prefix="/api/v1/carryover", tags=["carryover"])
+app.include_router(carryover_router.router, prefix="/api/v1/budget/carryover", tags=["carryover"])
 app.include_router(dashboard_router.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(market_router.router, prefix="/api/v1/market", tags=["market"])
 app.include_router(portfolio_router.router, prefix="/api/v1/portfolio", tags=["portfolio"])
