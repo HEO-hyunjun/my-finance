@@ -24,8 +24,8 @@ class WeeklyAnalysisResponse(BaseModel):
 class CategorySpendingRate(BaseModel):
     category_id: str
     category_name: str
-    category_icon: str
-    category_color: str
+    category_icon: str | None = None
+    category_color: str | None = None
     monthly_budget: float
     spent: float
     remaining: float
