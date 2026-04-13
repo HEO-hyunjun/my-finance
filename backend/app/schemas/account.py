@@ -19,6 +19,7 @@ class AccountCreate(BaseModel):
 
 
 class AccountUpdate(BaseModel):
+    account_type: str | None = None
     name: str | None = None
     institution: str | None = None
     interest_rate: Decimal | None = None

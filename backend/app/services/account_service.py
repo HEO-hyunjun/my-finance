@@ -33,6 +33,11 @@ async def get_account(db: AsyncSession, user_id: uuid.UUID, account_id: uuid.UUI
 
 async def update_account(db: AsyncSession, user_id: uuid.UUID, account_id: uuid.UUID, data: dict) -> Account:
     account = await get_account(db, user_id, account_id)
+    if "account_type" in data and data["account_type"] is not None:
+        try:
+            data["account_type"] = AccountType(data["account_type"])
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid account_type")
     for field, value in data.items():
         setattr(account, field, value)
     await db.commit()

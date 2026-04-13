@@ -171,26 +171,24 @@ function AccountFormFields({ form, isCreate, onChange }: AccountFormFieldsProps)
 
   return (
     <div className="space-y-4">
-      {isCreate && (
-        <div className="space-y-1.5">
-          <Label htmlFor="account_type">계좌 유형 *</Label>
-          <Select
-            value={form.account_type}
-            onValueChange={(v) => onChange('account_type', v)}
-          >
-            <SelectTrigger id="account_type" className="w-full">
-              <SelectValue placeholder="유형 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              {ACCOUNT_TYPE_ORDER.map((type) => (
-                <SelectItem key={type} value={type}>
-                  {ACCOUNT_TYPE_LABELS[type]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
+      <div className="space-y-1.5">
+        <Label htmlFor="account_type">계좌 유형 *</Label>
+        <Select
+          value={form.account_type}
+          onValueChange={(v) => onChange('account_type', v)}
+        >
+          <SelectTrigger id="account_type" className="w-full">
+            <SelectValue placeholder="유형 선택" />
+          </SelectTrigger>
+          <SelectContent>
+            {ACCOUNT_TYPE_ORDER.map((type) => (
+              <SelectItem key={type} value={type}>
+                {ACCOUNT_TYPE_LABELS[type]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="name">계좌명 *</Label>
@@ -397,17 +395,21 @@ function EditAccountDialog({ account, isOpen, onClose }: EditAccountDialogProps)
     e.preventDefault();
     if (!form.name.trim()) return;
 
+    const needsInterest = NEEDS_INTEREST.has(form.account_type);
+    const isSavings = form.account_type === 'savings';
+
     updateAccount.mutate(
       {
         id: account.id,
+        account_type: form.account_type,
         name: form.name.trim(),
         institution: form.institution || null,
-        interest_rate: form.interest_rate ? Number(form.interest_rate) : null,
-        interest_type: (form.interest_type as InterestType) || null,
-        start_date: form.start_date || null,
-        maturity_date: form.maturity_date || null,
-        tax_rate: form.tax_rate ? Number(form.tax_rate) : null,
-        monthly_amount: form.monthly_amount ? Number(form.monthly_amount) : null,
+        interest_rate: needsInterest && form.interest_rate ? Number(form.interest_rate) : null,
+        interest_type: needsInterest ? (form.interest_type as InterestType) || null : null,
+        start_date: needsInterest ? form.start_date || null : null,
+        maturity_date: needsInterest ? form.maturity_date || null : null,
+        tax_rate: needsInterest && form.tax_rate ? Number(form.tax_rate) : null,
+        monthly_amount: isSavings && form.monthly_amount ? Number(form.monthly_amount) : null,
       },
       { onSuccess: onClose },
     );

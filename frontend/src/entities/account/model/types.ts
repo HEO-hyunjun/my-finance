@@ -54,6 +54,7 @@ export interface AccountCreate {
 }
 
 export interface AccountUpdate {
+  account_type?: AccountType | null;
   name?: string | null;
   institution?: string | null;
   interest_rate?: number | null;
