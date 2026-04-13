@@ -110,6 +110,8 @@ async def _take_snapshot_async():
                     logger.warning(f"Snapshot failed for account {account.id}: {e}")
 
             # AssetSnapshot (유저별 총 자산) 저장
+            from app.services import portfolio_service
+
             for uid, data in user_totals.items():
                 try:
                     user_uuid = _uuid.UUID(uid)
@@ -129,6 +131,14 @@ async def _take_snapshot_async():
                             total_krw=data["total_krw"],
                             breakdown=data["breakdown"],
                         ))
+
+                    # 리밸런싱 편차 체크 후 알림 생성
+                    try:
+                        await portfolio_service.check_and_create_alert(
+                            db, user_uuid, today, data["breakdown"], 0.05
+                        )
+                    except Exception as e:
+                        logger.warning(f"Alert check failed for user {uid}: {e}")
                 except Exception as e:
                     logger.warning(f"AssetSnapshot failed for user {uid}: {e}")
 

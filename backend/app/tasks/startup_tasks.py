@@ -17,6 +17,7 @@ def run_missed_tasks():
         ("app.tasks.schedule_tasks.compensate_missed_schedules", 10),
         ("app.tasks.interest_tasks.record_daily_parking_interest", 15),
         ("app.tasks.market_tasks.warm_market_cache", 20),
+        ("app.tasks.snapshot_tasks.take_daily_snapshot", 25),
     ]
     for task_name, countdown in tasks:
         try:

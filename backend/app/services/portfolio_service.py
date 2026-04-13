@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta
+from datetime import date, timedelta
 
 from app.core.tz import today as tz_today
 from decimal import Decimal
@@ -303,3 +303,75 @@ async def mark_alert_read(
     if alert:
         alert.is_read = True
         await db.commit()
+
+
+async def check_and_create_alert(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    snapshot_date: date,
+    breakdown: dict,
+    threshold: float = 0.05,
+) -> RebalancingAlert | None:
+    """스냅샷 기준 편차를 계산해 threshold 초과 시 알림을 생성한다.
+
+    같은 (user, snapshot_date, threshold) 조합의 알림이 이미 존재하면 생성하지 않는다.
+    커밋은 호출자가 담당한다.
+    """
+    targets = (
+        await db.execute(
+            select(PortfolioTarget).where(PortfolioTarget.user_id == user_id)
+        )
+    ).scalars().all()
+    if not targets:
+        return None
+
+    total_value = sum(breakdown.values()) if breakdown else 0
+    if total_value <= 0:
+        return None
+
+    deviations: dict[str, float] = {}
+    exceeded: list[tuple[PortfolioTarget, float]] = []
+    for t in targets:
+        current = breakdown.get(t.asset_type, 0) / total_value
+        dev = round(current - float(t.target_ratio), 4)
+        deviations[t.asset_type] = dev
+        if abs(dev) >= threshold:
+            exceeded.append((t, dev))
+
+    if not exceeded:
+        return None
+
+    threshold_decimal = Decimal(str(threshold))
+    existing = (
+        await db.execute(
+            select(RebalancingAlert).where(
+                RebalancingAlert.user_id == user_id,
+                RebalancingAlert.snapshot_date == snapshot_date,
+                RebalancingAlert.threshold == threshold_decimal,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        return existing
+
+    suggestion = {
+        "items": [
+            {
+                "asset_type": t.asset_type,
+                "action": "sell" if dev > 0 else "buy",
+                "amount_krw": round(abs(dev * total_value)),
+                "deviation_pct": round(dev * 100, 1),
+            }
+            for t, dev in exceeded
+        ]
+    }
+
+    alert = RebalancingAlert(
+        user_id=user_id,
+        snapshot_date=snapshot_date,
+        deviations=deviations,
+        suggestion=suggestion,
+        threshold=threshold_decimal,
+    )
+    db.add(alert)
+    return alert
