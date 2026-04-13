@@ -134,10 +134,19 @@ interface ScheduleFormFieldsProps {
   onChange: (field: keyof ScheduleFormState, value: string | null) => void;
 }
 
+// 출금이 자유로운 계좌 (적금·투자는 출금에서 제외)
+const SOURCE_ELIGIBLE_TYPES = new Set(['cash', 'deposit', 'parking']);
+
 function ScheduleFormFields({ form, isCreate, onChange }: ScheduleFormFieldsProps) {
   const { data: accounts = [] } = useAccounts();
   const isTransfer = form.type === 'transfer';
+  const isIncome = form.type === 'income';
+  const isExpense = form.type === 'expense';
   const categoryDirection = form.type === 'income' ? 'income' : 'expense';
+
+  const activeAccounts = accounts.filter((a) => a.is_active);
+  const sourceAccounts = activeAccounts.filter((a) => SOURCE_ELIGIBLE_TYPES.has(a.account_type));
+  const targetAccounts = activeAccounts;
 
   return (
     <div className="space-y-4">
@@ -262,43 +271,44 @@ function ScheduleFormFields({ form, isCreate, onChange }: ScheduleFormFieldsProp
         />
       </div>
 
-      {/* 이체 계좌 */}
-      {isTransfer ? (
-        <>
-          <div className="space-y-1.5">
-            <Label htmlFor="source_account_id">출금 계좌</Label>
-            <Select
-              value={form.source_account_id ?? ''}
-              onValueChange={(v) => onChange('source_account_id', v || null)}
-            >
-              <SelectTrigger id="source_account_id" className="w-full">
-                <SelectValue placeholder="출금 계좌 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="target_account_id">입금 계좌</Label>
-            <Select
-              value={form.target_account_id ?? ''}
-              onValueChange={(v) => onChange('target_account_id', v || null)}
-            >
-              <SelectTrigger id="target_account_id" className="w-full">
-                <SelectValue placeholder="입금 계좌 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </>
-      ) : (
+      {/* 계좌 선택: 이체는 출금+입금, 수입은 입금, 지출은 출금 */}
+      {(isTransfer || isExpense) && (
+        <div className="space-y-1.5">
+          <Label htmlFor="source_account_id">출금 계좌{isTransfer ? '' : ' *'}</Label>
+          <Select
+            value={form.source_account_id ?? ''}
+            onValueChange={(v) => onChange('source_account_id', v || null)}
+          >
+            <SelectTrigger id="source_account_id" className="w-full">
+              <SelectValue placeholder="출금 계좌 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {sourceAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {(isTransfer || isIncome) && (
+        <div className="space-y-1.5">
+          <Label htmlFor="target_account_id">입금 계좌{isTransfer ? '' : ' *'}</Label>
+          <Select
+            value={form.target_account_id ?? ''}
+            onValueChange={(v) => onChange('target_account_id', v || null)}
+          >
+            <SelectTrigger id="target_account_id" className="w-full">
+              <SelectValue placeholder="입금 계좌 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              {targetAccounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {!isTransfer && (
         <div className="space-y-1.5">
           <Label>카테고리</Label>
           <CategorySelect
