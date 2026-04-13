@@ -36,6 +36,10 @@ export const router = createBrowserRouter([
         path: '/budget',
         lazy: () => import('@/pages/budget'),
       },
+      {
+        path: '/portfolio',
+        lazy: () => import('@/pages/portfolio'),
+      },
 {
         path: '/calendar',
         lazy: () => import('@/pages/calendar'),

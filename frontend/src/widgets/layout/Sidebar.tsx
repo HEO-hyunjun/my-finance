@@ -11,6 +11,7 @@ import {
   ChevronRight,
   LogOut,
   Repeat,
+  PieChart,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Button } from "@/shared/ui/button";
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { to: '/accounts', icon: Wallet, label: '계좌' },
   { to: '/entries', icon: ArrowLeftRight, label: '거래내역' },
   { to: '/budget', icon: PiggyBank, label: '예산' },
+  { to: '/portfolio', icon: PieChart, label: '포트폴리오' },
   { to: '/schedules', icon: Repeat, label: '반복일정' },
   { to: '/calendar', icon: CalendarRange, label: '캘린더' },
   { to: '/chatbot', icon: Bot, label: 'AI 챗봇' },

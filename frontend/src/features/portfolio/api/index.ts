@@ -105,12 +105,13 @@ export function useSetPortfolioTargets() {
     mutationFn: async (data: PortfolioTargetCreate[]) => {
       const { data: result } = await apiClient.put<PortfolioTargetResponse[]>(
         '/v1/portfolio/targets',
-        data,
+        { targets: data },
       );
       return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: portfolioKeys.targets() });
+      queryClient.invalidateQueries({ queryKey: portfolioKeys.rebalancing() });
       queryClient.invalidateQueries({ queryKey: portfolioKeys.all });
     },
   });
