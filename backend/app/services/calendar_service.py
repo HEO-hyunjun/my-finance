@@ -30,10 +30,24 @@ _INCOME_ENTRY_TYPES = {
     EntryType.INCOME,
     EntryType.DIVIDEND,
     EntryType.INTEREST,
+}
+
+# 캘린더 수입/지출 집계에서 제외할 타입
+# ADJUSTMENT: 잔액 조정 (실제 소비 아님)
+# TRANSFER_IN/OUT: 계좌 간 이동 (자산 이전)
+# BUY/SELL: 투자 자산 거래 (현금↔자산 전환, 캘린더는 순수 현금 흐름만 표시)
+_EXCLUDE_FROM_CALENDAR = {
+    EntryType.ADJUSTMENT,
+    EntryType.TRANSFER_IN,
+    EntryType.TRANSFER_OUT,
+    EntryType.BUY,
     EntryType.SELL,
 }
 
-def _entry_to_calendar_type(entry_type: EntryType) -> str:
+
+def _entry_to_calendar_type(entry_type: EntryType) -> str | None:
+    if entry_type in _EXCLUDE_FROM_CALENDAR:
+        return None  # 캘린더 미포함
     if entry_type in _INCOME_ENTRY_TYPES:
         return CalendarEventType.INCOME
     return CalendarEventType.EXPENSE
@@ -140,6 +154,8 @@ async def get_calendar_events(
 
     for e in entries:
         cal_type = _entry_to_calendar_type(e.type)
+        if cal_type is None:
+            continue
         color = EVENT_COLOR_MAP.get(cal_type, "#6B7280")
         title = e.memo or e.type.value
         events.append(
