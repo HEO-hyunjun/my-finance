@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
-import { Plus, AlertCircle, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, AlertCircle, Pencil, Play, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
 import {
   useSchedules,
   useCreateSchedule,
   useUpdateSchedule,
   useDeleteSchedule,
   useToggleSchedule,
+  useExecuteSchedule,
 } from '@/features/schedules/api';
 import { useAccounts } from '@/features/accounts/api';
 import { CategorySelect } from '@/features/categories/ui/CategorySelect';
@@ -472,6 +473,7 @@ interface ScheduleCardProps {
 
 function ScheduleCard({ schedule, onEdit, onDelete }: ScheduleCardProps) {
   const toggleSchedule = useToggleSchedule();
+  const executeSchedule = useExecuteSchedule();
   const isInstallment = schedule.total_count != null;
   const progress = isInstallment
     ? Math.min((schedule.executed_count / schedule.total_count!) * 100, 100)
@@ -544,6 +546,18 @@ function ScheduleCard({ schedule, onEdit, onDelete }: ScheduleCardProps) {
 
       {/* 액션 버튼 */}
       <div className="flex gap-2 pt-1">
+        {schedule.is_active && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => executeSchedule.mutate(schedule.id)}
+            disabled={executeSchedule.isPending}
+            title="오늘 날짜로 즉시 실행 (선납 시 사용)"
+          >
+            <Play className="mr-1.5 h-3.5 w-3.5" />
+            지금 실행
+          </Button>
+        )}
         <Button variant="outline" size="sm" onClick={onEdit}>
           <Pencil className="mr-1.5 h-3.5 w-3.5" />
           수정

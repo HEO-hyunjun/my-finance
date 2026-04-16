@@ -191,6 +191,98 @@ async def execute_due_schedules(db: AsyncSession, today: date) -> dict:
     return {"executed": executed, "skipped": skipped, "errors": errors}
 
 
+async def execute_schedule_now(
+    db: AsyncSession, user_id: uuid.UUID, schedule_id: uuid.UUID,
+) -> dict:
+    """스케줄을 오늘 날짜로 즉시 실행. 선납 등 수동 실행에 사용.
+
+    자동 실행(execute_schedule)과 달리 오늘 날짜로 Entry를 생성하며,
+    recurring_schedule_id를 설정해 이번 달 자동 실행 중복을 방지한다.
+    """
+    from app.core.tz import today as tz_today
+
+    schedule = await get_schedule(db, user_id, schedule_id)
+
+    if not schedule.is_active:
+        raise HTTPException(status_code=400, detail="비활성 스케줄은 실행할 수 없습니다.")
+    if schedule.total_count is not None and schedule.executed_count >= schedule.total_count:
+        raise HTTPException(status_code=400, detail="이미 완료된 스케줄입니다.")
+
+    today = tz_today()
+
+    # 중복 체크: 이번 달 같은 스케줄에서 생성된 Entry가 이미 있는지
+    check_stmt = (
+        select(Entry.id)
+        .where(
+            Entry.recurring_schedule_id == schedule.id,
+            extract("year", Entry.transacted_at) == today.year,
+            extract("month", Entry.transacted_at) == today.month,
+        )
+        .limit(1)
+    )
+    if (await db.execute(check_stmt)).scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="이번 달에 이미 실행된 스케줄입니다.")
+
+    ts = datetime(today.year, today.month, today.day, tzinfo=timezone.utc)
+
+    if schedule.type == ScheduleType.TRANSFER:
+        if not schedule.source_account_id or not schedule.target_account_id:
+            raise HTTPException(status_code=400, detail="이체 계좌 정보가 없습니다.")
+        group = await create_transfer(
+            db,
+            schedule.user_id,
+            source_account_id=schedule.source_account_id,
+            target_account_id=schedule.target_account_id,
+            amount=schedule.amount,
+            currency=schedule.currency,
+            memo=f"[수동실행] {schedule.name}",
+            transacted_at=ts,
+            recurring_schedule_id=schedule.id,
+        )
+        entry = (
+            await db.execute(select(Entry).where(Entry.entry_group_id == group.id).limit(1))
+        ).scalar_one()
+    elif schedule.type == ScheduleType.INCOME:
+        if not schedule.target_account_id:
+            raise HTTPException(status_code=400, detail="입금 계좌 정보가 없습니다.")
+        entry = await create_entry(
+            db,
+            schedule.user_id,
+            account_id=schedule.target_account_id,
+            type=EntryType.INCOME,
+            amount=abs(schedule.amount),
+            currency=schedule.currency,
+            category_id=schedule.category_id,
+            memo=f"[수동실행] {schedule.name}",
+            recurring_schedule_id=schedule.id,
+            transacted_at=ts,
+        )
+    elif schedule.type == ScheduleType.EXPENSE:
+        if not schedule.source_account_id:
+            raise HTTPException(status_code=400, detail="출금 계좌 정보가 없습니다.")
+        entry = await create_entry(
+            db,
+            schedule.user_id,
+            account_id=schedule.source_account_id,
+            type=EntryType.EXPENSE,
+            amount=-abs(schedule.amount),
+            currency=schedule.currency,
+            category_id=schedule.category_id,
+            memo=f"[수동실행] {schedule.name}",
+            recurring_schedule_id=schedule.id,
+            transacted_at=ts,
+        )
+    else:
+        raise HTTPException(status_code=400, detail="지원하지 않는 스케줄 유형입니다.")
+
+    schedule.executed_count += 1
+    if schedule.total_count is not None and schedule.executed_count >= schedule.total_count:
+        schedule.is_active = False
+
+    await db.commit()
+    return {"status": "executed", "entry_id": str(entry.id), "entry_date": today.isoformat()}
+
+
 async def compensate_missed_schedules(db: AsyncSession, today: date) -> dict:
     """이번 달 누락된 스케줄 보상 실행. schedule_day <= today.day인 활성 스케줄 대상."""
     stmt = select(RecurringSchedule).where(

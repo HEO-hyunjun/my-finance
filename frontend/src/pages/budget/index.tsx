@@ -129,7 +129,6 @@ function OverviewCard({ onPeriodSettingsClick }: OverviewCardProps) {
   const rows: Array<{ label: string; amount: number; color?: string }> = [
     { label: '이번 달 수입', amount: overview.total_income, color: 'text-green-600' },
     { label: '고정 지출', amount: -overview.total_fixed_expense, color: 'text-red-500' },
-    { label: '자동 이체', amount: -overview.total_transfer, color: 'text-blue-500' },
   ];
 
   return (
@@ -161,6 +160,11 @@ function OverviewCard({ onPeriodSettingsClick }: OverviewCardProps) {
               {formatCurrency(overview.available_budget)}
             </span>
           </div>
+          {overview.total_transfer > 0 && (
+            <p className="text-xs text-muted-foreground pt-1">
+              * 계획된 자동이체 {formatCurrency(overview.total_transfer)} (계좌 간 이동, 예산 미차감)
+            </p>
+          )}
         </div>
 
         <div className="rounded-lg bg-muted/50 px-4 py-3 space-y-1 text-sm">

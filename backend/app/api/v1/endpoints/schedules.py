@@ -72,3 +72,13 @@ async def toggle_schedule(
     current_user: User = Depends(get_current_user),
 ):
     return await schedule_service.toggle_schedule(db, current_user.id, schedule_id)
+
+
+@router.post("/{schedule_id}/execute")
+async def execute_schedule_now(
+    schedule_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """스케줄을 오늘 날짜로 즉시 실행 (선납 등 수동 실행용)."""
+    return await schedule_service.execute_schedule_now(db, current_user.id, schedule_id)

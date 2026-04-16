@@ -83,4 +83,24 @@ export function useToggleSchedule() {
   });
 }
 
+export function useExecuteSchedule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await apiClient.post<{ status: string; entry_id: string; entry_date: string }>(
+        `/v1/schedules/${id}/execute`,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: scheduleKeys.all });
+      qc.invalidateQueries({ queryKey: ['entries'] });
+      qc.invalidateQueries({ queryKey: ['accounts'] });
+      qc.invalidateQueries({ queryKey: ['budget'] });
+      toast.success('스케줄이 실행되었습니다.');
+    },
+    onError: (e) => { toast.error(getErrorMsg(e, '스케줄 실행 실패')); },
+  });
+}
+
 export { scheduleKeys };

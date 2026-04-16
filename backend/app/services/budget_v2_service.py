@@ -155,7 +155,8 @@ async def get_budget_overview(
     )
     total_transfer = Decimal(str((await db.execute(transfer_stmt)).scalar()))
 
-    available = total_income - total_fixed - total_transfer
+    # 자동이체는 계좌 간 이동이므로 가용 예산에서 차감하지 않음
+    available = total_income - total_fixed
 
     # 카테고리 배분 합계
     alloc_stmt = select(
