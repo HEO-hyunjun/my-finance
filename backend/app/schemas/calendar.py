@@ -19,7 +19,7 @@ EVENT_COLOR_MAP = {
     CalendarEventType.INSTALLMENT: "#3B82F6",    # Blue
     CalendarEventType.MATURITY: "#10B981",        # Green
     CalendarEventType.EXPENSE: "#EF4444",          # Red
-    CalendarEventType.INCOME: "#F59E0B",           # Amber
+    CalendarEventType.INCOME: "#22C55E",           # Green
 }
 
 
