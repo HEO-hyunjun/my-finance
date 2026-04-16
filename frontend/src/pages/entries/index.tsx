@@ -619,7 +619,7 @@ interface EditEntryDialogProps {
 }
 
 function EditEntryDialog({ entry, isOpen, onClose }: EditEntryDialogProps) {
-  const [amount, setAmount] = useState(String(entry.amount));
+  const [amount, setAmount] = useState(String(Math.abs(Number(entry.amount))));
   const [memo, setMemo] = useState(entry.memo ?? '');
   const [categoryId, setCategoryId] = useState<string | null>(entry.category_id);
   const [transactedAt, setTransactedAt] = useState(
@@ -635,10 +635,15 @@ function EditEntryDialog({ entry, isOpen, onClose }: EditEntryDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    let signedAmount: number | undefined;
+    if (amount) {
+      const abs = Math.abs(Number(amount));
+      signedAmount = isExpenseType ? -abs : abs;
+    }
     updateEntry.mutate(
       {
         id: entry.id,
-        amount: amount ? Number(amount) : undefined,
+        amount: signedAmount,
         memo: memo || null,
         category_id: categoryId,
         transacted_at: transactedAt ? new Date(transactedAt).toISOString() : undefined,

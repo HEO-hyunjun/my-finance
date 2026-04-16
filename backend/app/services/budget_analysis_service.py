@@ -7,7 +7,6 @@
 - BudgetAllocation 대신 구 BudgetCarryoverSetting
 """
 
-import calendar
 import uuid
 from datetime import date, timedelta
 
@@ -137,14 +136,25 @@ async def get_budget_analysis(
     total_fixed_amount = 0.0
     paid_fixed = 0.0
 
-    _, last_day_of_month = calendar.monthrange(today.year, today.month)
+    # 이번달 실제 실행된 고정지출 스케줄 ID (수동 실행 포함)
+    fixed_schedule_ids = [fs.id for fs in fixed_schedules]
+    executed_fixed_ids: set = set()
+    if fixed_schedule_ids:
+        executed_fixed_stmt = (
+            select(Entry.recurring_schedule_id)
+            .where(
+                Entry.user_id == user_id,
+                Entry.type == EntryType.EXPENSE,
+                Entry.recurring_schedule_id.in_(fixed_schedule_ids),
+                extract("year", Entry.transacted_at) == today.year,
+                extract("month", Entry.transacted_at) == today.month,
+            )
+            .distinct()
+        )
+        executed_fixed_ids = set((await db.execute(executed_fixed_stmt)).scalars().all())
 
     for fs in fixed_schedules:
-        if fs.schedule_day == 0:
-            # 말일: 오늘이 말일이어야 납부 완료
-            is_paid = today.day >= last_day_of_month
-        else:
-            is_paid = today.day >= fs.schedule_day
+        is_paid = fs.id in executed_fixed_ids
         amount = abs(float(fs.amount))
         item_type = "installment" if fs.total_count else "fixed"
         deduction_items.append(FixedDeductionItem(
