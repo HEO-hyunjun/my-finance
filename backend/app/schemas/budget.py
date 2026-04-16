@@ -14,20 +14,20 @@ class BudgetOverviewResponse(BaseModel):
     period_start: str
     period_end: str
     period_start_day: int
-    total_income: Decimal
-    total_fixed_expense: Decimal
-    total_transfer: Decimal
-    available_budget: Decimal
-    total_allocated: Decimal
-    unallocated: Decimal
+    total_income: float
+    total_fixed_expense: float
+    total_transfer: float
+    available_budget: float
+    total_allocated: float
+    unallocated: float
 
 
 class CategoryBudgetResponse(BaseModel):
     allocation_id: str
     category_id: str
-    allocated: Decimal
-    spent: Decimal
-    remaining: Decimal
+    allocated: float
+    spent: float
+    remaining: float
 
 
 class AllocationCreate(BaseModel):
