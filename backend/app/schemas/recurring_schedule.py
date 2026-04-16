@@ -61,3 +61,4 @@ class ScheduleResponse(BaseModel):
     memo: str | None
     is_active: bool
     created_at: datetime
+    executed_this_month: bool = False

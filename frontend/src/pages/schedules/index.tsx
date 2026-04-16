@@ -546,7 +546,7 @@ function ScheduleCard({ schedule, onEdit, onDelete }: ScheduleCardProps) {
 
       {/* 액션 버튼 */}
       <div className="flex gap-2 pt-1">
-        {schedule.is_active && (
+        {schedule.is_active && !schedule.executed_this_month && (
           <Button
             variant="outline"
             size="sm"

@@ -17,6 +17,7 @@ export interface RecurringSchedule {
   memo: string | null;
   is_active: boolean;
   created_at: string;
+  executed_this_month: boolean;
 }
 
 export interface ScheduleCreate {
