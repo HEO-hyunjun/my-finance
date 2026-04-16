@@ -28,7 +28,7 @@ export function MonthSummaryCard({ summary }: Props) {
         <div className="mt-3 grid grid-cols-3 gap-3">
           <div>
             <p className="text-xs text-muted-foreground">수입</p>
-            <p className="text-lg font-bold text-amber-600">
+            <p className="text-lg font-bold text-green-600">
               {summary.total_income_amount.toLocaleString()}
               <span className="text-xs font-normal text-muted-foreground">원</span>
             </p>

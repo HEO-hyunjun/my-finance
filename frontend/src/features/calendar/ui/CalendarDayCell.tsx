@@ -40,7 +40,7 @@ export function CalendarDayCell({
       {summary && isCurrentMonth && (
         <div className="hidden flex-col items-center gap-0 md:flex">
           {summary.total_income > 0 && (
-            <span className="text-[10px] font-medium text-amber-600">
+            <span className="text-[10px] font-medium text-green-600">
               +{formatAmount(summary.total_income)}
             </span>
           )}

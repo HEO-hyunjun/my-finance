@@ -53,7 +53,7 @@ export function EventList({ date, events }: Props) {
         <h3 className="text-base font-semibold">{label}</h3>
         <div className="flex gap-4 text-sm">
           {incomeTotal > 0 && (
-            <span className="text-amber-600 font-medium">+{formatKRW(incomeTotal)}</span>
+            <span className="text-green-600 font-medium">+{formatKRW(incomeTotal)}</span>
           )}
           {expenseTotal > 0 && (
             <span className="text-red-500 font-medium">-{formatKRW(expenseTotal)}</span>
@@ -65,7 +65,7 @@ export function EventList({ date, events }: Props) {
       {incomeEvents.length > 0 && (
         <Card>
           <div className="border-b border-border px-4 py-2.5">
-            <p className="text-xs font-semibold text-amber-600">수입 · 기타</p>
+            <p className="text-xs font-semibold text-green-600">수입 · 기타</p>
           </div>
           <div className="divide-y divide-border">
             {incomeEvents.map((event, i) => (
@@ -113,7 +113,7 @@ function EventRow({ event, isIncome }: { event: CalendarEvent; isIncome?: boolea
       </div>
       <span
         className={`ml-2 flex-shrink-0 text-sm font-medium ${
-          isIncome ? 'text-amber-600' : 'text-red-500'
+          isIncome ? 'text-green-600' : 'text-red-500'
         }`}
       >
         {isIncome ? '+' : '-'}{formatKRW(event.amount)}
