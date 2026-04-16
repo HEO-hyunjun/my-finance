@@ -12,7 +12,7 @@ from datetime import date, timedelta
 
 from app.core.tz import today as tz_today
 
-from sqlalchemy import select, func
+from sqlalchemy import extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.budget_v2 import BudgetAllocation
