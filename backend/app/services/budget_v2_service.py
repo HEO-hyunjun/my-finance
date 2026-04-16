@@ -155,8 +155,8 @@ async def get_budget_overview(
     )
     total_transfer = Decimal(str((await db.execute(transfer_stmt)).scalar()))
 
-    # 자동이체는 계좌 간 이동이므로 가용 예산에서 차감하지 않음
-    available = total_income - total_fixed
+    # 고정지출은 카테고리 배분에 포함하므로 수입 전체가 가용 예산
+    available = total_income
 
     # 카테고리 배분 합계
     alloc_stmt = select(
@@ -218,9 +218,9 @@ async def get_category_budgets(
         results.append({
             "allocation_id": str(alloc.id),
             "category_id": str(alloc.category_id),
-            "allocated": alloc.amount,
-            "spent": spent,
-            "remaining": alloc.amount - spent,
+            "allocated": float(alloc.amount),
+            "spent": float(spent),
+            "remaining": float(alloc.amount - spent),
         })
 
     return results
