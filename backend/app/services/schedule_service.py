@@ -284,10 +284,30 @@ async def execute_schedule_now(
 
 
 async def compensate_missed_schedules(db: AsyncSession, today: date) -> dict:
-    """이번 달 누락된 스케줄 보상 실행. schedule_day <= today.day인 활성 스케줄 대상."""
+    """이번 달 누락된 스케줄 보상 실행. schedule_day <= today.day인 활성 스케줄 대상.
+
+    schedule_day=0(말일)은 실제 말일에만 포함한다.
+    0 <= today.day 가 항상 참이어서 말일 스케줄이 매일 실행되는 버그를 방지.
+    """
+    from sqlalchemy import and_, or_
+
+    _, last_day = calendar.monthrange(today.year, today.month)
+    is_last_day = today.day == last_day
+
+    if is_last_day:
+        day_condition = or_(
+            and_(RecurringSchedule.schedule_day > 0, RecurringSchedule.schedule_day <= today.day),
+            RecurringSchedule.schedule_day == 0,
+        )
+    else:
+        day_condition = and_(
+            RecurringSchedule.schedule_day > 0,
+            RecurringSchedule.schedule_day <= today.day,
+        )
+
     stmt = select(RecurringSchedule).where(
         RecurringSchedule.is_active.is_(True),
-        RecurringSchedule.schedule_day <= today.day,
+        day_condition,
     )
     schedules = (await db.execute(stmt)).scalars().all()
 

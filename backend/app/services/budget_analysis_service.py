@@ -148,6 +148,7 @@ async def get_budget_analysis(
                 Entry.recurring_schedule_id.in_(fixed_schedule_ids),
                 extract("year", Entry.transacted_at) == today.year,
                 extract("month", Entry.transacted_at) == today.month,
+                Entry.transacted_at <= today,  # 미래 날짜 Entry 제외 (말일 선실행 등)
             )
             .distinct()
         )
