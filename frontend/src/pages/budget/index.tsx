@@ -1212,9 +1212,12 @@ function AnalysisSection() {
                 <div key={i} className="flex items-center justify-between text-sm">
                   <span className="flex items-center gap-1.5">
                     <span
-                      className={`inline-block h-1.5 w-1.5 rounded-full ${item.is_paid ? 'bg-green-500' : 'bg-amber-400'}`}
+                      className="inline-block h-1.5 w-1.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: item.color ?? '#9CA3AF' }}
                     />
-                    {item.name}
+                    <span className={item.is_paid ? 'text-muted-foreground line-through' : ''}>
+                      {item.name}
+                    </span>
                     <span className="text-xs text-muted-foreground">({item.payment_day === 0 ? '말일' : `${item.payment_day}일`})</span>
                   </span>
                   <span className={item.is_paid ? 'text-muted-foreground line-through' : ''}>

@@ -136,6 +136,14 @@ async def get_budget_analysis(
     total_fixed_amount = 0.0
     paid_fixed = 0.0
 
+    # 카테고리 색상 맵
+    cat_ids = [fs.category_id for fs in fixed_schedules if fs.category_id]
+    cat_color_map: dict = {}
+    if cat_ids:
+        cat_color_stmt = select(Category.id, Category.color).where(Category.id.in_(cat_ids))
+        for row in (await db.execute(cat_color_stmt)).all():
+            cat_color_map[row.id] = row.color
+
     # 이번달 실제 실행된 고정지출 스케줄 ID (수동 실행 포함)
     fixed_schedule_ids = [fs.id for fs in fixed_schedules]
     executed_fixed_ids: set = set()
@@ -164,6 +172,7 @@ async def get_budget_analysis(
             payment_day=fs.schedule_day,
             is_paid=is_paid,
             item_type=item_type,
+            color=cat_color_map.get(fs.category_id) if fs.category_id else None,
         ))
         total_fixed_amount += amount
         if is_paid:

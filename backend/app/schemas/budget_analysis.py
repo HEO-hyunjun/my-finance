@@ -39,6 +39,7 @@ class FixedDeductionItem(BaseModel):
     payment_day: int
     is_paid: bool  # whether payment_day has passed this month
     item_type: str  # "fixed" | "installment"
+    color: str | None = None  # 카테고리 색상
 
 
 class FixedDeductionSummary(BaseModel):

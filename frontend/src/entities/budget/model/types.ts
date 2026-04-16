@@ -67,6 +67,7 @@ export interface FixedDeductionItem {
   payment_day: number;
   is_paid: boolean;
   item_type: 'fixed' | 'installment';
+  color?: string;
 }
 
 export interface FixedDeductionSummary {
