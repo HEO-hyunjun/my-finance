@@ -1,66 +1,56 @@
-import { memo, useMemo } from 'react';
-import type { DashboardPayment } from '@/shared/types/dashboard';
-import { formatKRW } from '@/shared/lib/format';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Badge } from '@/shared/ui/badge';
 import { Calendar } from 'lucide-react';
+import { useSchedules } from '@/features/schedules/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Skeleton } from '@/shared/ui/skeleton';
+import { formatKRW } from '@/features/dashboard/lib/widget-format';
+import { WidgetError } from './WidgetError';
 
-interface Props {
-  payments: DashboardPayment[];
-}
+export function PaymentScheduleWidget() {
+  const { data: schedules, isLoading, isError } = useSchedules();
 
-function PaymentScheduleWidgetInner({ payments }: Props) {
-  const total = useMemo(
-    () => payments.reduce((s, p) => s + p.amount, 0),
-    [payments]
-  );
-
-  if (payments.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">이번 달 결제 일정</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center">
-          <p className="text-sm text-muted-foreground">등록된 결제 일정이 없습니다.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  const payments = (schedules ?? [])
+    .filter((s) => s.type === 'expense' && s.is_active)
+    .sort((a, b) => a.schedule_day - b.schedule_day);
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">이번 달 결제 일정</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-base">
+          <Calendar className="h-4 w-4" />
+          월 결제 일정
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="divide-y divide-border">
-          {payments.map((p, i) => (
-            <div key={i} className="flex items-center justify-between py-2">
-              <div className="min-w-0">
+        {isLoading ? (
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-8 w-full" />
+            ))}
+          </div>
+        ) : isError ? (
+          <WidgetError />
+        ) : payments.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            등록된 결제 일정이 없습니다
+          </p>
+        ) : (
+          <ul className="divide-y">
+            {payments.map((payment) => (
+              <li key={payment.id} className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">{p.payment_day === 0 ? '말일' : `${p.payment_day}일`}</span>
-                  <span className="truncate text-sm">{p.name}</span>
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {payment.schedule_day}
+                  </span>
+                  <span className="text-sm">{payment.name}</span>
                 </div>
-                <Badge
-                  variant={p.type === 'fixed' ? 'secondary' : 'default'}
-                  className="mt-0.5 text-[10px] px-1.5 py-0"
-                >
-                  {p.type === 'fixed' ? '고정비' : `할부 ${p.remaining ?? ''}`}
-                </Badge>
-              </div>
-              <span className="text-sm font-medium">{formatKRW(p.amount)}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-3 border-t border-border pt-2 text-right text-xs text-muted-foreground">
-          총 {formatKRW(total)}
-        </div>
+                <span className="text-sm font-semibold text-destructive">
+                  {formatKRW(payment.amount)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );
 }
-
-export const PaymentScheduleWidget = memo(PaymentScheduleWidgetInner);

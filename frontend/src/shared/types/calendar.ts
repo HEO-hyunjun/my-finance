@@ -6,6 +6,8 @@ export interface CalendarEvent {
   color: string;
   description: string | null;
   source_asset_name: string | null;
+  entry_id: string | null;
+  entry_group_id: string | null;
 }
 
 export interface DaySummary {

@@ -6,14 +6,7 @@ import { Input } from '@/shared/ui/input';
 import { Label } from '@/shared/ui/label';
 import { cn } from '@/shared/lib/utils';
 import { useRebalancingAnalysis } from '@/features/portfolio/api';
-
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  cash: '현금',
-  deposit: '예금',
-  savings: '적금',
-  parking: '파킹',
-  investment: '투자',
-};
+import { ASSET_CLASS_LABELS } from '@/features/portfolio/lib/asset-class';
 
 function formatPercent(ratio: number): string {
   return `${(ratio * 100).toFixed(1)}%`;
@@ -110,7 +103,7 @@ export function RebalancingPanel() {
                   return (
                     <tr key={t.id} className="border-t">
                       <td className="px-3 py-2">
-                        {ACCOUNT_TYPE_LABELS[t.asset_type] ?? t.asset_type}
+                        {ASSET_CLASS_LABELS[t.asset_type] ?? t.asset_type}
                       </td>
                       <td className="px-3 py-2 text-right">
                         {formatPercent(t.target_ratio)}
@@ -149,7 +142,7 @@ export function RebalancingPanel() {
                   </Badge>
                   <span>
                     {s.asset_type
-                      ? ACCOUNT_TYPE_LABELS[s.asset_type] ?? s.asset_type
+                      ? ASSET_CLASS_LABELS[s.asset_type] ?? s.asset_type
                       : '—'}
                   </span>
                   {typeof s.amount === 'number' && (

@@ -93,6 +93,9 @@ export interface AssetDistributionItem {
 
 export interface DashboardSummaryResponse {
   total_assets_krw: number;
+  net_worth_krw: number;
+  total_debt_krw: number;
+  gross_assets_krw: number;
   accounts_count: number;
   monthly_income: number;
   monthly_expense: number;

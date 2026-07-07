@@ -9,7 +9,8 @@ import {
   useDeleteAccount,
 } from '@/features/settings/api';
 import { useAuthStore } from '@/features/auth/model/auth-store';
-import { useBudgetPeriod, useUpdateBudgetPeriod } from '@/features/budget/api';
+import { useBudgetPeriod } from '@/features/budget/api';
+import { PeriodSettingsDialog } from '@/features/budget/ui/PeriodSettingsDialog';
 import { ProfileSection } from '@/features/settings/ui/ProfileSection';
 import { PasswordSection } from '@/features/settings/ui/PasswordSection';
 import { NotificationSection } from '@/features/settings/ui/NotificationSection';
@@ -29,13 +30,9 @@ import type {
 
 function BudgetPeriodSection() {
   const { data: period } = useBudgetPeriod();
-  const updatePeriod = useUpdateBudgetPeriod();
-  const [day, setDay] = useState<number | null>(null);
+  const [showDialog, setShowDialog] = useState(false);
 
   const currentDay = period?.period_start_day ?? 1;
-  const displayDay = day ?? currentDay;
-
-  const hasChanges = day !== null && day !== currentDay;
 
   return (
     <Card>
@@ -46,35 +43,25 @@ function BudgetPeriodSection() {
         <p className="text-xs text-muted-foreground">
           예산 시작일을 설정합니다. 이 날짜 기준으로 매월 예산 기간이 계산됩니다.
         </p>
-        <div className="flex items-center gap-3">
-          <span className="w-20 shrink-0 text-sm">시작일</span>
-          <select
-            value={displayDay}
-            onChange={(e) => setDay(Number(e.target.value))}
-            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
-          >
-            {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
-              <option key={d} value={d}>
-                매월 {d}일
-              </option>
-            ))}
-          </select>
-          <Button
-            onClick={() => {
-              if (day !== null) updatePeriod.mutate({ period_start_day: day });
-            }}
-            disabled={!hasChanges || updatePeriod.isPending}
-            size="sm"
-          >
-            저장
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-sm">
+            <span className="text-muted-foreground">시작일 </span>
+            <span className="font-medium">매월 {currentDay}일</span>
+            {currentDay !== 1 && (
+              <span className="text-muted-foreground"> · 매월 {currentDay}일 ~ 다음 달 {currentDay - 1}일</span>
+            )}
+          </div>
+          <Button onClick={() => setShowDialog(true)} size="sm" variant="outline">
+            변경
           </Button>
         </div>
-        {displayDay !== 1 && (
-          <p className="text-xs text-muted-foreground">
-            예산 기간: 매월 {displayDay}일 ~ 다음 달 {displayDay - 1}일
-          </p>
-        )}
       </CardContent>
+
+      <PeriodSettingsDialog
+        isOpen={showDialog}
+        onClose={() => setShowDialog(false)}
+        currentDay={currentDay}
+      />
     </Card>
   );
 }

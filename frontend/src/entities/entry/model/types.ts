@@ -64,6 +64,19 @@ export interface TransferRequest {
   target_account_id: string;
   amount: number;
   currency?: string;
+  target_amount?: number | null;
+  exchange_rate?: number | null;
+  memo?: string | null;
+  transacted_at?: string | null;
+}
+
+export interface EntryGroupUpdate {
+  amount?: number | null;
+  target_amount?: number | null;
+  exchange_rate?: number | null;
+  quantity?: number | null;
+  unit_price?: number | null;
+  fee?: number | null;
   memo?: string | null;
   transacted_at?: string | null;
 }

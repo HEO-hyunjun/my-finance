@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { CalendarEvent, CalendarEventType } from '@/shared/types/calendar';
 import { EVENT_TYPE_CONFIG } from '../lib/constants';
 import { formatKRW } from '@/shared/lib/format';
 import { Card } from '@/shared/ui/card';
+import { EditEntryDialog } from '@/features/entries/ui/EditEntryDialog';
 
 interface Props {
   date: string;
@@ -14,6 +15,7 @@ const EXPENSE_TYPES = new Set<string>(['expense', 'fixed_expense', 'installment'
 export function EventList({ date, events }: Props) {
   const d = new Date(date);
   const label = `${d.getMonth() + 1}월 ${d.getDate()}일`;
+  const [editEntryId, setEditEntryId] = useState<string | null>(null);
 
   const { expenseEvents, incomeEvents, expenseTotal, incomeTotal } = useMemo(() => {
     const exp: CalendarEvent[] = [];
@@ -69,7 +71,7 @@ export function EventList({ date, events }: Props) {
           </div>
           <div className="divide-y divide-border">
             {incomeEvents.map((event, i) => (
-              <EventRow key={i} event={event} isIncome />
+              <EventRow key={i} event={event} isIncome onEdit={setEditEntryId} />
             ))}
           </div>
         </Card>
@@ -83,20 +85,37 @@ export function EventList({ date, events }: Props) {
           </div>
           <div className="divide-y divide-border">
             {expenseEvents.map((event, i) => (
-              <EventRow key={i} event={event} />
+              <EventRow key={i} event={event} onEdit={setEditEntryId} />
             ))}
           </div>
         </Card>
+      )}
+
+      {editEntryId && (
+        <EditEntryDialog
+          entryId={editEntryId}
+          open={!!editEntryId}
+          onClose={() => setEditEntryId(null)}
+        />
       )}
     </div>
   );
 }
 
-function EventRow({ event, isIncome }: { event: CalendarEvent; isIncome?: boolean }) {
+function EventRow({
+  event,
+  isIncome,
+  onEdit,
+}: {
+  event: CalendarEvent;
+  isIncome?: boolean;
+  onEdit: (entryId: string) => void;
+}) {
   const config = EVENT_TYPE_CONFIG[event.type as CalendarEventType];
+  const editable = !!event.entry_id;
 
-  return (
-    <div className="flex items-center justify-between px-4 py-3">
+  const content = (
+    <>
       <div className="flex items-center gap-3 min-w-0">
         <span
           className="h-2.5 w-2.5 flex-shrink-0 rounded-full"
@@ -118,6 +137,24 @@ function EventRow({ event, isIncome }: { event: CalendarEvent; isIncome?: boolea
       >
         {isIncome ? '+' : '-'}{formatKRW(event.amount)}
       </span>
+    </>
+  );
+
+  if (editable) {
+    return (
+      <button
+        type="button"
+        onClick={() => onEdit(event.entry_id!)}
+        className="flex w-full items-center justify-between px-4 py-3 text-left transition-colors hover:bg-muted/40 cursor-pointer"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between px-4 py-3">
+      {content}
     </div>
   );
 }

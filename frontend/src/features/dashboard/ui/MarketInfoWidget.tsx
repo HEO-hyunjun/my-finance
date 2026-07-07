@@ -1,56 +1,102 @@
-import { memo } from 'react';
-import type { DashboardMarketInfo } from '@/shared/types/dashboard';
-import { formatKRW } from '@/shared/lib/format';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { useExchangeRate, useMarketPrice } from '@/features/market/api';
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
+import { Skeleton } from '@/shared/ui/skeleton';
+import { WidgetError } from './WidgetError';
 
-interface Props {
-  market: DashboardMarketInfo;
-}
-
-const ChangeIndicator = memo(function ChangeIndicator({ change }: { change?: number }) {
-  if (change == null || change === 0) return null;
-  // 한국 관행: 상승 = 빨강, 하락 = 파랑
-  const isUp = change > 0;
-  return (
-    <span className={`flex items-center gap-0.5 text-xs font-medium ${isUp ? 'text-red-500' : 'text-blue-500'}`}>
-      {isUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-      {Math.abs(change).toLocaleString()}
-    </span>
-  );
-});
-
-function MarketInfoWidgetInner({ market }: Props) {
-  const { exchange_rate, gold_price } = market;
+export function MarketInfoWidget() {
+  const { data: exchangeRate, isLoading, isError } = useExchangeRate();
+  const { data: goldPrice } = useMarketPrice('KRX:GOLD');
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">시세 정보</CardTitle>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">시세 정보</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">USD/KRW</span>
-            <div className="flex items-center gap-2 text-right">
-              <span className="text-sm font-bold">{formatKRW(exchange_rate.price)}</span>
-              <ChangeIndicator change={exchange_rate.change ?? undefined} />
-            </div>
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
           </div>
-
-          {gold_price && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">금 (g)</span>
-              <div className="flex items-center gap-2 text-right">
-                <span className="text-sm font-bold">{formatKRW(gold_price.price)}</span>
-                <ChangeIndicator change={gold_price.change ?? undefined} />
+        ) : isError ? (
+          <WidgetError />
+        ) : (
+          <div className="space-y-3">
+            {/* USD/KRW 환율 */}
+            {exchangeRate && (
+              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">{exchangeRate.pair}</p>
+                  <p className="text-lg font-bold">
+                    {exchangeRate.rate.toLocaleString('ko-KR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">원</span>
+                  </p>
+                </div>
+                {exchangeRate.change != null && (
+                  <div className="text-right">
+                    <p
+                      className={`flex items-center gap-0.5 text-sm font-medium ${
+                        exchangeRate.change >= 0 ? 'text-destructive' : 'text-green-600'
+                      }`}
+                    >
+                      {exchangeRate.change >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {Math.abs(exchangeRate.change).toFixed(2)}
+                    </p>
+                    {exchangeRate.change_percent != null && (
+                      <p className="text-xs text-muted-foreground">
+                        {exchangeRate.change_percent >= 0 ? '+' : ''}
+                        {exchangeRate.change_percent.toFixed(2)}%
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
+            )}
+            {/* 금 시세 */}
+            {goldPrice && (
+              <div className="flex items-center justify-between rounded-lg bg-muted/40 p-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">{goldPrice.name ?? '금 (KRX)'}</p>
+                  <p className="text-lg font-bold">
+                    {goldPrice.price.toLocaleString('ko-KR')}
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">원/g</span>
+                  </p>
+                </div>
+                {goldPrice.change != null && (
+                  <div className="text-right">
+                    <p
+                      className={`flex items-center gap-0.5 text-sm font-medium ${
+                        goldPrice.change >= 0 ? 'text-green-600' : 'text-destructive'
+                      }`}
+                    >
+                      {goldPrice.change >= 0 ? (
+                        <TrendingUp className="h-3 w-3" />
+                      ) : (
+                        <TrendingDown className="h-3 w-3" />
+                      )}
+                      {Math.abs(goldPrice.change).toLocaleString('ko-KR')}
+                    </p>
+                    {goldPrice.change_percent != null && (
+                      <p className="text-xs text-muted-foreground">
+                        {goldPrice.change_percent >= 0 ? '+' : ''}
+                        {goldPrice.change_percent.toFixed(2)}%
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
-
-export const MarketInfoWidget = memo(MarketInfoWidgetInner);

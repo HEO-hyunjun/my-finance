@@ -1,29 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Plus, AlertCircle, Trash2, Pencil, ChevronLeft, ChevronRight } from 'lucide-react';
-import {
-  useEntries,
-  useCreateEntry,
-  useUpdateEntry,
-  useDeleteEntry,
-  useTransfer,
-  useTrade,
-} from '@/features/entries/api';
+import { useEntries, useDeleteEntry, useDeleteEntryGroup } from '@/features/entries/api';
 import { useAccounts } from '@/features/accounts/api';
 import { CategorySelect } from '@/features/categories/ui/CategorySelect';
-import type { EntryFilters, Entry, EntryType } from '@/entities/entry/model/types';
+import { CreateEntryDialog } from '@/features/entries/ui/CreateEntryDialog';
+import { EditEntryDialog } from '@/features/entries/ui/EditEntryDialog';
+import type { EntryFilters, Entry } from '@/entities/entry/model/types';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
 import { Card, CardContent } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { ConfirmDialog } from '@/shared/ui/confirm-dialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/shared/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -59,9 +46,6 @@ const TAB_LABELS: Record<EntryTab, string> = {
   trade: '매매',
 };
 
-const INCOME_TYPES: EntryType[] = ['income', 'dividend', 'interest'];
-const EXPENSE_TYPES: EntryType[] = ['expense', 'fee'];
-
 const PER_PAGE_OPTIONS = [10, 20, 50];
 
 // ─── 유틸 ─────────────────────────────────────────────────────────────────────
@@ -90,637 +74,13 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function toLocalDatetimeString(date: Date = new Date()): string {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-// ─── General Entry Form ────────────────────────────────────────────────────────
-
-interface GeneralFormState {
-  account_id: string;
-  type: 'income' | 'expense';
-  amount: string;
-  category_id: string | null;
-  memo: string;
-  transacted_at: string;
-}
-
-function emptyGeneralForm(): GeneralFormState {
-  return {
-    account_id: '',
-    type: 'expense',
-    amount: '',
-    category_id: null,
-    memo: '',
-    transacted_at: toLocalDatetimeString(),
-  };
-}
-
-interface GeneralEntryFormProps {
-  form: GeneralFormState;
-  accountOptions: Array<{ id: string; name: string }>;
-  onChange: (field: keyof GeneralFormState, value: string | null) => void;
-}
-
-function GeneralEntryForm({ form, accountOptions, onChange }: GeneralEntryFormProps) {
-  const categoryDirection = form.type === 'income' ? 'income' : 'expense';
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="ge-account">계좌 *</Label>
-        <Select value={form.account_id} onValueChange={(v) => onChange('account_id', v)}>
-          <SelectTrigger id="ge-account" className="w-full">
-            <SelectValue placeholder="계좌 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            {accountOptions.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="ge-type">유형 *</Label>
-        <Select value={form.type} onValueChange={(v) => onChange('type', v)}>
-          <SelectTrigger id="ge-type" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="income">수입</SelectItem>
-            <SelectItem value="expense">지출</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="ge-amount">금액 *</Label>
-        <Input
-          id="ge-amount"
-          type="number"
-          min="0"
-          step="1"
-          value={form.amount}
-          onChange={(e) => onChange('amount', e.target.value)}
-          placeholder="0"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label>카테고리</Label>
-        <CategorySelect
-          direction={categoryDirection}
-          value={form.category_id}
-          onChange={(v) => onChange('category_id', v)}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="ge-memo">메모</Label>
-        <Input
-          id="ge-memo"
-          value={form.memo}
-          onChange={(e) => onChange('memo', e.target.value)}
-          placeholder="메모 입력"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="ge-date">날짜/시간 *</Label>
-        <Input
-          id="ge-date"
-          type="datetime-local"
-          value={form.transacted_at}
-          onChange={(e) => onChange('transacted_at', e.target.value)}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Transfer Form ─────────────────────────────────────────────────────────────
-
-interface TransferFormState {
-  source_account_id: string;
-  target_account_id: string;
-  amount: string;
-  memo: string;
-  transacted_at: string;
-}
-
-function emptyTransferForm(): TransferFormState {
-  return {
-    source_account_id: '',
-    target_account_id: '',
-    amount: '',
-    memo: '',
-    transacted_at: toLocalDatetimeString(),
-  };
-}
-
-interface TransferFormProps {
-  form: TransferFormState;
-  accountOptions: Array<{ id: string; name: string }>;
-  onChange: (field: keyof TransferFormState, value: string) => void;
-}
-
-function TransferForm({ form, accountOptions, onChange }: TransferFormProps) {
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="tf-source">출금 계좌 *</Label>
-        <Select value={form.source_account_id} onValueChange={(v) => onChange('source_account_id', v)}>
-          <SelectTrigger id="tf-source" className="w-full">
-            <SelectValue placeholder="출금 계좌 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            {accountOptions.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="tf-target">입금 계좌 *</Label>
-        <Select value={form.target_account_id} onValueChange={(v) => onChange('target_account_id', v)}>
-          <SelectTrigger id="tf-target" className="w-full">
-            <SelectValue placeholder="입금 계좌 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            {accountOptions.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="tf-amount">금액 *</Label>
-        <Input
-          id="tf-amount"
-          type="number"
-          min="0"
-          step="1"
-          value={form.amount}
-          onChange={(e) => onChange('amount', e.target.value)}
-          placeholder="0"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="tf-memo">메모</Label>
-        <Input
-          id="tf-memo"
-          value={form.memo}
-          onChange={(e) => onChange('memo', e.target.value)}
-          placeholder="메모 입력"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="tf-date">날짜/시간 *</Label>
-        <Input
-          id="tf-date"
-          type="datetime-local"
-          value={form.transacted_at}
-          onChange={(e) => onChange('transacted_at', e.target.value)}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Trade Form ────────────────────────────────────────────────────────────────
-
-interface TradeFormState {
-  account_id: string;
-  security_id: string;
-  trade_type: 'buy' | 'sell';
-  quantity: string;
-  unit_price: string;
-  fee: string;
-  memo: string;
-  transacted_at: string;
-}
-
-function emptyTradeForm(): TradeFormState {
-  return {
-    account_id: '',
-    security_id: '',
-    trade_type: 'buy',
-    quantity: '',
-    unit_price: '',
-    fee: '0',
-    memo: '',
-    transacted_at: toLocalDatetimeString(),
-  };
-}
-
-interface TradeFormProps {
-  form: TradeFormState;
-  accountOptions: Array<{ id: string; name: string }>;
-  onChange: (field: keyof TradeFormState, value: string) => void;
-}
-
-function TradeForm({ form, accountOptions, onChange }: TradeFormProps) {
-  const qty = parseFloat(form.quantity) || 0;
-  const price = parseFloat(form.unit_price) || 0;
-  const total = qty * price;
-
-  return (
-    <div className="space-y-4">
-      <div className="space-y-1.5">
-        <Label htmlFor="trade-account">투자 계좌 *</Label>
-        <Select value={form.account_id} onValueChange={(v) => onChange('account_id', v)}>
-          <SelectTrigger id="trade-account" className="w-full">
-            <SelectValue placeholder="계좌 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            {accountOptions.map((a) => (
-              <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="trade-security">종목 코드 / ID *</Label>
-        <Input
-          id="trade-security"
-          value={form.security_id}
-          onChange={(e) => onChange('security_id', e.target.value)}
-          placeholder="예: 005930 (삼성전자)"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="trade-type">매매 구분 *</Label>
-        <Select value={form.trade_type} onValueChange={(v) => onChange('trade_type', v)}>
-          <SelectTrigger id="trade-type" className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="buy">매수</SelectItem>
-            <SelectItem value="sell">매도</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="trade-qty">수량 *</Label>
-          <Input
-            id="trade-qty"
-            type="number"
-            min="0"
-            step="any"
-            value={form.quantity}
-            onChange={(e) => onChange('quantity', e.target.value)}
-            placeholder="0"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="trade-price">단가 *</Label>
-          <Input
-            id="trade-price"
-            type="number"
-            min="0"
-            step="any"
-            value={form.unit_price}
-            onChange={(e) => onChange('unit_price', e.target.value)}
-            placeholder="0"
-          />
-        </div>
-      </div>
-
-      {total > 0 && (
-        <p className="text-sm text-muted-foreground">
-          예상 금액: <span className="font-medium text-foreground">{total.toLocaleString('ko-KR')}원</span>
-        </p>
-      )}
-
-      <div className="space-y-1.5">
-        <Label htmlFor="trade-fee">수수료</Label>
-        <Input
-          id="trade-fee"
-          type="number"
-          min="0"
-          step="any"
-          value={form.fee}
-          onChange={(e) => onChange('fee', e.target.value)}
-          placeholder="0"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="trade-memo">메모</Label>
-        <Input
-          id="trade-memo"
-          value={form.memo}
-          onChange={(e) => onChange('memo', e.target.value)}
-          placeholder="메모 입력"
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="trade-date">날짜/시간 *</Label>
-        <Input
-          id="trade-date"
-          type="datetime-local"
-          value={form.transacted_at}
-          onChange={(e) => onChange('transacted_at', e.target.value)}
-        />
-      </div>
-    </div>
-  );
-}
-
-// ─── Create Entry Dialog ───────────────────────────────────────────────────────
-
-type CreateMode = 'general' | 'transfer' | 'trade';
-
-const CREATE_MODE_LABELS: Record<CreateMode, string> = {
-  general: '수입/지출',
-  transfer: '이체',
-  trade: '매매',
-};
-
-interface CreateEntryDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  accountOptions: Array<{ id: string; name: string }>;
-  investmentAccountOptions: Array<{ id: string; name: string }>;
-}
-
-function CreateEntryDialog({
-  isOpen,
-  onClose,
-  accountOptions,
-  investmentAccountOptions,
-}: CreateEntryDialogProps) {
-  const [mode, setMode] = useState<CreateMode>('general');
-  const [generalForm, setGeneralForm] = useState<GeneralFormState>(emptyGeneralForm);
-  const [transferForm, setTransferForm] = useState<TransferFormState>(emptyTransferForm);
-  const [tradeForm, setTradeForm] = useState<TradeFormState>(emptyTradeForm);
-
-  const createEntry = useCreateEntry();
-  const transfer = useTransfer();
-  const trade = useTrade();
-
-  const isPending = createEntry.isPending || transfer.isPending || trade.isPending;
-
-  const handleGeneralChange = useCallback((field: keyof GeneralFormState, value: string | null) => {
-    setGeneralForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const handleTransferChange = useCallback((field: keyof TransferFormState, value: string) => {
-    setTransferForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const handleTradeChange = useCallback((field: keyof TradeFormState, value: string) => {
-    setTradeForm((prev) => ({ ...prev, [field]: value }));
-  }, []);
-
-  const resetForms = () => {
-    setGeneralForm(emptyGeneralForm());
-    setTransferForm(emptyTransferForm());
-    setTradeForm(emptyTradeForm());
-  };
-
-  const handleClose = () => {
-    resetForms();
-    onClose();
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (mode === 'general') {
-      if (!generalForm.account_id || !generalForm.amount) return;
-      createEntry.mutate(
-        {
-          account_id: generalForm.account_id,
-          type: generalForm.type,
-          amount: Number(generalForm.amount),
-          category_id: generalForm.category_id || null,
-          memo: generalForm.memo || null,
-          transacted_at: new Date(generalForm.transacted_at).toISOString(),
-        },
-        { onSuccess: handleClose },
-      );
-    } else if (mode === 'transfer') {
-      if (!transferForm.source_account_id || !transferForm.target_account_id || !transferForm.amount) return;
-      transfer.mutate(
-        {
-          source_account_id: transferForm.source_account_id,
-          target_account_id: transferForm.target_account_id,
-          amount: Number(transferForm.amount),
-          memo: transferForm.memo || null,
-          transacted_at: transferForm.transacted_at ? new Date(transferForm.transacted_at).toISOString() : null,
-        },
-        { onSuccess: handleClose },
-      );
-    } else {
-      if (!tradeForm.account_id || !tradeForm.security_id || !tradeForm.quantity || !tradeForm.unit_price) return;
-      trade.mutate(
-        {
-          account_id: tradeForm.account_id,
-          security_id: tradeForm.security_id,
-          trade_type: tradeForm.trade_type,
-          quantity: Number(tradeForm.quantity),
-          unit_price: Number(tradeForm.unit_price),
-          fee: tradeForm.fee ? Number(tradeForm.fee) : 0,
-          memo: tradeForm.memo || null,
-          transacted_at: tradeForm.transacted_at ? new Date(tradeForm.transacted_at).toISOString() : null,
-        },
-        { onSuccess: handleClose },
-      );
-    }
-  };
-
-  const isSubmitDisabled = () => {
-    if (isPending) return true;
-    if (mode === 'general') return !generalForm.account_id || !generalForm.amount;
-    if (mode === 'transfer') return !transferForm.source_account_id || !transferForm.target_account_id || !transferForm.amount;
-    return !tradeForm.account_id || !tradeForm.security_id || !tradeForm.quantity || !tradeForm.unit_price;
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>거래 추가</DialogTitle>
-        </DialogHeader>
-
-        {/* 모드 탭 */}
-        <div className="flex gap-1 rounded-lg bg-muted p-1">
-          {(Object.keys(CREATE_MODE_LABELS) as CreateMode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`flex-1 rounded-md py-1.5 text-sm font-medium transition-all ${
-                mode === m
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {CREATE_MODE_LABELS[m]}
-            </button>
-          ))}
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          {mode === 'general' && (
-            <GeneralEntryForm
-              form={generalForm}
-              accountOptions={accountOptions}
-              onChange={handleGeneralChange}
-            />
-          )}
-          {mode === 'transfer' && (
-            <TransferForm
-              form={transferForm}
-              accountOptions={accountOptions}
-              onChange={handleTransferChange}
-            />
-          )}
-          {mode === 'trade' && (
-            <TradeForm
-              form={tradeForm}
-              accountOptions={investmentAccountOptions.length > 0 ? investmentAccountOptions : accountOptions}
-              onChange={handleTradeChange}
-            />
-          )}
-
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="outline" onClick={handleClose}>
-              취소
-            </Button>
-            <Button type="submit" disabled={isSubmitDisabled()}>
-              {isPending ? '처리 중...' : '추가'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── Edit Entry Dialog ─────────────────────────────────────────────────────────
-
-interface EditEntryDialogProps {
-  entry: Entry;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-function EditEntryDialog({ entry, isOpen, onClose }: EditEntryDialogProps) {
-  const [amount, setAmount] = useState(String(Math.abs(Number(entry.amount))));
-  const [memo, setMemo] = useState(entry.memo ?? '');
-  const [categoryId, setCategoryId] = useState<string | null>(entry.category_id);
-  const [transactedAt, setTransactedAt] = useState(
-    toLocalDatetimeString(new Date(entry.transacted_at))
-  );
-
-  const updateEntry = useUpdateEntry();
-
-  const isIncomeType = INCOME_TYPES.includes(entry.type);
-  const isExpenseType = EXPENSE_TYPES.includes(entry.type);
-  const showCategory = isIncomeType || isExpenseType;
-  const categoryDirection = isIncomeType ? 'income' : 'expense';
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    let signedAmount: number | undefined;
-    if (amount) {
-      const abs = Math.abs(Number(amount));
-      signedAmount = isExpenseType ? -abs : abs;
-    }
-    updateEntry.mutate(
-      {
-        id: entry.id,
-        amount: signedAmount,
-        memo: memo || null,
-        category_id: categoryId,
-        transacted_at: transactedAt ? new Date(transactedAt).toISOString() : undefined,
-      },
-      { onSuccess: onClose },
-    );
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>거래 수정</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-amount">금액</Label>
-            <Input
-              id="edit-amount"
-              type="number"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-
-          {showCategory && (
-            <div className="space-y-1.5">
-              <Label>카테고리</Label>
-              <CategorySelect
-                direction={categoryDirection}
-                value={categoryId}
-                onChange={setCategoryId}
-              />
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-memo">메모</Label>
-            <Input
-              id="edit-memo"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="edit-date">날짜/시간</Label>
-            <Input
-              id="edit-date"
-              type="datetime-local"
-              value={transactedAt}
-              onChange={(e) => setTransactedAt(e.target.value)}
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              취소
-            </Button>
-            <Button type="submit" disabled={updateEntry.isPending}>
-              {updateEntry.isPending ? '수정 중...' : '저장'}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 // ─── Entry Row ─────────────────────────────────────────────────────────────────
 
 interface EntryRowProps {
   entry: Entry;
   accountName?: string;
   onEdit: (entry: Entry) => void;
-  onDelete: (id: string) => void;
+  onDelete: (entry: Entry) => void;
 }
 
 function EntryRow({ entry, accountName, onEdit, onDelete }: EntryRowProps) {
@@ -741,7 +101,11 @@ function EntryRow({ entry, accountName, onEdit, onDelete }: EntryRowProps) {
       </span>
 
       {/* 메모 / 계좌 */}
-      <div className="min-w-0 flex-1">
+      <button
+        type="button"
+        onClick={() => onEdit(entry)}
+        className="min-w-0 flex-1 text-left"
+      >
         {entry.memo && (
           <p className="truncate text-sm">{entry.memo}</p>
         )}
@@ -751,7 +115,7 @@ function EntryRow({ entry, accountName, onEdit, onDelete }: EntryRowProps) {
         {entry.security_id && (
           <p className="truncate text-xs text-muted-foreground">종목: {entry.security_id}</p>
         )}
-      </div>
+      </button>
 
       {/* 금액 */}
       <div className={`shrink-0 text-right font-semibold tabular-nums ${amountColor}`}>
@@ -773,7 +137,7 @@ function EntryRow({ entry, accountName, onEdit, onDelete }: EntryRowProps) {
           variant="ghost"
           size="sm"
           className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-          onClick={() => onDelete(entry.id)}
+          onClick={() => onDelete(entry)}
         >
           <Trash2 className="h-3.5 w-3.5" />
           <span className="sr-only">삭제</span>
@@ -960,10 +324,11 @@ export function Component() {
   const [endDate, setEndDate] = useState('');
 
   const [showCreate, setShowCreate] = useState(false);
-  const [editEntry, setEditEntry] = useState<Entry | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [editEntryId, setEditEntryId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Entry | null>(null);
 
   const deleteEntry = useDeleteEntry();
+  const deleteEntryGroup = useDeleteEntryGroup();
 
   const { data: accounts = [] } = useAccounts();
 
@@ -981,9 +346,6 @@ export function Component() {
 
   const accountMap = Object.fromEntries(accounts.map((a) => [a.id, a.name]));
   const accountOptions = accounts.map((a) => ({ id: a.id, name: a.name }));
-  const investmentAccountOptions = accounts
-    .filter((a) => a.account_type === 'investment')
-    .map((a) => ({ id: a.id, name: a.name }));
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab as EntryTab);
@@ -1017,14 +379,19 @@ export function Component() {
   };
 
   const handleConfirmDelete = () => {
-    if (deleteId) {
-      deleteEntry.mutate(deleteId);
-      setDeleteId(null);
+    if (!deleteTarget) return;
+    if (deleteTarget.entry_group_id) {
+      deleteEntryGroup.mutate(deleteTarget.entry_group_id);
+    } else {
+      deleteEntry.mutate(deleteTarget.id);
     }
+    setDeleteTarget(null);
   };
 
   const entries = data?.data ?? [];
   const total = data?.total ?? 0;
+
+  const isGroupDelete = !!deleteTarget?.entry_group_id;
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 p-6">
@@ -1108,8 +475,8 @@ export function Component() {
                     key={entry.id}
                     entry={entry}
                     accountName={accountMap[entry.account_id]}
-                    onEdit={setEditEntry}
-                    onDelete={setDeleteId}
+                    onEdit={(e) => setEditEntryId(e.id)}
+                    onDelete={setDeleteTarget}
                   />
                 ))}
               </div>
@@ -1133,25 +500,25 @@ export function Component() {
       <CreateEntryDialog
         isOpen={showCreate}
         onClose={() => setShowCreate(false)}
-        accountOptions={accountOptions}
-        investmentAccountOptions={investmentAccountOptions}
       />
 
       {/* 거래 수정 다이얼로그 */}
-      {editEntry && (
+      {editEntryId && (
         <EditEntryDialog
-          entry={editEntry}
-          isOpen={!!editEntry}
-          onClose={() => setEditEntry(null)}
+          entryId={editEntryId}
+          open={!!editEntryId}
+          onClose={() => setEditEntryId(null)}
         />
       )}
 
       {/* 삭제 확인 다이얼로그 */}
       <ConfirmDialog
-        open={deleteId !== null}
-        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        open={deleteTarget !== null}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
         title="거래를 삭제하시겠습니까?"
-        description="이 작업은 되돌릴 수 없습니다."
+        description={isGroupDelete
+          ? '이체·매매 양쪽 기록이 함께 삭제됩니다. 이 작업은 되돌릴 수 없습니다.'
+          : '이 작업은 되돌릴 수 없습니다.'}
         confirmLabel="삭제"
         onConfirm={handleConfirmDelete}
         variant="destructive"
