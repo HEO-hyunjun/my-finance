@@ -19,7 +19,9 @@ class RecurringSchedule(Base):
     __tablename__ = "recurring_schedules"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True,
+    )
     type: Mapped[ScheduleType] = mapped_column(
         Enum(ScheduleType), nullable=False,
     )

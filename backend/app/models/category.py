@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, DateTime, Enum, Numeric, Uuid, Boolean, Integer, UniqueConstraint
+from sqlalchemy import (
+    String, DateTime, Enum, Numeric, Uuid, Boolean, Integer, UniqueConstraint, ForeignKey,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -21,7 +23,9 @@ class Category(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True,
+    )
     direction: Mapped[CategoryDirection] = mapped_column(
         Enum(CategoryDirection), nullable=False,
     )

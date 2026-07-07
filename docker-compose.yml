@@ -28,6 +28,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+      migrate:
+        condition: service_completed_successfully
 
   db:
     image: postgres:16-alpine
@@ -53,8 +55,6 @@ services:
       - ./volume/redis:/data
 
   migrate:
-    profiles:
-      - migration
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -97,4 +97,7 @@ services:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-myfinance}:${POSTGRES_PASSWORD:-myfinance}@db:5432/${POSTGRES_DB:-myfinance}
       - REDIS_URL=redis://redis:6379/0
     depends_on:
-      - celery-worker
+      db:
+        condition: service_healthy
+      celery-worker:
+        condition: service_started

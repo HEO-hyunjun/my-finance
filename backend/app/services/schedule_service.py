@@ -109,6 +109,7 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
             memo=f"[자동] {schedule.name}",
             transacted_at=ts,
             recurring_schedule_id=schedule.id,
+            source="recurring",
         )
         # transfer creates 2 entries, return the first one
         entry = (
@@ -127,6 +128,7 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
             category_id=schedule.category_id,
             memo=f"[자동] {schedule.name}",
             recurring_schedule_id=schedule.id,
+            source="recurring",
             transacted_at=ts,
         )
     elif schedule.type == ScheduleType.EXPENSE:
@@ -142,6 +144,7 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
             category_id=schedule.category_id,
             memo=f"[자동] {schedule.name}",
             recurring_schedule_id=schedule.id,
+            source="recurring",
             transacted_at=ts,
         )
     else:
@@ -238,6 +241,7 @@ async def execute_schedule_now(
             memo=f"[수동실행] {schedule.name}",
             transacted_at=ts,
             recurring_schedule_id=schedule.id,
+            source="recurring",
         )
         entry = (
             await db.execute(select(Entry).where(Entry.entry_group_id == group.id).limit(1))
@@ -255,6 +259,7 @@ async def execute_schedule_now(
             category_id=schedule.category_id,
             memo=f"[수동실행] {schedule.name}",
             recurring_schedule_id=schedule.id,
+            source="recurring",
             transacted_at=ts,
         )
     elif schedule.type == ScheduleType.EXPENSE:
@@ -270,6 +275,7 @@ async def execute_schedule_now(
             category_id=schedule.category_id,
             memo=f"[수동실행] {schedule.name}",
             recurring_schedule_id=schedule.id,
+            source="recurring",
             transacted_at=ts,
         )
     else:

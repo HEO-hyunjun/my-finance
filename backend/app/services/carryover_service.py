@@ -1,3 +1,4 @@
+import logging
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
@@ -6,6 +7,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tz import kst_day_utc_range
 from app.models.account import Account
 from app.models.budget_v2 import BudgetAllocation
 from app.models.carryover import CarryoverLog, CarryoverSetting, CarryoverType
@@ -22,6 +24,8 @@ from app.services.budget_v2_service import (
     get_or_create_period,
     get_period_dates,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _carryover_type_label(t: CarryoverType) -> str:
@@ -153,7 +157,9 @@ async def get_carryover_preview(
         s.category_id: s for s in (await db.execute(setting_stmt)).scalars().all()
     }
 
-    period_end_exclusive = period_end + timedelta(days=1)
+    # KST 기준 [period_start 00:00, period_end+1 00:00)의 UTC 범위
+    period_start_utc = kst_day_utc_range(period_start)[0]
+    period_end_utc = kst_day_utc_range(period_end)[1]
 
     results: list[CarryoverPreviewResponse] = []
     for alloc in allocations:
@@ -161,8 +167,8 @@ async def get_carryover_preview(
             Entry.user_id == user_id,
             Entry.category_id == alloc.category_id,
             Entry.type == EntryType.EXPENSE,
-            Entry.transacted_at >= period_start,
-            Entry.transacted_at < period_end_exclusive,
+            Entry.transacted_at >= period_start_utc,
+            Entry.transacted_at < period_end_utc,
         )
         spent = abs(Decimal(str((await db.execute(spent_stmt)).scalar())))
         remaining = alloc.amount - spent
@@ -252,6 +258,14 @@ async def _apply_account_transfer(
     if not src or not tgt or src.user_id != user_id or tgt.user_id != user_id:
         return None
 
+    if src.currency != tgt.currency:
+        # 크로스통화 이월 이체는 환율 정보 없이 안전하게 처리 불가 → 스킵
+        logger.warning(
+            "Skipping cross-currency carryover transfer: %s(%s) → %s(%s)",
+            src.name, src.currency, tgt.name, tgt.currency,
+        )
+        return None
+
     group = EntryGroup(
         user_id=user_id,
         group_type=GroupType.TRANSFER,
@@ -268,6 +282,7 @@ async def _apply_account_transfer(
         amount=-amount,
         currency=src.currency,
         memo="예산 이월 이체",
+        source="carryover",
         transacted_at=when,
     ))
     db.add(Entry(
@@ -278,6 +293,7 @@ async def _apply_account_transfer(
         amount=amount,
         currency=tgt.currency,
         memo="예산 이월 이체",
+        source="carryover",
         transacted_at=when,
     ))
 
@@ -329,12 +345,8 @@ async def execute_carryover(
                 db, user_id, setting, amount, executed_at,
             )
             if target_desc is None:
-                # 계좌 미설정/오너 불일치 → 스킵
+                # 계좌 미설정/오너 불일치/크로스통화 → 스킵
                 continue
-            if co_type == CarryoverType.DEPOSIT and setting.target_annual_rate is not None:
-                tgt = await db.get(Account, setting.target_asset_id) if setting.target_asset_id else None
-                if tgt and tgt.user_id == user_id:
-                    tgt.interest_rate = setting.target_annual_rate
         else:
             continue
 

@@ -16,6 +16,7 @@ def run_missed_tasks():
     tasks = [
         ("app.tasks.schedule_tasks.compensate_missed_schedules", 10),
         ("app.tasks.interest_tasks.record_daily_parking_interest", 15),
+        ("app.tasks.interest_tasks.record_monthly_deposit_interest", 18),
         ("app.tasks.market_tasks.warm_market_cache", 20),
         ("app.tasks.snapshot_tasks.take_daily_snapshot", 25),
     ]

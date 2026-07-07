@@ -93,9 +93,20 @@ async def create_entry(
 
         raise HTTPException(status_code=404, detail="계좌를 찾을 수 없습니다")
 
+    from app.models.account import AccountType
+
+    if account.account_type != AccountType.INVESTMENT and data.currency != account.currency:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"통화가 계좌 통화({account.currency})와 일치해야 합니다",
+        )
+
     entry = await entry_service.create_entry(
         db,
         user_id=current_user.id,
+        source="manual",
         **data.model_dump(),
     )
     await db.commit()
@@ -113,6 +124,7 @@ async def create_transfer(
 
     from app.models.account import Account
 
+    accounts = {}
     for aid, label in [
         (data.source_account_id, "출금"),
         (data.target_account_id, "입금"),
@@ -128,6 +140,10 @@ async def create_transfer(
             raise HTTPException(
                 status_code=404, detail=f"{label} 계좌를 찾을 수 없습니다"
             )
+        accounts[aid] = acc
+
+    src = accounts[data.source_account_id]
+    tgt = accounts[data.target_account_id]
 
     group = await entry_service.create_transfer(
         db,
@@ -135,9 +151,13 @@ async def create_transfer(
         source_account_id=data.source_account_id,
         target_account_id=data.target_account_id,
         amount=data.amount,
-        currency=data.currency,
+        currency=src.currency,
+        target_currency=tgt.currency,
+        target_amount=data.target_amount,
+        exchange_rate=data.exchange_rate,
         memo=data.memo,
         transacted_at=data.transacted_at,
+        source="manual",
     )
     await db.commit()
     stmt = select(Entry).where(Entry.entry_group_id == group.id)
@@ -179,6 +199,7 @@ async def create_trade(
         exchange_rate=data.exchange_rate,
         memo=data.memo,
         transacted_at=data.transacted_at,
+        source="manual",
     )
     await db.commit()
     stmt = select(Entry).where(Entry.entry_group_id == group.id)
@@ -219,7 +240,23 @@ async def update_entry(
 
         raise HTTPException(status_code=404, detail="Entry not found")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
+    changes = data.model_dump(exclude_unset=True)
+    if entry.entry_group_id is not None:
+        # 그룹 소속 entry는 memo/category만 개별 수정 가능,
+        # 금액·수량·일시 변경은 그룹 API로 양다리를 함께 수정해야 함
+        restricted = {"amount", "quantity", "unit_price", "fee", "transacted_at"}
+        if restricted & changes.keys():
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "message": "이체/매매 항목의 금액·수량·일시는 그룹 API로 수정하세요",
+                    "entry_group_id": str(entry.entry_group_id),
+                },
+            )
+
+    for field, value in changes.items():
         setattr(entry, field, value)
     await db.commit()
     await db.refresh(entry)
@@ -240,5 +277,15 @@ async def delete_entry(
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail="Entry not found")
+    if entry.entry_group_id is not None:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": "이체/매매 항목은 그룹 API로 삭제하세요 (양다리가 함께 삭제됩니다)",
+                "entry_group_id": str(entry.entry_group_id),
+            },
+        )
     await db.delete(entry)
     await db.commit()

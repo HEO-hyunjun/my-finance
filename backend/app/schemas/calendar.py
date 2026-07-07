@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -32,6 +33,9 @@ class CalendarEvent(BaseModel):
     color: str  # HEX 색상 코드
     description: str | None = None
     source_asset_name: str | None = None
+    # 실제 Entry 기반 이벤트만 채움. 예정 스케줄/만기는 None (표시 전용)
+    entry_id: UUID | None = None
+    entry_group_id: UUID | None = None
 
 
 class DaySummary(BaseModel):

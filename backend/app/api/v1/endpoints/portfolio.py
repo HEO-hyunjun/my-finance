@@ -21,7 +21,7 @@ from app.schemas.portfolio import (
     RebalancingAnalysisResponse,
 )
 from app.services import portfolio_service
-from app.services.portfolio_v2_service import get_total_assets
+from app.services.portfolio_v2_service import get_asset_breakdown, get_total_assets
 
 router = APIRouter(tags=["portfolio"])
 
@@ -44,12 +44,7 @@ async def create_snapshot(
     user: User = Depends(get_current_user),
 ):
     total_data = await get_total_assets(db, user.id)
-    breakdown = {}
-    for acc in total_data["accounts"]:
-        atype = acc["account_type"]
-        breakdown[atype] = float(
-            breakdown.get(atype, 0) + float(acc["total_value_krw"])
-        )
+    breakdown = await get_asset_breakdown(db, user.id)
     return await portfolio_service.create_snapshot(
         db, user.id, total_data["total_krw"], breakdown
     )
@@ -85,13 +80,7 @@ async def get_targets(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    total_data = await get_total_assets(db, user.id)
-    breakdown = {}
-    for acc in total_data["accounts"]:
-        atype = acc["account_type"]
-        breakdown[atype] = float(
-            breakdown.get(atype, 0) + float(acc["total_value_krw"])
-        )
+    breakdown = await get_asset_breakdown(db, user.id)
     return await portfolio_service.get_portfolio_targets(db, user.id, breakdown)
 
 
@@ -116,13 +105,7 @@ async def get_rebalancing(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    total_data = await get_total_assets(db, user.id)
-    breakdown = {}
-    for acc in total_data["accounts"]:
-        atype = acc["account_type"]
-        breakdown[atype] = float(
-            breakdown.get(atype, 0) + float(acc["total_value_krw"])
-        )
+    breakdown = await get_asset_breakdown(db, user.id)
     return await portfolio_service.get_rebalancing_analysis(
         db, user.id, breakdown, threshold
     )

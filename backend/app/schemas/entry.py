@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 class EntryCreate(BaseModel):
     account_id: UUID
-    type: Literal["income", "expense", "adjustment"]
+    type: Literal["income", "expense", "adjustment", "dividend", "fee"]
     amount: Decimal
     currency: str = "KRW"
     category_id: UUID | None = None
@@ -22,10 +22,10 @@ class EntryCreate(BaseModel):
 
     @model_validator(mode="after")
     def normalize_amount_sign(self):
-        """지출은 반드시 음수, 수입은 반드시 양수로 보정"""
-        if self.type == "expense" and self.amount > 0:
+        """지출·수수료는 음수, 수입·배당은 양수로 보정"""
+        if self.type in ("expense", "fee") and self.amount > 0:
             self.amount = -self.amount
-        elif self.type == "income" and self.amount < 0:
+        elif self.type in ("income", "dividend") and self.amount < 0:
             self.amount = -self.amount
         return self
 
@@ -66,6 +66,8 @@ class TransferRequest(BaseModel):
     target_account_id: UUID
     amount: Decimal = Field(gt=0)
     currency: str = "KRW"
+    target_amount: Decimal | None = Field(default=None, gt=0)
+    exchange_rate: Decimal | None = None
     memo: str | None = Field(default=None, max_length=1000)
     transacted_at: datetime | None = None
 
@@ -74,6 +76,27 @@ class TransferRequest(BaseModel):
         if self.source_account_id == self.target_account_id:
             raise ValueError("출금/입금 계좌가 같을 수 없습니다")
         return self
+
+
+class EntryGroupUpdate(BaseModel):
+    amount: Decimal | None = Field(default=None, gt=0)
+    target_amount: Decimal | None = Field(default=None, gt=0)
+    exchange_rate: Decimal | None = None
+    quantity: Decimal | None = Field(default=None, gt=0)
+    unit_price: Decimal | None = Field(default=None, gt=0)
+    fee: Decimal | None = Field(default=None, ge=0)
+    memo: str | None = Field(default=None, max_length=1000)
+    transacted_at: datetime | None = None
+
+
+class EntryGroupResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    group_type: str
+    description: str | None
+    created_at: datetime
+    entries: list[EntryResponse]
 
 
 class TradeRequest(BaseModel):

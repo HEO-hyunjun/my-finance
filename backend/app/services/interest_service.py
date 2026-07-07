@@ -2,6 +2,30 @@ from datetime import date
 from decimal import Decimal
 
 
+def calculate_ledger_accrued_interest(
+    entries: list,
+    annual_rate: Decimal,
+    tax_rate: Decimal,
+    as_of: date,
+) -> Decimal:
+    """원장 기반 세후 발생이자 (단리).
+
+    비-INTEREST entry별로 amount × (rate/100) × 경과일/365를 합산해
+    세후(×(1-tax/100))로 반환한다. 예금·적금 공통.
+    entries의 각 원소는 amount(Decimal)와 transacted_at(datetime) 속성을 가진다.
+    """
+    rate = float(annual_rate) / 100
+    tax = float(tax_rate) / 100
+
+    pretax = 0.0
+    for e in entries:
+        elapsed = max(0, (as_of - e.transacted_at.date()).days)
+        pretax += float(e.amount) * rate * elapsed / 365
+
+    aftertax = pretax * (1 - tax)
+    return Decimal(str(round(aftertax)))
+
+
 def calculate_deposit_interest(
     principal: Decimal,
     annual_rate: Decimal,

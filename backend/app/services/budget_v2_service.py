@@ -1,12 +1,13 @@
 import uuid
 import calendar
-from datetime import date, timedelta
+from datetime import date
 from decimal import Decimal
 
 from fastapi import HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.tz import kst_day_utc_range
 from app.models.budget_v2 import BudgetPeriod, BudgetAllocation
 from app.models.category import Category, CategoryDirection
 from app.models.entry import Entry, EntryType
@@ -125,15 +126,29 @@ async def get_budget_overview(
     period_start, period_end = get_period_dates(period.period_start_day, today)
     await ensure_default_allocations(db, user_id, period_start, period_end)
 
-    # 월 수입 합계 (활성 income 스케줄)
-    income_stmt = select(
+    period_start_utc = kst_day_utc_range(period_start)[0]
+    period_end_utc = kst_day_utc_range(period_end)[1]
+
+    # 실제 수입 합계 (이번 기간의 INCOME entry) — primary
+    actual_income_stmt = select(
+        func.coalesce(func.sum(Entry.amount), 0),
+    ).where(
+        Entry.user_id == user_id,
+        Entry.type == EntryType.INCOME,
+        Entry.transacted_at >= period_start_utc,
+        Entry.transacted_at < period_end_utc,
+    )
+    total_income = Decimal(str((await db.execute(actual_income_stmt)).scalar()))
+
+    # 예정 수입 합계 (활성 income 스케줄) — 보조
+    expected_income_stmt = select(
         func.coalesce(func.sum(RecurringSchedule.amount), 0),
     ).where(
         RecurringSchedule.user_id == user_id,
         RecurringSchedule.type == ScheduleType.INCOME,
         RecurringSchedule.is_active.is_(True),
     )
-    total_income = Decimal(str((await db.execute(income_stmt)).scalar()))
+    expected_income = Decimal(str((await db.execute(expected_income_stmt)).scalar()))
 
     # 고정 지출 합계 (활성 expense 스케줄)
     expense_stmt = select(
@@ -174,6 +189,7 @@ async def get_budget_overview(
         "period_end": period_end.isoformat(),
         "period_start_day": period.period_start_day,
         "total_income": total_income,
+        "expected_income": expected_income,
         "total_fixed_expense": total_fixed,
         "total_transfer": total_transfer,
         "available_budget": available,
@@ -197,21 +213,21 @@ async def get_category_budgets(
     )
     allocations = (await db.execute(alloc_stmt)).scalars().all()
 
-    # period_end 당일까지 포함하기 위해 다음날을 exclusive upper bound로 사용
-    period_end_exclusive = period_end + timedelta(days=1)
+    # period_end 당일까지 포함: KST 기준 [period_start 00:00, period_end+1 00:00)의 UTC 범위
+    period_start_utc = kst_day_utc_range(period_start)[0]
+    period_end_utc = kst_day_utc_range(period_end)[1]
 
     results = []
     for alloc in allocations:
         # 해당 카테고리의 이번 기간 실제 지출
-        # Entry.transacted_at은 DateTime이므로 date 기반 범위로 비교
         spent_stmt = select(
             func.coalesce(func.sum(Entry.amount), 0),
         ).where(
             Entry.user_id == user_id,
             Entry.category_id == alloc.category_id,
             Entry.type == EntryType.EXPENSE,
-            Entry.transacted_at >= period_start,
-            Entry.transacted_at < period_end_exclusive,
+            Entry.transacted_at >= period_start_utc,
+            Entry.transacted_at < period_end_utc,
         )
         spent = abs(Decimal(str((await db.execute(spent_stmt)).scalar())))
 

@@ -54,7 +54,7 @@ async def delete_account(db: AsyncSession, user_id: uuid.UUID, account_id: uuid.
 async def get_account_summary(db: AsyncSession, user_id: uuid.UUID, account_id: uuid.UUID) -> dict:
     """계좌 요약: 잔액 + 보유 종목 (투자 계좌)"""
     account = await get_account(db, user_id, account_id)
-    balance = await get_account_balance(db, account_id)
+    balance = await get_account_balance(db, account_id, account.currency)
 
     result = {
         "id": str(account.id),

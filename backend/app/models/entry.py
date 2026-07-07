@@ -34,7 +34,9 @@ class EntryGroup(Base):
     __tablename__ = "entry_groups"
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True,
+    )
     group_type: Mapped[GroupType] = mapped_column(
         Enum(GroupType), nullable=False,
     )
@@ -56,7 +58,9 @@ class Entry(Base):
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False,
+    )
     account_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("accounts.id", ondelete="CASCADE"), nullable=False,
     )
@@ -82,6 +86,8 @@ class Entry(Base):
     recurring_schedule_id: Mapped[uuid.UUID | None] = mapped_column(
         Uuid, ForeignKey("recurring_schedules.id", ondelete="SET NULL"), nullable=True,
     )
+    # 생성 출처: manual/interest/recurring/carryover/import (이자·임포트 중복체크 기준)
+    source: Mapped[str | None] = mapped_column(String(20), nullable=True)
     transacted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc),

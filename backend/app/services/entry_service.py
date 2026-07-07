@@ -10,11 +10,18 @@ from app.models.entry import Entry, EntryGroup, EntryType, GroupType
 from app.models.security import Security, SecurityPrice
 
 
-async def get_account_balance(db: AsyncSession, account_id: uuid.UUID) -> Decimal:
-    """계좌 잔액 = SUM(amount) — Entry가 유일한 진실 원천"""
+async def get_account_balance(
+    db: AsyncSession, account_id: uuid.UUID, currency: str | None = None,
+) -> Decimal:
+    """계좌 잔액 = SUM(amount) — Entry가 유일한 진실 원천.
+
+    currency가 지정되면 해당 통화 entry만 합산한다.
+    """
     stmt = select(func.coalesce(func.sum(Entry.amount), 0)).where(
         Entry.account_id == account_id,
     )
+    if currency is not None:
+        stmt = stmt.where(Entry.currency == currency)
     return Decimal(str((await db.execute(stmt)).scalar()))
 
 
@@ -83,9 +90,10 @@ async def get_holdings(
         security = await db.get(Security, row.security_id)
         quantity = Decimal(str(row.total_quantity))
 
-        # 평균 매수 단가 계산: SUM(quantity * unit_price) / SUM(quantity) for BUY entries
+        # 평균 매수 단가 계산: -SUM(amount) / SUM(quantity) for BUY entries
+        # amount는 -(qty*price+fee)이므로 수수료 포함 취득원가가 자동 반영된다
         avg_stmt = select(
-            func.sum(Entry.quantity * Entry.unit_price).label("total_cost"),
+            (-func.sum(Entry.amount)).label("total_cost"),
             func.sum(Entry.quantity).label("total_qty"),
         ).where(
             Entry.account_id == account_id,
@@ -152,13 +160,29 @@ async def create_transfer(
     target_account_id: uuid.UUID,
     amount: Decimal,
     currency: str = "KRW",
+    target_currency: str | None = None,
+    target_amount: Decimal | None = None,
+    exchange_rate: Decimal | None = None,
     memo: str | None = None,
     transacted_at: datetime | None = None,
     recurring_schedule_id: uuid.UUID | None = None,
+    source: str | None = None,
 ) -> EntryGroup:
-    """이체 복식 기록: entry_group + entry 2건"""
+    """이체 복식 기록: entry_group + entry 2건.
+
+    통화가 다르면(target_currency != currency) target_amount로 입금 다리 금액을
+    지정해야 하며, 양쪽 다리에 exchange_rate를 기록한다.
+    """
     if source_account_id == target_account_id:
         raise HTTPException(status_code=400, detail="Same source and target account")
+
+    tgt_currency = target_currency or currency
+    if tgt_currency != currency and target_amount is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Cross-currency transfer requires target_amount",
+        )
+    in_amount = abs(target_amount) if target_amount is not None else abs(amount)
 
     ts = transacted_at or datetime.now(timezone.utc)
 
@@ -177,8 +201,10 @@ async def create_transfer(
         type=EntryType.TRANSFER_OUT,
         amount=-abs(amount),
         currency=currency,
+        exchange_rate=exchange_rate,
         memo=memo,
         recurring_schedule_id=recurring_schedule_id,
+        source=source,
         transacted_at=ts,
     )
     in_entry = Entry(
@@ -186,10 +212,12 @@ async def create_transfer(
         account_id=target_account_id,
         entry_group_id=group.id,
         type=EntryType.TRANSFER_IN,
-        amount=abs(amount),
-        currency=currency,
+        amount=in_amount,
+        currency=tgt_currency,
+        exchange_rate=exchange_rate,
         memo=memo,
         recurring_schedule_id=recurring_schedule_id,
+        source=source,
         transacted_at=ts,
     )
     db.add_all([out_entry, in_entry])
@@ -210,10 +238,19 @@ async def create_trade(
     exchange_rate: Decimal | None = None,
     memo: str | None = None,
     transacted_at: datetime | None = None,
+    source: str | None = None,
 ) -> EntryGroup:
     """주식 매매: entry_group(trade) + entry 1건 (매수=음수amount/양수qty, 매도=양수amount/음수qty)"""
     if trade_type not in (EntryType.BUY, EntryType.SELL):
         raise HTTPException(status_code=400, detail="Trade type must be buy or sell")
+
+    if trade_type == EntryType.SELL:
+        current_qty = await get_holding_quantity(db, account_id, security_id)
+        if quantity > current_qty:
+            raise HTTPException(
+                status_code=400,
+                detail=f"매도 수량({quantity})이 보유량({current_qty})을 초과합니다",
+            )
 
     ts = transacted_at or datetime.now(timezone.utc)
     total_cost = quantity * unit_price + fee
@@ -246,6 +283,7 @@ async def create_trade(
         fee=fee,
         exchange_rate=exchange_rate,
         memo=memo,
+        source=source,
         transacted_at=ts,
     )
     db.add(entry)
@@ -272,7 +310,7 @@ async def adjust_balance(
             raise HTTPException(status_code=400, detail="unit_price required for security adjustment")
         amount_diff = qty_diff * unit_price
     else:
-        current = await get_account_balance(db, account_id)
+        current = await get_account_balance(db, account_id, currency)
         amount_diff = target_balance - current
         qty_diff = None
 
@@ -294,3 +332,125 @@ async def adjust_balance(
     db.add(entry)
     await db.flush()
     return entry
+
+
+async def get_entry_group(
+    db: AsyncSession, user_id: uuid.UUID, group_id: uuid.UUID,
+) -> EntryGroup:
+    group = await db.get(EntryGroup, group_id)
+    if not group or group.user_id != user_id:
+        raise HTTPException(status_code=404, detail="Entry group not found")
+    return group
+
+
+async def _group_entries(db: AsyncSession, group_id: uuid.UUID) -> list[Entry]:
+    stmt = select(Entry).where(Entry.entry_group_id == group_id)
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def update_transfer_group(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    group_id: uuid.UUID,
+    amount: Decimal | None = None,
+    target_amount: Decimal | None = None,
+    exchange_rate: Decimal | None = None,
+    memo: str | None = None,
+    transacted_at: datetime | None = None,
+) -> EntryGroup:
+    """이체 그룹 양다리 동시 수정 (out=-abs/in=+abs)."""
+    group = await get_entry_group(db, user_id, group_id)
+    if group.group_type != GroupType.TRANSFER:
+        raise HTTPException(status_code=400, detail="Not a transfer group")
+
+    entries = await _group_entries(db, group_id)
+    out_entry = next((e for e in entries if e.type == EntryType.TRANSFER_OUT), None)
+    in_entry = next((e for e in entries if e.type == EntryType.TRANSFER_IN), None)
+    if out_entry is None or in_entry is None:
+        raise HTTPException(status_code=409, detail="Transfer group is incomplete")
+
+    if amount is not None:
+        out_entry.amount = -abs(amount)
+    if target_amount is not None:
+        in_entry.amount = abs(target_amount)
+    elif amount is not None and in_entry.currency == out_entry.currency:
+        in_entry.amount = abs(amount)
+    if exchange_rate is not None:
+        out_entry.exchange_rate = exchange_rate
+        in_entry.exchange_rate = exchange_rate
+    if memo is not None:
+        out_entry.memo = memo
+        in_entry.memo = memo
+        group.description = memo
+    if transacted_at is not None:
+        out_entry.transacted_at = transacted_at
+        in_entry.transacted_at = transacted_at
+
+    await db.flush()
+    return group
+
+
+async def update_trade_group(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    group_id: uuid.UUID,
+    quantity: Decimal | None = None,
+    unit_price: Decimal | None = None,
+    fee: Decimal | None = None,
+    memo: str | None = None,
+    transacted_at: datetime | None = None,
+) -> EntryGroup:
+    """매매 그룹 수정: create_trade 공식으로 amount 재계산."""
+    group = await get_entry_group(db, user_id, group_id)
+    if group.group_type != GroupType.TRADE:
+        raise HTTPException(status_code=400, detail="Not a trade group")
+
+    entries = await _group_entries(db, group_id)
+    if len(entries) != 1:
+        raise HTTPException(status_code=409, detail="Trade group is incomplete")
+    entry = entries[0]
+    trade_type = entry.type
+
+    new_qty = abs(quantity) if quantity is not None else abs(entry.quantity)
+    new_price = unit_price if unit_price is not None else entry.unit_price
+    new_fee = fee if fee is not None else entry.fee
+
+    if trade_type == EntryType.SELL:
+        # 이 그룹 entry를 제외한 보유량을 초과해 매도할 수 없다
+        current_qty = await get_holding_quantity(db, entry.account_id, entry.security_id)
+        available = current_qty - entry.quantity  # entry.quantity는 매도라 음수
+        if new_qty > available:
+            raise HTTPException(
+                status_code=400,
+                detail=f"매도 수량({new_qty})이 보유량({available})을 초과합니다",
+            )
+
+    if trade_type == EntryType.BUY:
+        entry.amount = -(new_qty * new_price + new_fee)
+        entry.quantity = new_qty
+    else:
+        entry.amount = new_qty * new_price - new_fee
+        entry.quantity = -new_qty
+    entry.unit_price = new_price
+    entry.fee = new_fee
+    if memo is not None:
+        entry.memo = memo
+        group.description = memo
+    if transacted_at is not None:
+        entry.transacted_at = transacted_at
+
+    await db.flush()
+    return group
+
+
+async def delete_entry_group(
+    db: AsyncSession, user_id: uuid.UUID, group_id: uuid.UUID,
+) -> None:
+    """그룹의 모든 entry를 명시 삭제 후 그룹 삭제 (FK가 SET NULL이므로)."""
+    group = await get_entry_group(db, user_id, group_id)
+    entries = await _group_entries(db, group_id)
+    for e in entries:
+        await db.delete(e)
+    await db.flush()
+    await db.delete(group)
+    await db.flush()

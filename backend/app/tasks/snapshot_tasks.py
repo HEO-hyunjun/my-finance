@@ -49,7 +49,7 @@ async def _take_snapshot_async():
 
             for account in accounts:
                 try:
-                    balance = await get_account_balance(db, account.id)
+                    balance = await get_account_balance(db, account.id, account.currency)
 
                     # 투자 계좌는 holdings도 저장
                     holdings_json = None
@@ -97,24 +97,23 @@ async def _take_snapshot_async():
                         ))
                         count += 1
 
-                    # 유저별 집계 (항상 포함)
+                    # 유저별 순자산 집계 (부채 포함 전체 합)
                     uid = str(account.user_id)
                     if uid not in user_totals:
-                        user_totals[uid] = {"total_krw": Decimal("0"), "breakdown": {}}
+                        user_totals[uid] = {"total_krw": Decimal("0")}
                     user_totals[uid]["total_krw"] += account_total_krw
-                    atype = account.account_type.value
-                    user_totals[uid]["breakdown"][atype] = float(
-                        user_totals[uid]["breakdown"].get(atype, 0) + float(account_total_krw)
-                    )
                 except Exception as e:
                     logger.warning(f"Snapshot failed for account {account.id}: {e}")
 
             # AssetSnapshot (유저별 총 자산) 저장
             from app.services import portfolio_service
+            from app.services.portfolio_v2_service import get_asset_breakdown
 
             for uid, data in user_totals.items():
                 try:
                     user_uuid = _uuid.UUID(uid)
+                    # 자산 분류 breakdown은 단일 진실 함수로 계산 (부채 제외)
+                    breakdown = await get_asset_breakdown(db, user_uuid)
                     existing_asset = (await db.execute(
                         select(AssetSnapshot).where(and_(
                             AssetSnapshot.user_id == user_uuid,
@@ -123,19 +122,19 @@ async def _take_snapshot_async():
                     )).scalar_one_or_none()
                     if existing_asset:
                         existing_asset.total_krw = data["total_krw"]
-                        existing_asset.breakdown = data["breakdown"]
+                        existing_asset.breakdown = breakdown
                     else:
                         db.add(AssetSnapshot(
                             user_id=user_uuid,
                             snapshot_date=today,
                             total_krw=data["total_krw"],
-                            breakdown=data["breakdown"],
+                            breakdown=breakdown,
                         ))
 
                     # 리밸런싱 편차 체크 후 알림 생성
                     try:
                         await portfolio_service.check_and_create_alert(
-                            db, user_uuid, today, data["breakdown"], 0.05
+                            db, user_uuid, today, breakdown, 0.05
                         )
                     except Exception as e:
                         logger.warning(f"Alert check failed for user {uid}: {e}")

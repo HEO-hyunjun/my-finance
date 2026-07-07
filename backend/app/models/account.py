@@ -3,7 +3,9 @@ from datetime import date, datetime, timezone
 from decimal import Decimal
 from enum import Enum as PyEnum
 
-from sqlalchemy import String, DateTime, Date, Enum, Numeric, Uuid, Boolean
+from sqlalchemy import (
+    String, DateTime, Date, Enum, Numeric, Uuid, Boolean, ForeignKey, CheckConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -15,6 +17,8 @@ class AccountType(str, PyEnum):
     SAVINGS = "savings"
     PARKING = "parking"
     INVESTMENT = "investment"
+    LOAN = "loan"
+    CREDIT_CARD = "credit_card"
 
 
 class InterestType(str, PyEnum):
@@ -24,9 +28,17 @@ class InterestType(str, PyEnum):
 
 class Account(Base):
     __tablename__ = "accounts"
+    __table_args__ = (
+        CheckConstraint(
+            "monthly_amount IS NULL OR account_type = 'SAVINGS'",
+            name="ck_account_monthly_amount_savings",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True,
+    )
     account_type: Mapped[AccountType] = mapped_column(
         Enum(AccountType), nullable=False,
     )

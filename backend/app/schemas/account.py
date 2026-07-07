@@ -2,7 +2,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class AccountCreate(BaseModel):
@@ -17,6 +17,13 @@ class AccountCreate(BaseModel):
     maturity_date: date | None = None
     tax_rate: Decimal | None = None
 
+    @model_validator(mode="after")
+    def check_type_fields(self):
+        """monthly_amount(월 납입액)는 적금(savings) 계좌에만 허용"""
+        if self.monthly_amount is not None and self.account_type != "savings":
+            raise ValueError("monthly_amount는 적금(savings) 계좌에만 설정할 수 있습니다")
+        return self
+
 
 class AccountUpdate(BaseModel):
     account_type: str | None = None
@@ -29,6 +36,17 @@ class AccountUpdate(BaseModel):
     maturity_date: date | None = None
     tax_rate: Decimal | None = None
     is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def check_type_fields(self):
+        """account_type이 함께 오면 monthly_amount는 적금에만 허용"""
+        if (
+            self.monthly_amount is not None
+            and self.account_type is not None
+            and self.account_type != "savings"
+        ):
+            raise ValueError("monthly_amount는 적금(savings) 계좌에만 설정할 수 있습니다")
+        return self
 
 
 class AccountResponse(BaseModel):

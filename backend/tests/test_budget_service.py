@@ -51,8 +51,12 @@ def test_period_dates_january_wrap():
 
 async def test_budget_overview_top_down(db):
     user_id = uuid.uuid4()
+    account = Account(
+        user_id=user_id, account_type=AccountType.CASH, name="통장", currency="KRW",
+    )
+    db.add(account)
 
-    # 수입 스케줄
+    # 수입 스케줄 (예정 수입 = expected_income)
     db.add(
         RecurringSchedule(
             user_id=user_id,
@@ -91,24 +95,39 @@ async def test_budget_overview_top_down(db):
     )
     await db.flush()
 
+    # 실제 수입 entry (total_income = 실측)
+    await create_entry(
+        db,
+        user_id,
+        account_id=account.id,
+        type=EntryType.INCOME,
+        amount=Decimal("3000000"),
+        currency="KRW",
+        transacted_at=datetime(2026, 4, 12, tzinfo=timezone.utc),
+    )
+
     overview = await get_budget_overview(db, user_id, date(2026, 4, 15))
 
     assert overview["total_income"] == Decimal("3000000")
+    assert overview["expected_income"] == Decimal("3000000")
     assert overview["total_fixed_expense"] == Decimal("1350000")
     assert overview["total_transfer"] == Decimal("500000")
-    # 가용 = 3000000 - 1350000 - 500000 = 1150000
-    assert overview["available_budget"] == Decimal("1150000")
+    # 가용 = 실제 수입 전체
+    assert overview["available_budget"] == Decimal("3000000")
     # 배분 없음 → 미배분 = 가용
-    assert overview["unallocated"] == Decimal("1150000")
+    assert overview["unallocated"] == Decimal("3000000")
 
 
 async def test_budget_overview_with_allocation(db):
     """배분이 있으면 미배분 잔액이 줄어야 합니다."""
     user_id = uuid.uuid4()
+    account = Account(
+        user_id=user_id, account_type=AccountType.CASH, name="통장", currency="KRW",
+    )
     cat = Category(
         user_id=user_id, direction=CategoryDirection.EXPENSE, name="식비"
     )
-    db.add(cat)
+    db.add_all([account, cat])
 
     db.add(
         RecurringSchedule(
@@ -123,12 +142,24 @@ async def test_budget_overview_with_allocation(db):
     )
     await db.flush()
 
+    # 실제 수입 entry
+    await create_entry(
+        db,
+        user_id,
+        account_id=account.id,
+        type=EntryType.INCOME,
+        amount=Decimal("2000000"),
+        currency="KRW",
+        transacted_at=datetime(2026, 4, 12, tzinfo=timezone.utc),
+    )
+
     await create_or_update_allocation(
         db, user_id, cat.id, Decimal("300000"), date(2026, 4, 15)
     )
 
     overview = await get_budget_overview(db, user_id, date(2026, 4, 15))
     assert overview["total_allocated"] == Decimal("300000")
+    assert overview["expected_income"] == Decimal("2000000")
     assert overview["unallocated"] == Decimal("1700000")
 
 

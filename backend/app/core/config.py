@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     APP_NAME: str = "My Finance"
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     # Database (로컬 개발: 5433, Docker 내부: 5432)
     DATABASE_URL: str = "postgresql+asyncpg://myfinance:myfinance@localhost:5433/myfinance"
@@ -11,8 +11,8 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
-    # JWT
-    JWT_SECRET_KEY: str = "change-me-in-production"
+    # JWT (기본값 없음 — 미설정 시 기동 실패)
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     INSIGHT_MAX_TOKENS: int = 4096
     INSIGHT_TEMPERATURE: float = 0.5
 
+    # 거래내역 임포트 LLM 정규화
+    IMPORT_MODEL: str = ""
+    IMPORT_MAX_TOKENS: int = 4096
+    IMPORT_LLM_CHUNK_SIZE: int = 50
+
     @property
     def chatbot_model(self) -> str:
         return self.CHATBOT_MODEL or self.LITELLM_MODEL
@@ -62,6 +67,10 @@ class Settings(BaseSettings):
     @property
     def insight_model(self) -> str:
         return self.INSIGHT_MODEL or self.LITELLM_MODEL
+
+    @property
+    def import_model(self) -> str:
+        return self.IMPORT_MODEL or self.LITELLM_MODEL
 
     model_config = {
         "env_file": (".env", "../.env"),

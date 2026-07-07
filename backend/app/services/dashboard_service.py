@@ -4,7 +4,7 @@ Phase 2 완료: Account/Entry/Security 기반으로 전면 재작성.
 """
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from decimal import Decimal
 
 from sqlalchemy import select, func
@@ -14,7 +14,7 @@ from app.models.entry import Entry, EntryType
 from app.models.portfolio import AssetSnapshot
 from app.services.portfolio_v2_service import get_total_assets
 from app.services.budget_v2_service import get_budget_overview
-from app.core.tz import today as tz_today
+from app.core.tz import kst_month_utc_range, today as tz_today
 
 
 async def get_dashboard_summary(db: AsyncSession, user_id: uuid.UUID, **kwargs) -> dict:
@@ -27,23 +27,22 @@ async def get_dashboard_summary(db: AsyncSession, user_id: uuid.UUID, **kwargs) 
     # 1. 전체 자산 현황
     total_assets = await get_total_assets(db, user_id)
 
-    # 2. 이번 달 수입/지출 요약
-    month_start = today.replace(day=1)
-    month_start_dt = datetime(
-        month_start.year, month_start.month, month_start.day, tzinfo=timezone.utc
-    )
+    # 2. 이번 달(KST) 수입/지출 요약
+    month_start_utc, month_end_utc = kst_month_utc_range(today)
 
     income_stmt = select(func.coalesce(func.sum(Entry.amount), 0)).where(
         Entry.user_id == user_id,
         Entry.type == EntryType.INCOME,
-        Entry.transacted_at >= month_start_dt,
+        Entry.transacted_at >= month_start_utc,
+        Entry.transacted_at < month_end_utc,
     )
     monthly_income = Decimal(str((await db.execute(income_stmt)).scalar()))
 
     expense_stmt = select(func.coalesce(func.sum(Entry.amount), 0)).where(
         Entry.user_id == user_id,
         Entry.type == EntryType.EXPENSE,
-        Entry.transacted_at >= month_start_dt,
+        Entry.transacted_at >= month_start_utc,
+        Entry.transacted_at < month_end_utc,
     )
     monthly_expense = abs(Decimal(str((await db.execute(expense_stmt)).scalar())))
 
@@ -106,6 +105,9 @@ async def get_dashboard_summary(db: AsyncSession, user_id: uuid.UUID, **kwargs) 
 
     return {
         "total_assets_krw": total_krw,
+        "net_worth_krw": total_assets["net_worth_krw"],
+        "total_debt_krw": total_assets["total_debt_krw"],
+        "gross_assets_krw": total_assets["total_assets_krw"],
         "accounts_count": len(total_assets["accounts"]),
         "monthly_income": monthly_income,
         "monthly_expense": monthly_expense,

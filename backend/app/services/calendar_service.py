@@ -167,6 +167,8 @@ async def get_calendar_events(
                 color=color,
                 description=None,
                 source_asset_name=None,
+                entry_id=e.id,
+                entry_group_id=e.entry_group_id,
             )
         )
 
