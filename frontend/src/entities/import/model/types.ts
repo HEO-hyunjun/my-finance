@@ -15,6 +15,13 @@ export interface ImportBatch {
   created_at: string;
 }
 
+export interface TransferCandidate {
+  entry_id: string;
+  account_name: string;
+  transacted_at: string;
+  amount: number;
+}
+
 export interface StagedEntry {
   id: string;
   transacted_at: string;
@@ -27,6 +34,17 @@ export interface StagedEntry {
   matched_entry_id: string | null;
   is_selected: boolean;
   committed_entry_id: string | null;
+  transfer_candidate: TransferCandidate | null;
+}
+
+export interface ImportMerge {
+  row_id: string;
+  counterpart_entry_id: string;
+}
+
+export interface ImportCommitRequest {
+  create_adjustment?: boolean;
+  merges?: ImportMerge[];
 }
 
 export interface BalanceCheck {
@@ -51,4 +69,5 @@ export interface StagedEntryUpdate {
 export interface ImportCommitResponse {
   committed_count: number;
   adjustment_created: boolean;
+  merged_count: number;
 }

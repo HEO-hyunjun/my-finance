@@ -20,6 +20,14 @@ class ImportBatchResponse(BaseModel):
     created_at: datetime
 
 
+class TransferCandidate(BaseModel):
+    """이체 상대 후보 (다른 계좌의 반대부호 거래) — 동적 계산, 저장 안 함."""
+    entry_id: UUID
+    account_name: str
+    transacted_at: datetime
+    amount: Decimal
+
+
 class StagedEntryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -34,6 +42,7 @@ class StagedEntryResponse(BaseModel):
     matched_entry_id: UUID | None
     is_selected: bool
     committed_entry_id: UUID | None
+    transfer_candidate: TransferCandidate | None = None
 
 
 class BalanceCheck(BaseModel):
@@ -55,6 +64,17 @@ class StagedEntryUpdate(BaseModel):
     is_selected: bool | None = None
 
 
+class MergeSpec(BaseModel):
+    row_id: UUID
+    counterpart_entry_id: UUID
+
+
+class ImportCommitRequest(BaseModel):
+    create_adjustment: bool = False
+    merges: list[MergeSpec] = []
+
+
 class ImportCommitResponse(BaseModel):
     committed_count: int
     adjustment_created: bool
+    merged_count: int = 0

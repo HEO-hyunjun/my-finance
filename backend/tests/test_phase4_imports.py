@@ -151,9 +151,10 @@ async def test_commit_batch_creates_selected_only(db):
             s.is_selected = False
     await db.flush()
 
-    count, adj = await import_service.commit_batch(db, batch)
+    count, adj, merged = await import_service.commit_batch(db, batch)
     assert count == 1
     assert adj is False
+    assert merged == 0
     assert batch.status == "committed"
 
     imported = (await db.execute(

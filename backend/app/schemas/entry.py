@@ -99,6 +99,11 @@ class EntryGroupResponse(BaseModel):
     entries: list[EntryResponse]
 
 
+class MergeTransferRequest(BaseModel):
+    entry_a_id: UUID
+    entry_b_id: UUID
+
+
 class TradeRequest(BaseModel):
     account_id: UUID
     security_id: UUID

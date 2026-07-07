@@ -454,3 +454,60 @@ async def delete_entry_group(
     await db.flush()
     await db.delete(group)
     await db.flush()
+
+
+async def merge_transfer(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    entry_a_id: uuid.UUID,
+    entry_b_id: uuid.UUID,
+) -> EntryGroup:
+    """서로 다른 계좌의 income/expense 두 건을 이체 한 쌍으로 병합한다.
+
+    검증: 같은 user, 서로 다른 계좌, 둘 다 그룹 미소속, 같은 통화,
+    절대금액 동일, 부호 반대, 타입 income/expense.
+    음수 쪽은 transfer_out, 양수 쪽은 transfer_in으로 전환하고 카테고리를 제거한다.
+    """
+    if entry_a_id == entry_b_id:
+        raise HTTPException(status_code=400, detail="같은 거래는 병합할 수 없습니다")
+
+    a = await db.get(Entry, entry_a_id)
+    b = await db.get(Entry, entry_b_id)
+    for entry in (a, b):
+        if entry is None or entry.user_id != user_id:
+            raise HTTPException(status_code=404, detail="Entry not found")
+
+    if a.account_id == b.account_id:
+        raise HTTPException(status_code=400, detail="서로 다른 계좌의 거래만 병합할 수 있습니다")
+    if a.entry_group_id is not None or b.entry_group_id is not None:
+        raise HTTPException(status_code=400, detail="이미 그룹에 속한 거래는 병합할 수 없습니다")
+    if a.currency != b.currency:
+        raise HTTPException(status_code=400, detail="통화가 다른 거래는 병합할 수 없습니다")
+    if a.type not in (EntryType.INCOME, EntryType.EXPENSE) or b.type not in (
+        EntryType.INCOME, EntryType.EXPENSE,
+    ):
+        raise HTTPException(status_code=400, detail="수입/지출 거래만 이체로 병합할 수 있습니다")
+    if abs(a.amount) != abs(b.amount):
+        raise HTTPException(status_code=400, detail="금액 절대값이 같아야 합니다")
+    if (a.amount < 0) == (b.amount < 0):
+        raise HTTPException(status_code=400, detail="부호가 반대여야 합니다 (한쪽 출금/한쪽 입금)")
+
+    out_entry = a if a.amount < 0 else b
+    in_entry = b if a.amount < 0 else a
+
+    group = EntryGroup(
+        user_id=user_id,
+        group_type=GroupType.TRANSFER,
+        description=out_entry.memo or in_entry.memo,
+    )
+    db.add(group)
+    await db.flush()
+
+    out_entry.type = EntryType.TRANSFER_OUT
+    out_entry.entry_group_id = group.id
+    out_entry.category_id = None
+    in_entry.type = EntryType.TRANSFER_IN
+    in_entry.entry_group_id = group.id
+    in_entry.category_id = None
+    await db.flush()
+    return group

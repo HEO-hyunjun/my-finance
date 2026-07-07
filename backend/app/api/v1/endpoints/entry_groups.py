@@ -8,10 +8,23 @@ from app.api.deps import get_current_user
 from app.core.database import get_db
 from app.models.entry import Entry, GroupType
 from app.models.user import User
-from app.schemas.entry import EntryGroupResponse, EntryGroupUpdate
+from app.schemas.entry import EntryGroupResponse, EntryGroupUpdate, MergeTransferRequest
 from app.services import entry_service
 
 router = APIRouter(tags=["entry-groups"])
+
+
+@router.post("/merge-transfer", response_model=EntryGroupResponse)
+async def merge_transfer(
+    data: MergeTransferRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    group = await entry_service.merge_transfer(
+        db, current_user.id, data.entry_a_id, data.entry_b_id,
+    )
+    await db.commit()
+    return await _to_response(db, group)
 
 
 async def _to_response(db: AsyncSession, group) -> EntryGroupResponse:

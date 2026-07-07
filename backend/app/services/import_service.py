@@ -19,7 +19,7 @@ from app.core.tz import kst_day_utc_range, kst_noon_utc
 from app.models.category import Category
 from app.models.entry import Entry, EntryType
 from app.models.import_batch import ImportBatch, StagedEntry
-from app.schemas.imports import BalanceCheck
+from app.schemas.imports import BalanceCheck, TransferCandidate
 from app.services import entry_service
 from app.services.import_parser import ImportParseError, extract_rows
 
@@ -258,10 +258,64 @@ async def check_period_overlap(db: AsyncSession, batch: ImportBatch) -> bool:
     return ((await db.execute(stmt)).scalar() or 0) > 0
 
 
+async def detect_transfer_candidates(
+    db: AsyncSession, batch: ImportBatch, staged_rows: list[StagedEntry],
+) -> dict[uuid.UUID, TransferCandidate]:
+    """dedup_status='new' 행마다 다른 계좌의 반대부호 이체 상대를 1:1로 찾는다.
+
+    저장하지 않고 동적으로 계산한다. 계좌 미지정 배치는 빈 결과.
+    """
+    from app.models.account import Account
+
+    result: dict[uuid.UUID, TransferCandidate] = {}
+    if batch.account_id is None:
+        return result
+    account = await db.get(Account, batch.account_id)
+    if account is None:
+        return result
+
+    used_entry_ids: set[uuid.UUID] = set()
+    for staged in staged_rows:
+        if staged.dedup_status != "new":
+            continue
+        day_start, day_end = kst_day_utc_range(staged.transacted_at.date())
+        matches = (await db.execute(
+            select(Entry).where(
+                Entry.user_id == batch.user_id,
+                Entry.account_id != batch.account_id,
+                Entry.entry_group_id.is_(None),
+                Entry.type.in_([EntryType.INCOME, EntryType.EXPENSE]),
+                Entry.currency == account.currency,
+                Entry.transacted_at >= day_start,
+                Entry.transacted_at < day_end,
+                Entry.amount == -staged.amount,
+            ).order_by(Entry.transacted_at)
+        )).scalars().all()
+        candidate = next((m for m in matches if m.id not in used_entry_ids), None)
+        if candidate is None:
+            continue
+        used_entry_ids.add(candidate.id)
+        cand_account = await db.get(Account, candidate.account_id)
+        result[staged.id] = TransferCandidate(
+            entry_id=candidate.id,
+            account_name=cand_account.name if cand_account else "(알 수 없음)",
+            transacted_at=candidate.transacted_at,
+            amount=candidate.amount,
+        )
+    return result
+
+
 async def commit_batch(
-    db: AsyncSession, batch: ImportBatch, create_adjustment: bool = False,
-) -> tuple[int, bool]:
-    """선택된 staged 행을 Entry로 일괄 생성 (source='import'). 단일 트랜잭션."""
+    db: AsyncSession,
+    batch: ImportBatch,
+    create_adjustment: bool = False,
+    merges: list | None = None,
+) -> tuple[int, bool, int]:
+    """선택된 staged 행을 Entry로 일괄 생성 (source='import'). 단일 트랜잭션.
+
+    merges의 각 {row_id, counterpart_entry_id}는 해당 행의 새 Entry를 만든 뒤
+    counterpart 기존 Entry와 이체 그룹으로 병합한다.
+    """
     from fastapi import HTTPException
 
     if batch.status != "review":
@@ -275,6 +329,8 @@ async def commit_batch(
     if account is None:
         raise HTTPException(status_code=404, detail="계좌를 찾을 수 없습니다")
 
+    merge_map = {m.row_id: m.counterpart_entry_id for m in (merges or [])}
+
     staged_rows = (await db.execute(
         select(StagedEntry).where(
             StagedEntry.batch_id == batch.id,
@@ -284,6 +340,7 @@ async def commit_batch(
     )).scalars().all()
 
     count = 0
+    merged_count = 0
     for staged in staged_rows:
         if staged.suggested_type in ("income", "expense"):
             entry_type = EntryType(staged.suggested_type)
@@ -304,6 +361,13 @@ async def commit_batch(
         staged.committed_entry_id = entry.id
         count += 1
 
+        if staged.id in merge_map:
+            # 새로 만든 다리를 기존 반대편 거래와 이체 그룹으로 병합
+            await entry_service.merge_transfer(
+                db, batch.user_id, entry.id, merge_map[staged.id],
+            )
+            merged_count += 1
+
     adjustment_created = False
     if create_adjustment:
         check = await compute_balance_check(db, batch)
@@ -320,4 +384,4 @@ async def commit_batch(
 
     batch.status = "committed"
     await db.flush()
-    return count, adjustment_created
+    return count, adjustment_created, merged_count

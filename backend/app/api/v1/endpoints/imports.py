@@ -11,6 +11,7 @@ from app.models.import_batch import ImportBatch, StagedEntry
 from app.models.user import User
 from app.schemas.imports import (
     ImportBatchResponse,
+    ImportCommitRequest,
     ImportCommitResponse,
     ImportDetailResponse,
     StagedEntryResponse,
@@ -95,9 +96,17 @@ async def get_import(
     )).scalars().all()
     balance_check = await import_service.compute_balance_check(db, batch)
     period_overlap = await import_service.check_period_overlap(db, batch)
+    candidates = await import_service.detect_transfer_candidates(db, batch, list(staged))
+
+    staged_responses = []
+    for s in staged:
+        resp = StagedEntryResponse.model_validate(s)
+        resp.transfer_candidate = candidates.get(s.id)
+        staged_responses.append(resp)
+
     return ImportDetailResponse(
         batch=ImportBatchResponse.model_validate(batch),
-        staged_entries=[StagedEntryResponse.model_validate(s) for s in staged],
+        staged_entries=staged_responses,
         balance_check=balance_check,
         period_overlap=period_overlap,
     )
@@ -126,16 +135,20 @@ async def update_row(
 @router.post("/{batch_id}/commit", response_model=ImportCommitResponse)
 async def commit_import(
     batch_id: uuid.UUID,
-    create_adjustment: bool = False,
+    data: ImportCommitRequest = ImportCommitRequest(),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     batch = await _get_owned_batch(db, current_user.id, batch_id)
-    count, adjustment_created = await import_service.commit_batch(
-        db, batch, create_adjustment=create_adjustment,
+    count, adjustment_created, merged_count = await import_service.commit_batch(
+        db, batch, create_adjustment=data.create_adjustment, merges=data.merges,
     )
     await db.commit()
-    return ImportCommitResponse(committed_count=count, adjustment_created=adjustment_created)
+    return ImportCommitResponse(
+        committed_count=count,
+        adjustment_created=adjustment_created,
+        merged_count=merged_count,
+    )
 
 
 @router.delete("/{batch_id}", status_code=status.HTTP_204_NO_CONTENT)

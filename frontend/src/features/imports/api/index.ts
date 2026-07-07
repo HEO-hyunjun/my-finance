@@ -3,7 +3,8 @@ import { toast } from 'sonner';
 import { apiClient } from '@/shared/api/client';
 import { invalidateEntryRelated } from '@/features/entries/api';
 import type {
-  ImportBatch, ImportDetail, StagedEntry, StagedEntryUpdate, ImportCommitResponse,
+  ImportBatch, ImportDetail, StagedEntry, StagedEntryUpdate,
+  ImportCommitRequest, ImportCommitResponse,
 } from '@/entities/import/model/types';
 
 function getErrorMsg(error: unknown, fallback: string): string {
@@ -92,20 +93,19 @@ export function useUpdateRow(batchId: string) {
 export function useCommitImport(batchId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (createAdjustment: boolean) => {
+    mutationFn: async (body: ImportCommitRequest) => {
       const { data } = await apiClient.post<ImportCommitResponse>(
-        `/v1/imports/${batchId}/commit`,
-        null,
-        { params: { create_adjustment: createAdjustment } },
+        `/v1/imports/${batchId}/commit`, body,
       );
       return data;
     },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: importKeys.all });
       invalidateEntryRelated(qc);
-      toast.success(
-        `${res.committed_count}건이 반영되었습니다${res.adjustment_created ? ' (보정 거래 포함)' : ''}`,
-      );
+      const parts = [`${res.committed_count}건이 반영되었습니다`];
+      if (res.merged_count > 0) parts.push(`그중 ${res.merged_count}건 이체로 병합`);
+      if (res.adjustment_created) parts.push('보정 거래 포함');
+      toast.success(parts.join(' · '));
     },
     onError: (e) => { toast.error(getErrorMsg(e, '커밋 실패')); },
   });
