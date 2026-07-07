@@ -13,6 +13,8 @@ from app.api.v1.endpoints import users as users_router
 # New v2 core
 from app.api.v1.endpoints import accounts as accounts_router
 from app.api.v1.endpoints import entries as entries_router
+from app.api.v1.endpoints import entry_groups as entry_groups_router
+from app.api.v1.endpoints import imports as imports_router
 from app.api.v1.endpoints import categories as categories_router
 from app.api.v1.endpoints import schedules as schedules_router
 
@@ -65,6 +67,8 @@ app.include_router(users_router.router, prefix="/api/v1/users", tags=["users"])
 # New v2 core
 app.include_router(accounts_router.router, prefix="/api/v1/accounts", tags=["accounts"])
 app.include_router(entries_router.router, prefix="/api/v1/entries", tags=["entries"])
+app.include_router(entry_groups_router.router, prefix="/api/v1/entry-groups", tags=["entry-groups"])
+app.include_router(imports_router.router, prefix="/api/v1/imports", tags=["imports"])
 app.include_router(categories_router.router, prefix="/api/v1/categories", tags=["categories"])
 app.include_router(schedules_router.router, prefix="/api/v1/schedules", tags=["schedules"])
 

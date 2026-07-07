@@ -22,6 +22,7 @@ from app.models.portfolio import (  # noqa: F401
 from app.models.settings import ApiKey, LlmSetting  # noqa: F401
 from app.models.conversation import Conversation  # noqa: F401
 from app.models.insight import AIInsightRecord  # noqa: F401
+from app.models.import_batch import ImportBatch, StagedEntry  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)

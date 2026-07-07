@@ -35,6 +35,7 @@ celery_app = Celery(
         "app.tasks.market_tasks",
         "app.tasks.insight_tasks",
         "app.tasks.price_tasks",
+        "app.tasks.import_tasks",
     ],
 )
 
