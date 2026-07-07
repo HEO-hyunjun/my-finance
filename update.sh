@@ -29,7 +29,7 @@ if [[ "$before" != "$after" ]]; then
 fi
 
 echo "==> 이미지 빌드 (frontend/backend/migrate)..."
-"${COMPOSE[@]}" build --pull
+"${COMPOSE[@]}" --profile migration build --pull
 
 echo "==> 마이그레이션 실행..."
 if ! "${COMPOSE[@]}" --profile migration run --rm migrate; then
