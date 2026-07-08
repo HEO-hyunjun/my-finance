@@ -1,8 +1,17 @@
-import { Lightbulb } from 'lucide-react';
-import { useDashboardInsights } from '@/features/dashboard/api';
+import { Lightbulb, Loader2, Sparkles } from 'lucide-react';
+import { useDashboardInsights, useGenerateInsights } from '@/features/dashboard/api';
+import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { Skeleton } from '@/shared/ui/skeleton';
 import { WidgetError } from './WidgetError';
+
+function getErrorMsg(error: unknown, fallback: string): string {
+  if (error && typeof error === 'object' && 'response' in error) {
+    const resp = (error as { response?: { data?: { detail?: string } } }).response;
+    return resp?.data?.detail || fallback;
+  }
+  return fallback;
+}
 
 const INSIGHT_SEVERITY_STYLES: Record<
   string,
@@ -35,6 +44,7 @@ const INSIGHT_TYPE_LABELS: Record<string, string> = {
 
 export function AIInsightsWidget() {
   const { data, isLoading, isError } = useDashboardInsights();
+  const generate = useGenerateInsights();
   const insights = data?.insights ?? [];
 
   return (
@@ -55,9 +65,32 @@ export function AIInsightsWidget() {
         ) : isError ? (
           <WidgetError />
         ) : insights.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">
-            인사이트를 생성하는 중입니다
-          </p>
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              오늘의 인사이트가 아직 없습니다
+            </p>
+            {generate.isError && (
+              <p className="text-sm text-destructive">
+                {getErrorMsg(generate.error, '인사이트 생성에 실패했습니다')}
+              </p>
+            )}
+            <Button
+              size="sm"
+              onClick={() => generate.mutate()}
+              disabled={generate.isPending}
+            >
+              {generate.isPending ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-1 h-4 w-4" />
+              )}
+              {generate.isPending
+                ? '생성 중...'
+                : generate.isError
+                  ? '다시 시도'
+                  : '인사이트 생성'}
+            </Button>
+          </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
             {insights.map((insight, i) => {

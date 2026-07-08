@@ -10,7 +10,11 @@ export function PaymentScheduleWidget() {
 
   const payments = (schedules ?? [])
     .filter((s) => s.type === 'expense' && s.is_active)
-    .sort((a, b) => a.schedule_day - b.schedule_day);
+    .sort(
+      (a, b) =>
+        (a.schedule_day === 0 ? 32 : a.schedule_day) -
+        (b.schedule_day === 0 ? 32 : b.schedule_day)
+    );
 
   return (
     <Card>
@@ -38,8 +42,8 @@ export function PaymentScheduleWidget() {
             {payments.map((payment) => (
               <li key={payment.id} className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                    {payment.schedule_day}
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-1.5 text-xs font-bold text-primary">
+                    {payment.schedule_day === 0 ? '말일' : payment.schedule_day}
                   </span>
                   <span className="text-sm">{payment.name}</span>
                 </div>

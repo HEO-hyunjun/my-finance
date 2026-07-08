@@ -7,7 +7,7 @@ export function Component() {
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 p-6">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">가져오기</h1>
         <p className="mt-1 text-sm text-muted-foreground">

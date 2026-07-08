@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '@/shared/api/client';
 import type { AIInsightsResponse, DashboardSummaryResponse } from '@/shared/types/dashboard';
 
@@ -29,5 +29,19 @@ export function useDashboardInsights() {
     },
     staleTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useGenerateInsights() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (): Promise<AIInsightsResponse> => {
+      const { data } = await apiClient.post('/v1/dashboard/insights/generate');
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.setQueryData(dashboardKeys.insights(), data);
+      qc.invalidateQueries({ queryKey: dashboardKeys.insights() });
+    },
   });
 }

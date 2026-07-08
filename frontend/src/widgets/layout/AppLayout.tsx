@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { GlobalCreateEntryDialog } from './GlobalCreateEntryDialog';
@@ -10,6 +10,8 @@ export function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showGlobalCreate, setShowGlobalCreate] = useState(false);
+  const { pathname } = useLocation();
+  const isFullBleed = pathname === '/chatbot';
 
   const handleQuickAdd = useCallback(() => {
     setShowGlobalCreate(true);
@@ -41,7 +43,13 @@ export function AppLayout() {
       >
         <Header onMenuClick={() => setMobileOpen(true)} onQuickAdd={handleQuickAdd} />
         <main id="main-content" className="flex-1">
-          <Outlet />
+          {isFullBleed ? (
+            <Outlet />
+          ) : (
+            <div className="mx-auto w-full max-w-6xl p-4 md:p-6">
+              <Outlet />
+            </div>
+          )}
         </main>
       </div>
 
