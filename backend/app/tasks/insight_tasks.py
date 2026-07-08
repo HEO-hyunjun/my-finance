@@ -40,7 +40,7 @@ async def _generate_all_user_insights_async():
                 if insights:
                     count += 1
             except Exception as e:
-                logger.warning(f"Insight generation failed for user {user.id}: {e}")
+                logger.exception(f"Insight generation failed for user {user.id}: {e}")
 
         logger.info(f"Daily insights generated for {count}/{len(users)} users")
 

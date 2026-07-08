@@ -7,19 +7,23 @@ def calculate_ledger_accrued_interest(
     annual_rate: Decimal,
     tax_rate: Decimal,
     as_of: date,
+    maturity_date: date | None = None,
 ) -> Decimal:
     """원장 기반 세후 발생이자 (단리).
 
     비-INTEREST entry별로 amount × (rate/100) × 경과일/365를 합산해
     세후(×(1-tax/100))로 반환한다. 예금·적금 공통.
     entries의 각 원소는 amount(Decimal)와 transacted_at(datetime) 속성을 가진다.
+    maturity_date가 주어지면 경과일 계산 기준일을 만기일로 캡한다(만기 후 이자 미발생).
     """
     rate = float(annual_rate) / 100
     tax = float(tax_rate) / 100
 
+    effective_as_of = min(as_of, maturity_date) if maturity_date else as_of
+
     pretax = 0.0
     for e in entries:
-        elapsed = max(0, (as_of - e.transacted_at.date()).days)
+        elapsed = max(0, (effective_as_of - e.transacted_at.date()).days)
         pretax += float(e.amount) * rate * elapsed / 365
 
     aftertax = pretax * (1 - tax)

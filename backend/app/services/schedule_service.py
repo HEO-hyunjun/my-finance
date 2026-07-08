@@ -81,10 +81,13 @@ async def execute_schedule(db: AsyncSession, schedule: RecurringSchedule, target
 
     # 중복 체크: 이번 달 같은 스케줄에서 생성된 Entry가 있는지
     # TRANSFER는 2개 Entry(out+in)를 생성하므로 .first() 사용
+    from app.core.tz import kst_month_utc_range
+
+    month_start_utc, month_end_utc = kst_month_utc_range(target_date)
     check_stmt = select(Entry.id).where(
         Entry.recurring_schedule_id == schedule.id,
-        extract("year", Entry.transacted_at) == target_date.year,
-        extract("month", Entry.transacted_at) == target_date.month,
+        Entry.transacted_at >= month_start_utc,
+        Entry.transacted_at < month_end_utc,
     ).limit(1)
     if (await db.execute(check_stmt)).scalar_one_or_none():
         return None
@@ -169,6 +172,8 @@ async def execute_due_schedules(db: AsyncSession, today: date) -> dict:
     conditions = [RecurringSchedule.schedule_day == today.day]
     if is_last_day:
         conditions.append(RecurringSchedule.schedule_day == 0)
+        # schedule_day가 이번 달 말일보다 큰 경우(예: 4월의 31일)도 말일에 실행
+        conditions.append(RecurringSchedule.schedule_day > last_day)
 
     stmt = select(RecurringSchedule).where(
         RecurringSchedule.is_active.is_(True),
@@ -304,6 +309,8 @@ async def compensate_missed_schedules(db: AsyncSession, today: date) -> dict:
         day_condition = or_(
             and_(RecurringSchedule.schedule_day > 0, RecurringSchedule.schedule_day <= today.day),
             RecurringSchedule.schedule_day == 0,
+            # schedule_day가 이번 달 말일보다 큰 경우(예: 4월의 31일)도 말일에 보상
+            RecurringSchedule.schedule_day > last_day,
         )
     else:
         day_condition = and_(
@@ -323,7 +330,14 @@ async def compensate_missed_schedules(db: AsyncSession, today: date) -> dict:
 
     for schedule in schedules:
         try:
-            result = await execute_schedule(db, schedule, today)
+            # 보상은 실제 예정일(월말 클램프 적용) 기준으로 실행해
+            # start/end_date 판정이 보상 시점(today)이 아닌 예정일 기준이 되게 한다.
+            if schedule.schedule_day == 0:
+                exec_day = last_day
+            else:
+                exec_day = min(schedule.schedule_day, last_day)
+            scheduled_date = date(today.year, today.month, exec_day)
+            result = await execute_schedule(db, schedule, scheduled_date)
             if result:
                 executed += 1
             else:

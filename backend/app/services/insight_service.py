@@ -55,8 +55,12 @@ async def generate_daily_insights(
     db: AsyncSession,
     user_id: uuid.UUID,
     market: MarketService,
+    raise_on_error: bool = False,
 ) -> list[dict]:
     """LLM을 호출하여 인사이트를 생성하고 DB에 저장. 이미 있으면 재생성.
+
+    raise_on_error=True이면 LLM 호출/파싱 실패를 예외로 전파한다(on-demand API용).
+    기본값(False)에서는 실패를 삼키고 빈 리스트를 반환한다(배치용).
 
     TODO: Phase 2 - asset_service, budget_service, transaction_service를
     새 스키마 기반 서비스로 교체 필요.
@@ -205,6 +209,8 @@ async def generate_daily_insights(
         await db.commit()
         return validated
     except Exception as e:
-        logger.warning(f"AI insight generation failed: {e}")
         await db.rollback()
+        if raise_on_error:
+            raise
+        logger.exception(f"AI insight generation failed: {e}")
         return []

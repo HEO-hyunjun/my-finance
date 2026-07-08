@@ -35,12 +35,18 @@ def record_monthly_deposit_interest():
 
 
 async def _record_parking_interest_async():
-    from sqlalchemy import select, and_
+    from datetime import timedelta
 
+    from sqlalchemy import select, and_, func
+
+    from app.core.tz import APP_TZ
     from app.models.account import Account, AccountType
     from app.models.entry import Entry, EntryType
     from app.services.entry_service import get_account_balance
     from app.services.interest_service import calculate_parking_interest
+
+    # 다운타임 backfill 상한: 최근 이 일수까지만 소급 기록
+    BACKFILL_MAX_DAYS = 31
 
     async_session, engine = _get_async_session()
     today = tz_today()
@@ -65,21 +71,6 @@ async def _record_parking_interest_async():
                     if balance <= 0:
                         continue
 
-                    # 중복 체크: 오늘(KST) 이미 기록된 이자 Entry가 있는지 (source 기준)
-                    day_start_utc, day_end_utc = kst_day_utc_range(today)
-                    existing = await db.execute(
-                        select(Entry.id).where(
-                            and_(
-                                Entry.account_id == account.id,
-                                Entry.source == "interest",
-                                Entry.transacted_at >= day_start_utc,
-                                Entry.transacted_at < day_end_utc,
-                            )
-                        ).limit(1)
-                    )
-                    if existing.first() is not None:
-                        continue
-
                     info = calculate_parking_interest(
                         principal=balance,
                         annual_rate=account.interest_rate,
@@ -95,19 +86,51 @@ async def _record_parking_interest_async():
 
                     after_tax_decimal = Decimal(str(daily_after_tax))
 
-                    # Entry로 이자 기록 (원금 업데이트 불필요 — Entry가 진실 원천)
-                    entry = Entry(
-                        user_id=account.user_id,
-                        account_id=account.id,
-                        type=EntryType.INTEREST,
-                        amount=after_tax_decimal,
-                        currency=account.currency,
-                        memo=f"{account.name} 일일이자",
-                        source="interest",
-                        transacted_at=kst_noon_utc(today),
-                    )
-                    db.add(entry)
-                    count += 1
+                    # backfill 시작일: 마지막 이자 Entry 다음날(없으면 계좌 생성일).
+                    # 상한(BACKFILL_MAX_DAYS)으로 클램프해 과도한 소급을 방지.
+                    last_interest_at = (await db.execute(
+                        select(func.max(Entry.transacted_at)).where(
+                            Entry.account_id == account.id,
+                            Entry.source == "interest",
+                        )
+                    )).scalar()
+                    if last_interest_at is not None:
+                        start_day = last_interest_at.astimezone(APP_TZ).date() + timedelta(days=1)
+                    else:
+                        start_day = account.created_at.astimezone(APP_TZ).date()
+                    earliest = today - timedelta(days=BACKFILL_MAX_DAYS - 1)
+                    if start_day < earliest:
+                        start_day = earliest
+
+                    d = start_day
+                    while d <= today:
+                        # 날짜별 중복 체크: 해당 KST 날짜에 이미 기록된 이자 Entry가 있는지
+                        day_start_utc, day_end_utc = kst_day_utc_range(d)
+                        existing = await db.execute(
+                            select(Entry.id).where(
+                                and_(
+                                    Entry.account_id == account.id,
+                                    Entry.source == "interest",
+                                    Entry.transacted_at >= day_start_utc,
+                                    Entry.transacted_at < day_end_utc,
+                                )
+                            ).limit(1)
+                        )
+                        if existing.first() is None:
+                            # Entry로 이자 기록 (원금 업데이트 불필요 — Entry가 진실 원천)
+                            entry = Entry(
+                                user_id=account.user_id,
+                                account_id=account.id,
+                                type=EntryType.INTEREST,
+                                amount=after_tax_decimal,
+                                currency=account.currency,
+                                memo=f"{account.name} 일일이자",
+                                source="interest",
+                                transacted_at=kst_noon_utc(d),
+                            )
+                            db.add(entry)
+                            count += 1
+                        d += timedelta(days=1)
                 except Exception as e:
                     logger.warning(
                         f"Parking interest failed for account {account.id}: {e}"
@@ -124,7 +147,9 @@ async def _record_parking_interest_async():
 
 
 async def _record_deposit_interest_async():
-    from sqlalchemy import select, func
+    from datetime import timedelta
+
+    from sqlalchemy import select, func, or_
 
     from app.models.account import Account, AccountType
     from app.models.entry import Entry, EntryType
@@ -136,7 +161,10 @@ async def _record_deposit_interest_async():
 
     try:
         async with async_session() as db:
-            # 예금 + 적금 계좌 조회 (만기 전, 이율 있는 활성 계좌)
+            # 예금 + 적금 계좌 조회 (이율 있는 활성 계좌).
+            # 만기 직후 첫 실행에서 마지막 구간 이자를 정산하기 위해
+            # 만기가 최근(45일 이내)이거나 아직 안 지난 계좌까지 포함한다.
+            # (월 1회 실행 주기 + 여유분. accrued는 만기일로 캡되므로 중복 없이 자기치유)
             result = await db.execute(
                 select(Account).where(
                     Account.account_type.in_(
@@ -144,7 +172,10 @@ async def _record_deposit_interest_async():
                     ),
                     Account.is_active.is_(True),
                     Account.interest_rate > 0,
-                    Account.maturity_date >= today,
+                    or_(
+                        Account.maturity_date.is_(None),
+                        Account.maturity_date >= today - timedelta(days=45),
+                    ),
                 )
             )
             accounts = result.scalars().all()
@@ -168,6 +199,7 @@ async def _record_deposit_interest_async():
                         annual_rate=account.interest_rate,
                         tax_rate=tax_rate,
                         as_of=today,
+                        maturity_date=account.maturity_date,
                     )
 
                     # 이미 기록된 이자 합계와의 차액만 보충 (자기치유 델타)
